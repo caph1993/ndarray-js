@@ -1,6 +1,7 @@
 
+console.log('Start')
 var { spawnSync } = require('child_process'); // For testing
-var { MyArray } = require('numpy-js');
+var MyArray = require('../index');
 // console.log(np`np.arange(120).reshape([-1,3])`)
 // console.log(np`np.arange(120).reshape([-1, 3])[2:-3:6]`)
 
@@ -37,7 +38,7 @@ print(json.dumps(out), flush=True)
   try {
     obtained = np(template, ...variables);
   } catch (err) {
-    console.error('ERROR. Mismatch for', str);
+    console.error('ERROR. numpy-js failed for', str);
     console.error(JSON.stringify(expected));
     throw err;
   }
@@ -117,3 +118,5 @@ npTest`np.sum(np.ones(np.array([10,2])), axis=0, keepdims=True) + np.arange(2)`
 npTest`np.arange(120).reshape([2,3,4,5])[:,0,[1,2],None,:].shape`
 
 npTest`np.arange(120).reshape([2,3,4,5])[:,0,[1,2],None,:]`
+
+console.log('Success')

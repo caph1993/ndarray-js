@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
+  "author": "Carlos Pinzón",
   "license": "BSD 3",
   "dependencies": {
     "ohm-js": "^17.1.0"
