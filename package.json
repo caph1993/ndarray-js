@@ -1,0 +1,19 @@
+{
+  "name": "numpy-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "ohm-js": "^17.1.0"
+  },
+  "devDependencies": {
+    "d3": "^6.0.0",
+    "jsdom": "^22.1.0"
+  }
+}
