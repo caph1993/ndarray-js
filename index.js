@@ -400,15 +400,21 @@ MyArray.prototype.__parse_sliceRange = function (axis_size, { start, stop, step 
 }
 
 
+/**
+ * 
+ * @returns {[number[], number[][], number[], boolean]}
+ */
 MyArray.prototype.__parse_sliceSpec = function (shape, sliceSpec) {
   /**
    * 
-   * virtual vShape (hard to explain, but equal to shape most of the times).
-   * vShape is used to capture the fact that a boolean mask can span
-   * over several axes. E.g., in np.ones((2,3,4,5))[:, np.random.random((3,4))>0.5, 1],
-   * the random boolean mask is spanning over axes 1 and 2. In this case, it suffices
-   * to merge these axes, to get a vShape of (2, 12, 5), and flattening the mask.
+   * vShape (virtual shape) matches shape unless there are boolean masks spanning
+   * over several axes/dimensions.
+   * For example, in `np.ones((2,3,4,5))[:, np.arange(12).reshape((3,4))>5, 1]`,
+   * the boolean mask is spanning over axes 1 and 2. In this case, the output should
+   * merge these axes, resulting in an a vShape of (2, 12, 5).
+   * The boolean mask is then converted to indices in the flattened merged axis.
    */
+  let asView = true;
   const vShape = [];
   const outShape = [];
   const slices = [];
@@ -447,6 +453,7 @@ MyArray.prototype.__parse_sliceSpec = function (shape, sliceSpec) {
     else if (slice.isRange) {
       indices = MyArray.prototype.__parse_sliceRange(shape[axis], slice);
     } else if (slice instanceof MyArray || Array.isArray(slice)) {
+      asView = false;
       slice = MyArray.prototype.asarray(slice)
       if (slice.dtype == Number) {
         // Array of indices
@@ -480,17 +487,18 @@ MyArray.prototype.__parse_sliceSpec = function (shape, sliceSpec) {
     slices.splice(0, ellipsis.slices).concat(slices.reverse());
     outShape.splice(0, ellipsis.outShape).concat(outShape.reverse());
   }
-  return [outShape, slices, vShape];
+  return [outShape, slices, vShape, asView];
 }
 
 
 MyArray.prototype._idx_slice = function (shape, sliceSpec) {
   // Iterative cartesian product of the slices.
-  const [outShape, slices, vShape] = MyArray.prototype.__parse_sliceSpec(shape, sliceSpec);
+  const { __parse_sliceSpec, __shape_shifts } = MyArray.prototype;
+  const [outShape, slices, vShape, asView] = __parse_sliceSpec(shape, sliceSpec);
   if (slices.map(l => l.length).reduce((a, b) => a * b, 1) == 0) {
     return [outShape, []];
   }
-  const shifts = MyArray.prototype.__shape_shifts(vShape);
+  const shifts = __shape_shifts(vShape);
   const indices = [];
   const maxIndex = slices.length - 1;
   const tuple = new Array(slices.length).fill(0);
@@ -964,5 +972,6 @@ MyArray.prototype.reshape = function (A, shape, ...more_shape) {
   }
   return new MyArray([...A.flat], shape);
 };
+
 
 module.exports = MyArray;
