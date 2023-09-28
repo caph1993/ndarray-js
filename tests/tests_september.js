@@ -34,18 +34,18 @@ print(json.dumps(out), flush=True)
   const stdout = process.stdout.toString();
   if (!stdout.length) throw new Error(process.stderr.toString());
   const expected = JSON.parse(stdout);
-  let obtained
+  let obtained;
   try {
     obtained = np(template, ...variables);
   } catch (err) {
-    console.error('ERROR. numpy-js failed for', str);
     console.error(JSON.stringify(expected));
+    console.error(`numpy-js failed for ${str}`);
     throw err;
   }
   if (!MyArray.prototype.nested.allClose(obtained, expected)) {
-    console.error('ERROR. Mismatch for', str);
     console.error(JSON.stringify(expected));
     console.error(JSON.stringify(obtained));
+    throw new Error(`Mismatch for ${str}`);
   }
   return obtained;
 }

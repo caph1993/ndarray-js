@@ -1,6 +1,10 @@
 //@ts-check
 var ohm = require('ohm-js');
 
+/** @typedef {NumberConstructor|BooleanConstructor} DType */
+/** @typedef {MyArray|number|boolean} ArrayOrConstant */
+/** @typedef {null|number} Axis */
+
 class MyArray {
   /**
    * @param {number[] | boolean[]} flat
@@ -12,6 +16,17 @@ class MyArray {
     this.shape = shape;
     this.dtype = dtype;
   }
+
+}
+
+/**
+ * 
+ * @param {MyArray} arr 
+ * @returns {MyArray|number|boolean}
+ */
+MyArray.prototype.__number_collapse = function (arr) {
+  if (!arr.shape.length) return arr.flat[0];
+  return arr;
 }
 
 
@@ -33,11 +48,16 @@ MyArray.prototype.__parse_shape = function (list) {
   if (typeof list == "number") return [list];
   throw new Error(`Expected list. Got ${list}`);
 }
-MyArray.prototype.zeros = function (shape, dtype = Number) {
-  return MyArray.prototype._new(shape, (_) => 0, dtype)
+MyArray.prototype.zeros = function (shape, /**@type {DType} */dtype = Number) {
+  const c = dtype == Boolean ? false : 0;
+  return MyArray.prototype._new(shape, (_) => c, dtype)
 };
-MyArray.prototype.ones = function (shape, dtype = Number) {
-  return MyArray.prototype._new(shape, (_) => 1, dtype)
+MyArray.prototype.empty = function (shape, /**@type {DType} */dtype = Number) {
+  return MyArray.prototype._new(shape, (_) => undefined, dtype)
+};
+MyArray.prototype.ones = function (shape, /**@type {DType} */dtype = Number) {
+  const c = dtype == Boolean ? true : 1;
+  return MyArray.prototype._new(shape, (_) => c, dtype)
 };
 MyArray.prototype.arange = function (arg0, arg1 = null) {
   let start, end;
@@ -52,12 +72,13 @@ MyArray.prototype.arange = function (arg0, arg1 = null) {
 
 
 MyArray.prototype._reduce = function (arr, axis, keepdims, reducer, dtype = Number) {
-  keepdims = MyArray.prototype.__as_boolean(keepdims);
-  arr = MyArray.prototype.asarray(arr);
+  const { asarray, __shape_shifts, __as_boolean, __number_collapse } = MyArray.prototype;
+  keepdims = __as_boolean(keepdims);
+  arr = asarray(arr);
   if (axis == null) return reducer(arr.flat);
   if (axis < 0) axis = arr.shape.length - 1;
   let m = arr.shape[axis];
-  let shift = MyArray.prototype.__shape_shifts(arr.shape)[axis];
+  let shift = __shape_shifts(arr.shape)[axis];
   const groups = Array.from({ length: m }, (_) =>/**@type {number[]}*/([]));
   arr.flat.forEach((value, i) => groups[(Math.floor(i / shift)) % m].push(value));
   // Transpose it:
@@ -72,8 +93,10 @@ MyArray.prototype._reduce = function (arr, axis, keepdims, reducer, dtype = Numb
   let shape = [...arr.shape];
   if (keepdims) shape[axis] = 1;
   else shape = shape.filter((_, i) => i != axis);
-  return new MyArray(flat, shape, dtype);
+  const out = new MyArray(flat, shape, dtype)
+  return __number_collapse(out);
 };
+
 MyArray.prototype.__as_boolean = function (obj) {
   if (obj instanceof MyArray) {
     if (obj.flat.length > 1 || obj.shape.length) throw new Error(`Expected 0D boolean. Got shape ${obj.shape}`);
@@ -92,9 +115,15 @@ MyArray.prototype.__as_number = function (obj) {
 }
 
 MyArray.prototype.__make_reducer = function (dtype, reducer) {
+  const { _reduce } = MyArray.prototype;
+  /**
+   * @param {ArrayOrConstant} arr
+   * @param {Axis} axis
+   * @param {boolean} keepdims
+   */
   return function (arr, axis = null, keepdims = false) {
     ({ axis, keepdims } = Object.assign({ axis, keepdims }, this));
-    return MyArray.prototype._reduce(arr, axis, keepdims, reducer, dtype);
+    return _reduce(arr, axis, keepdims, reducer, dtype);
   };
 }
 
@@ -134,60 +163,36 @@ MyArray.prototype.std = function (arr, axis = null, keepdims = false) {
 //       Binary operations (and boolean_not)
 // ==============================
 
-MyArray.prototype._binary_operations = {
-  "+": [((a, b) => a + b), Number],
-  "-": [((a, b) => a - b), Number],
-  "*": [((a, b) => a * b), Number],
-  "/": [((a, b) => a / b), Number],
-  "%": [((a, b) => (a % b)), Number],
-  "//": [((a, b) => Math.floor(a / b)), Number],
-  "**": [((a, b) => Math.pow(a, b)), Number],
-  "=": [((a, b) => b), Number],
-  "|": [((a, b) => a | b), Number],
-  "&": [((a, b) => a & b), Number],
-  "^": [((a, b) => a ^ b), Number],
-  "<<": [((a, b) => a << b), Number],
-  ">>": [((a, b) => a >> b), Number],
-  ">": [((a, b) => a > b), Boolean],
-  "<": [((a, b) => a < b), Boolean],
-  ">=": [((a, b) => a >= b), Boolean],
-  "<=": [((a, b) => a <= b), Boolean],
-  "==": [((a, b) => a == b), Boolean],
-  "!=": [((a, b) => a != b), Boolean],
-  "||": [((a, b) => a || b), Boolean],
-  "&&": [((a, b) => a && b), Boolean],
-  // Custom notation
-  "↑": [((a, b) => Math.max(a, b)), Number],
-  "↓": [((a, b) => Math.min(a, b)), Number],
-  // "≈": [((a, b) => a, b), Boolean],
-};
-
-MyArray.prototype._binary_operation = function (A, B, func, dtype) {
+/**
+ * 
+ * @param {ArrayOrConstant} A 
+ * @param {ArrayOrConstant} B 
+ * @param {*} func
+ * @param {*} dtype
+ * @param {MyArray?} out
+ * @returns {ArrayOrConstant}
+ */
+MyArray.prototype._binary_operation = function (A, B, func, dtype, out = null) {
   // Find output shape and input broadcast shapes
-  A = MyArray.prototype.asarray(A);
-  B = MyArray.prototype.asarray(B);
-  const [shape, shapeA, shapeB] = MyArray.prototype._broadcast_shapes(A.shape, B.shape);
-  const shiftsA = MyArray.prototype.__shape_shifts(shapeA);
-  const shiftsB = MyArray.prototype.__shape_shifts(shapeB);
+  const { asarray, _broadcast_shapes, __shape_shifts, empty, __number_collapse } = MyArray.prototype;
+  A = asarray(A);
+  B = asarray(B);
+  const [shape, shapeA, shapeB] = _broadcast_shapes(A.shape, B.shape);
+  if (out == null) out = empty(shape, dtype);
+  else if (!(out instanceof MyArray)) throw new Error(`Out must be of type ${MyArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
-  const result = new Array(shape.reduce((a, b) => a * b, 1)).fill(undefined);
-  for (let i = 0; i < result.length; i++) {
+  const shiftsA = __shape_shifts(shapeA);
+  const shiftsB = __shape_shifts(shapeB);
+  for (let i = 0; i < out.flat.length; i++) {
     let idxA = 0, idxB = 0, idx = i;
     for (let axis = shape.length - 1; axis >= 0; axis--) {
       idxA += shiftsA[axis] * (idx % shapeA[axis]);
       idxB += shiftsB[axis] * (idx % shapeB[axis]);
       idx = Math.floor(idx / shape[axis]);
     }
-    result[i] = func(A.flat[idxA], B.flat[idxB]);
+    out.flat[i] = func(A.flat[idxA], B.flat[idxB]);
   };
-  return new MyArray(result, shape, dtype);
-}
-
-MyArray.prototype.__make_operation = function (symbol) {
-  const [func, dtype] = MyArray.prototype._binary_operations[symbol];
-  return function (A, B) {
-    return MyArray.prototype._binary_operation(A, B, func, dtype);
-  };
+  return __number_collapse(out);
 }
 
 MyArray.prototype._broadcast_shapes = function (shapeA, shapeB) {
@@ -205,61 +210,125 @@ MyArray.prototype._broadcast_shapes = function (shapeA, shapeB) {
   return [shape, shapeA, shapeB];
 }
 
-MyArray.prototype.add = MyArray.prototype.__make_operation("+");
-MyArray.prototype.subtract = MyArray.prototype.__make_operation("-");
-MyArray.prototype.multiply = MyArray.prototype.__make_operation("*");
-MyArray.prototype.divide = MyArray.prototype.__make_operation("/");
-MyArray.prototype.mod = MyArray.prototype.__make_operation("%");
-MyArray.prototype.divide_int = MyArray.prototype.__make_operation("//");
-MyArray.prototype.pow = MyArray.prototype.__make_operation("**");
-MyArray.prototype.boolean_or = MyArray.prototype.__make_operation("|");
-MyArray.prototype.boolean_and = MyArray.prototype.__make_operation("&");
-MyArray.prototype.boolean_xor = MyArray.prototype.__make_operation("^");
-MyArray.prototype.boolean_shift_left = MyArray.prototype.__make_operation("<<");
-MyArray.prototype.boolean_shift_right = MyArray.prototype.__make_operation(">>");
-MyArray.prototype.gt = MyArray.prototype.__make_operation(">");
-MyArray.prototype.lt = MyArray.prototype.__make_operation("<");
-MyArray.prototype.geq = MyArray.prototype.__make_operation(">=");
-MyArray.prototype.leq = MyArray.prototype.__make_operation("<=");
-MyArray.prototype.eq = MyArray.prototype.__make_operation("==");
-MyArray.prototype.neq = MyArray.prototype.__make_operation("!=");
-MyArray.prototype.maximum = MyArray.prototype.__make_operation("↑");
-MyArray.prototype.minimum = MyArray.prototype.__make_operation("↓");
-MyArray.prototype.__second = MyArray.prototype.__make_operation("=");
+/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:MyArray)=>ArrayOrConstant} BinaryOperator */
+
+/**@returns {BinaryOperator} */
+MyArray.prototype.__make_operator = function (dtype, func) {
+  /** @param {MyArray?} out */
+  return function (A, B, out = null) {
+    return MyArray.prototype._binary_operation(A, B, func, dtype, out);
+  };
+}
+
+/**@type {Object.<string, BinaryOperator>} */
+MyArray.prototype.op = {
+  "+": MyArray.prototype.__make_operator(Number, (a, b) => a + b),
+  "-": MyArray.prototype.__make_operator(Number, (a, b) => a - b),
+  "*": MyArray.prototype.__make_operator(Number, (a, b) => a * b),
+  "/": MyArray.prototype.__make_operator(Number, (a, b) => a / b),
+  "%": MyArray.prototype.__make_operator(Number, (a, b) => (a % b)),
+  "//": MyArray.prototype.__make_operator(Number, (a, b) => Math.floor(a / b)),
+  "**": MyArray.prototype.__make_operator(Number, (a, b) => Math.pow(a, b)),
+  ">": MyArray.prototype.__make_operator(Boolean, (a, b) => a > b),
+  "<": MyArray.prototype.__make_operator(Boolean, (a, b) => a < b),
+  ">=": MyArray.prototype.__make_operator(Boolean, (a, b) => a >= b),
+  "<=": MyArray.prototype.__make_operator(Boolean, (a, b) => a <= b),
+  "==": MyArray.prototype.__make_operator(Boolean, (a, b) => a == b),
+  "!=": MyArray.prototype.__make_operator(Boolean, (a, b) => a != b),
+  "|": MyArray.prototype.__make_operator(Number, (a, b) => a | b),
+  "&": MyArray.prototype.__make_operator(Number, (a, b) => a & b),
+  "^": MyArray.prototype.__make_operator(Number, (a, b) => a ^ b),
+  "<<": MyArray.prototype.__make_operator(Number, (a, b) => a << b),
+  ">>": MyArray.prototype.__make_operator(Number, (a, b) => a >> b),
+  // Operators with custom ascii identifiers:
+  "||": MyArray.prototype.__make_operator(Boolean, (a, b) => a || b),
+  "&&": MyArray.prototype.__make_operator(Boolean, (a, b) => a && b),
+  "max": MyArray.prototype.__make_operator(Number, (a, b) => Math.max(a, b)),
+  "min": MyArray.prototype.__make_operator(Number, (a, b) => Math.min(a, b)),
+};
+
+
+/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, sliceSpec:any)=>void} AssignmentOperator */
+/**@returns {AssignmentOperator} */
+MyArray.prototype.__make_assignment_operator = function (dtype, func) {
+  const { _binary_operation, _idx_slice, asarray, ravel } = MyArray.prototype;
+  /** @param {*?} sliceSpec */
+  return function (tgt, src, sliceSpec) {
+    if (!(tgt instanceof MyArray)) throw new Error(`Can not assign to a non-array. Found ${typeof tgt}: ${tgt}`);
+    if (!sliceSpec) {
+      _binary_operation(tgt, src, func, dtype, tgt);
+    } else {
+      src = asarray(src);
+      let [_, indices] = _idx_slice(tgt.shape, sliceSpec);
+      let tmpTgt = asarray(indices.map(i => tgt.flat[i]));
+      _binary_operation(tmpTgt, ravel(src), func, dtype, tmpTgt);
+      for (let i of indices) tgt.flat[i] = tmpTgt.flat[i];
+    }
+  };
+}
+
+/**@type {Object.<string, AssignmentOperator>} */
+MyArray.prototype.op_assign = {
+  "=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => b),
+  "+=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a + b),
+  "-=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a - b),
+  "*=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a * b),
+  "/=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a / b),
+  "%=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => (a % b)),
+  "//=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.floor(a / b)),
+  "**=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.pow(a, b)),
+  "|=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a | b),
+  "&=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a & b),
+  "^=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a ^ b),
+  "<<=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a << b),
+  ">>=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a >> b),
+  // Operators with custom ascii identifiers:
+  "max=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.max(a, b)),
+  "min=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.min(a, b)),
+  "||=": MyArray.prototype.__make_assignment_operator(Boolean, (a, b) => a || b),
+  "&&=": MyArray.prototype.__make_assignment_operator(Boolean, (a, b) => a && b),
+};
+
+
+// Extended, non-ascii operator names for fun
+MyArray.prototype.opx = Object.assign({
+  // Operators with custom non-ascii identifiers:
+  // "≈≈": MyArray.prototype.isclose,
+  "↑": MyArray.prototype.op["max"],
+  "↓": MyArray.prototype.op["min"],
+  "≤": MyArray.prototype.op["leq"],
+  "≥": MyArray.prototype.op["geq"],
+  "≠": MyArray.prototype.op["neq"],
+  "↑=": MyArray.prototype.op["max="],
+  "↓=": MyArray.prototype.op["min="],
+}, MyArray.prototype.op);
+
+
+MyArray.prototype.add = MyArray.prototype.op["+"];
+MyArray.prototype.subtract = MyArray.prototype.op["-"];
+MyArray.prototype.multiply = MyArray.prototype.op["*"];
+MyArray.prototype.divide = MyArray.prototype.op["/"];
+MyArray.prototype.mod = MyArray.prototype.op["%"];
+MyArray.prototype.divide_int = MyArray.prototype.op["//"];
+MyArray.prototype.pow = MyArray.prototype.op["**"];
+MyArray.prototype.boolean_or = MyArray.prototype.op["|"];
+MyArray.prototype.boolean_and = MyArray.prototype.op["&"];
+MyArray.prototype.boolean_xor = MyArray.prototype.op["^"];
+MyArray.prototype.boolean_shift_left = MyArray.prototype.op["<<"];
+MyArray.prototype.boolean_shift_right = MyArray.prototype.op[">>"];
+MyArray.prototype.gt = MyArray.prototype.op[">"];
+MyArray.prototype.lt = MyArray.prototype.op["<"];
+MyArray.prototype.geq = MyArray.prototype.op[">="];
+MyArray.prototype.leq = MyArray.prototype.op["<="];
+MyArray.prototype.eq = MyArray.prototype.op["=="];
+MyArray.prototype.neq = MyArray.prototype.op["!="];
+MyArray.prototype.maximum = MyArray.prototype.op["↑"];
+MyArray.prototype.minimum = MyArray.prototype.op["↓"];
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
 MyArray.prototype.boolean_not = function (A) { return MyArray.prototype.boolean_xor(A, 1); };
 
 
-MyArray.prototype.op = {
-  "+": MyArray.prototype.add,
-  "-": MyArray.prototype.subtract,
-  "*": MyArray.prototype.multiply,
-  "/": MyArray.prototype.divide,
-  "%": MyArray.prototype.mod,
-  "//": MyArray.prototype.divide_int,
-  "**": MyArray.prototype.pow,
-  "|": MyArray.prototype.boolean_or,
-  "&": MyArray.prototype.boolean_and,
-  "^": MyArray.prototype.boolean_xor,
-  "<<": MyArray.prototype.boolean_shift_left,
-  ">>": MyArray.prototype.boolean_shift_right,
-  "<": MyArray.prototype.lt,
-  ">": MyArray.prototype.gt,
-  "<=": MyArray.prototype.leq,
-  ">=": MyArray.prototype.geq,
-  "==": MyArray.prototype.eq,
-  "!=": MyArray.prototype.neq,
-  "~": MyArray.prototype.boolean_not,
-  // Operators with custom identifiers:
-  "≈≈": MyArray.prototype.isclose,
-  "↑": MyArray.prototype.maximum,
-  "↓": MyArray.prototype.minimum,
-  "≤": MyArray.prototype.leq,
-  "≥": MyArray.prototype.geq,
-  "≠": MyArray.prototype.neq,
-  "=": MyArray.prototype.__second,
-}
 
 MyArray.prototype.isclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   ({ rtol, atol, equal_nan } = Object.assign({ rtol, atol, equal_nan }, this));
@@ -355,10 +424,10 @@ MyArray.prototype.to_js_array = function (arr) {
   return recursiveReshape(arr.flat, arr.shape);
 }
 MyArray.prototype.ravel = function (A) {
+  // Returns a view (unless the input is a list)
   A = MyArray.prototype.asarray(A);
-  return new MyArray([...A.flat], [A.flat.length], A.dtype);
+  return new MyArray(A.flat, [A.flat.length], A.dtype);
 };
-
 
 
 // =========================================
@@ -367,8 +436,9 @@ MyArray.prototype.ravel = function (A) {
 
 
 MyArray.prototype.slice = function (arr, sliceSpec) {
+  // This can result either in a view or a copy
   const [shape, indices] = MyArray.prototype._idx_slice(arr.shape, sliceSpec);
-  return new MyArray(indices.map(i => arr.flat[i]), shape);
+  return new MyArray(indices.map(i => arr.flat[i]), shape, arr.dtype);
 }
 
 MyArray.prototype.__shape_shifts = function (shape) {
@@ -760,21 +830,17 @@ MyArray.prototype.grammar.__makeSemantics = () => {
   const semantics = {
     Instruction_sliceAssignment($tgt, _open, $sliceSpec, _close, $symbol, $src) {
       // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-      const tgt = $tgt.parse();
+      const _tgt = $tgt.parse();
+      const _src = $src.parse();
       const symbol = $symbol.sourceString;
       const sliceSpec = $sliceSpec.parse();
-      const src = MyArray.prototype.asarray($src.parse());
-      let arr = MyArray.prototype.asarray(tgt);
-      let [shape, indices] = MyArray.prototype._idx_slice(arr.shape, sliceSpec);
+      const { asarray, op_assign, to_js_array } = MyArray.prototype;
+      let tgt = asarray(_tgt);
+      op_assign[symbol](_tgt, _src, sliceSpec);
+      tgt = to_js_array(tgt);
+      while (_tgt.length) _tgt.pop();
       // @ts-ignore
-      let result = new MyArray(indices.map(i => arr.flat[i]), shape);
-      result = MyArray.prototype._binary_operation(result, src, symbol);
-      if (indices.length != result.flat.length) throw new Error(`Can't assign size ${result.flat.length} to slice of size ${indices.length}`);
-      for (let i of indices) arr.flat[i] = result.flat[i];
-      arr = MyArray.prototype.to_js_array(arr);
-      while (tgt.length) tgt.pop();
-      // @ts-ignore
-      tgt.push(...arr);
+      _tgt.push(..._tgt);
       return null;
     },
     Instruction_expression($arr) {
@@ -875,12 +941,12 @@ MyArray.prototype.grammar.__makeSemantics = () => {
   };
 
   function BinaryOperation($A, $symbol, $B) {
+    const { opx } = MyArray.prototype;
     const A = $A.parse();
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const [func, dtype] = MyArray.prototype._binary_operations[symbol];
-    return MyArray.prototype._binary_operation(A, B, func, dtype);
+    return MyArray.prototype.op[symbol](A, B);
   }
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
@@ -970,7 +1036,7 @@ MyArray.prototype.reshape = function (A, shape, ...more_shape) {
     }
     shape[inferredIndex] = n / productOfKnownDims;
   }
-  return new MyArray([...A.flat], shape);
+  return new MyArray(A.flat, shape, A.dtype);
 };
 
 
