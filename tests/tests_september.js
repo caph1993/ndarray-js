@@ -10,7 +10,7 @@ var MyArray = require('../index');
  * @param {any[]} variables
  * */
 function np(template, ...variables) {
-  return MyArray.prototype.grammar.parse(template, ...variables);
+  return MyArray.prototype.grammar.parseJS(template, ...variables);
 }
 
 
@@ -59,7 +59,7 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
     throw new Error(`Mismatch for ${str}`);
   }
   console.log("========", str, "============");
-  console.log(MyArray.prototype.from_js_array(obtained).toString());
+  console.log(MyArray.prototype.fromJS(obtained).toString());
   return obtained;
 }
 

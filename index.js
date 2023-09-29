@@ -2,13 +2,12 @@
 var ohm = require('ohm-js');
 
 /** @typedef {NumberConstructor|BooleanConstructor} DType */
-/** @typedef {MyArray|number|boolean} ArrayOrConstant */
+/** @typedef {NDArray|number|boolean} ArrayOrConstant */
 /** @typedef {null|number} Axis */
 
-/**@template {boolean|number} T*/
-class MyArray {
+class NDArray {
   /**
-   * @param {T[]} flat
+   * @param {number[]} flat actually number|boolean
    * @param {number[]} shape
    * @param {*} dtype
    */
@@ -40,7 +39,7 @@ class MyArray {
     }
   }
   toString() {
-    return MyArray.prototype.humanReadable(this);
+    return NDArray.prototype.humanReadable(this);
   }
 
   /**
@@ -51,35 +50,30 @@ class MyArray {
     // The index is simple if there are only ranges, numbers, ":" and at most one "..."
     // If index is simple, don't call ".indices" and make view
     // If index is advanced, get indices and make copy
-    // let shape = this.shape; //?????
-    // if (this._simpleIndexes) shape = this._simpleIndexes.internalShape;
     const axesIndex = AxesIndex.prototype.parse(this.shape, slicesSpec);
     if (axesIndex.isConstant) {
       let [index] = axesIndex.indices;
       return this.flat[index];
     } else if (axesIndex.isSimple) {
-      const composition = MyArray.prototype.__compose_simpleIndexes(this._simpleIndexes, axesIndex);
-      const out = new MyArray(this._flat, axesIndex.shape, this.dtype);
+      const composition = NDArray.prototype.__compose_simpleIndexes(this._simpleIndexes, axesIndex);
+      const out = new NDArray(this._flat, axesIndex.shape, this.dtype);
       out._simpleIndexes = composition;
       return out;
     } else {
       const src_flat = this.flat;
       const flat = axesIndex.indices.map(i => src_flat[i]);
-      return new MyArray(flat, axesIndex.shape, this.dtype);
+      return new NDArray(flat, axesIndex.shape, this.dtype);
     }
   }
 }
 
 
 /**
- * @param {MyArray} arr 
+ * @param {NDArray} arr 
  * @returns {string}
  */
-MyArray.prototype.humanReadable = function (arr) {
-
+NDArray.prototype.humanReadable = function (arr) {
   if (arr.shape.length == 0) return arr.flat[0].toString();
-
-
   let budgets = arr.shape.map(_ => 1);
   let lBudget = 30;
   for (let i = 0; i < arr.shape.length; i++) {
@@ -93,7 +87,6 @@ MyArray.prototype.humanReadable = function (arr) {
     budgets[i] = Math.min(arr.shape[i], rBudget);
     if (budgets[i] > before) rBudget = Math.floor(rBudget / (budgets[i] - before));
   }
-
   function simplify(list, depth = 0) {
     if (depth == arr.shape.length) return list;
     if (2 * budgets[depth] >= list.length) {
@@ -107,9 +100,8 @@ MyArray.prototype.humanReadable = function (arr) {
   while (rLimit > 0 && arr.shape[rLimit] == 1) {
     rLimit--;
   }
-
-  if (arr.dtype == Number) arr = MyArray.prototype.round(arr, 2);
-  let list = MyArray.prototype.to_js_array(arr);
+  if (arr.dtype == Number) arr = NDArray.prototype.round(arr, 2);
+  let list = NDArray.prototype.toJS(arr);
 
   function str(list, indent = 0, depth = 0) {
     if (list == '...' || depth >= arr.shape.length) return list;
@@ -138,7 +130,7 @@ MyArray.prototype.humanReadable = function (arr) {
         columnWidths[i] = Math.max(columnWidths[i], columns[i].trim().length);
       }
     }
-    // Build the formatted output
+    // Build the formatted outputs
     let formattedString = '';
     for (const row of rows) {
       let columns = row.split(delimiter);
@@ -149,13 +141,11 @@ MyArray.prototype.humanReadable = function (arr) {
       }
       formattedString += '\n';
     }
-
     return formattedString;
   }
   out = out.replace(/.*?(\n|$)/g, (match) => {
     // Split with a newline every 0 characters, but only after a comma,
-    // and only if there is no newline already in that chunk.
-    return match.replace(/([^\n]{60,}?,)/g, '$1\n');
+    return match.replace(/(.{60,}?,)/g, '$1\n');
   }).replace(/\n+/g, '\n');
   out = alignColumns(`${prefix}(${out}`).trim();
   out = `${out}${suffix})`;
@@ -181,7 +171,7 @@ class AxesIndex {
   }
   get indices() {
     if (this._indices) return this._indices;
-    let indices = MyArray.prototype.__slices_to_indices(this.internalShape, this.__slices);
+    let indices = NDArray.prototype.__slices_to_indices(this.internalShape, this.__slices);
     return this._indices = indices;
   }
   get __slices() {
@@ -198,7 +188,7 @@ class AxesIndex {
 
 /** @typedef {{size:Number, ranges:{refSize:number, range:number|[number,number,number]|null}[], indices:null|number[]}} SimpleIndex */
 
-MyArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndexes} */ simpleIndex) {
+NDArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndexes} */ simpleIndex) {
   if (!simpleIndex) throw new Error(`This function can only be called on views`);
   if (simpleIndex.indices) return simpleIndex.indices;
   const { ranges } = simpleIndex;
@@ -208,7 +198,7 @@ MyArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndexes} 
     for (let i = start; i < stop; i += step) indices.push(i);
     return indices;
   });
-  const indices = MyArray.prototype.__slices_to_indices(this.shape, slices);
+  const indices = NDArray.prototype.__slices_to_indices(this.shape, slices);
   return simpleIndex.indices = indices;
 }
 
@@ -218,7 +208,7 @@ MyArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndexes} 
  * @param {AxesIndex} second 
  * @returns {AxesIndex}
  */
-MyArray.prototype.__compose_simpleIndexes = function (first, second) {
+NDArray.prototype.__compose_simpleIndexes = function (first, second) {
   if (first == null) return second;
   const axisIndexes = [];
   // console.log({ first, second })
@@ -269,8 +259,8 @@ MyArray.prototype.__compose_simpleIndexes = function (first, second) {
  * @param {number[][]} slices 
  * @returns {number[]}
  */
-MyArray.prototype.__slices_to_indices = function (shape, slices) {
-  const { __shape_shifts } = MyArray.prototype;
+NDArray.prototype.__slices_to_indices = function (shape, slices) {
+  const { __shape_shifts } = NDArray.prototype;
   for (let slice of slices) if (slice.length == 0) return [];
   const shifts = __shape_shifts(shape);
   const iShifts = slices.map((indices, axis) => {
@@ -301,26 +291,26 @@ MyArray.prototype.__slices_to_indices = function (shape, slices) {
 
 /**
  * 
- * @param {MyArray} arr 
- * @returns {MyArray|number|boolean}
+ * @param {NDArray} arr 
+ * @returns {NDArray|number|boolean}
  */
-MyArray.prototype.__number_collapse = function (arr, expect = false) {
+NDArray.prototype.__number_collapse = function (arr, expect = false) {
   if (!arr.shape.length) return arr.flat[0];
   if (expect) throw new Error(`Expected constant. Got array with shape ${arr.shape}`);
   return arr;
 }
 
 
-MyArray.prototype._new = function (shape, f, dtype) {
-  shape = MyArray.prototype.__parse_shape(shape);
+NDArray.prototype._new = function (shape, f, dtype) {
+  shape = NDArray.prototype.__parse_shape(shape);
   const size = shape.reduce((a, b) => a * b, 1);
   const flat = Array.from({ length: size }, f);
-  return new MyArray(flat, shape, dtype);
+  return new NDArray(flat, shape, dtype);
 };
 
-MyArray.prototype.__parse_shape = function (list) {
+NDArray.prototype.__parse_shape = function (list) {
   if (Array.isArray(list)) return list;
-  if (list instanceof MyArray) {
+  if (list instanceof NDArray) {
     if (list.shape.length > 1) {
       throw new Error(`Expected flat list. Got array with shape ${list.shape}`);
     }
@@ -329,22 +319,22 @@ MyArray.prototype.__parse_shape = function (list) {
   if (typeof list == "number") return [list];
   throw new Error(`Expected list. Got ${list}`);
 }
-MyArray.prototype.zeros = function (shape, /**@type {DType} */dtype = Number) {
+NDArray.prototype.zeros = function (shape, /**@type {DType} */dtype = Number) {
   const c = dtype == Boolean ? false : 0;
-  return MyArray.prototype._new(shape, (_) => c, dtype)
+  return NDArray.prototype._new(shape, (_) => c, dtype)
 };
-MyArray.prototype.empty = function (shape, /**@type {DType} */dtype = Number) {
-  return MyArray.prototype._new(shape, (_) => undefined, dtype)
+NDArray.prototype.empty = function (shape, /**@type {DType} */dtype = Number) {
+  return NDArray.prototype._new(shape, (_) => undefined, dtype)
 };
-MyArray.prototype.ones = function (shape, /**@type {DType} */dtype = Number) {
+NDArray.prototype.ones = function (shape, /**@type {DType} */dtype = Number) {
   const c = dtype == Boolean ? true : 1;
-  return MyArray.prototype._new(shape, (_) => c, dtype)
+  return NDArray.prototype._new(shape, (_) => c, dtype)
 };
-MyArray.prototype.arange = function (arg0, arg1 = null) {
+NDArray.prototype.arange = function (arg0, arg1 = null) {
   let start, end;
   if (arg1 === null) start = 0, end = arg0;
   else start = arg0, end = arg1;
-  return MyArray.prototype._new(end - start, (_, i) => start + i, Number)
+  return NDArray.prototype._new(end - start, (_, i) => start + i, Number)
 };
 
 // ==============================
@@ -352,8 +342,8 @@ MyArray.prototype.arange = function (arg0, arg1 = null) {
 // ==============================
 
 
-MyArray.prototype._reduce = function (arr, axis, keepdims, reducer, dtype = Number) {
-  const { asarray, __shape_shifts, __as_boolean, __number_collapse } = MyArray.prototype;
+NDArray.prototype._reduce = function (arr, axis, keepdims, reducer, dtype = Number) {
+  const { asarray, __shape_shifts, __as_boolean, __number_collapse } = NDArray.prototype;
   keepdims = __as_boolean(keepdims);
   arr = asarray(arr);
   if (axis == null) return reducer(arr.flat);
@@ -374,23 +364,23 @@ MyArray.prototype._reduce = function (arr, axis, keepdims, reducer, dtype = Numb
   let shape = [...arr.shape];
   if (keepdims) shape[axis] = 1;
   else shape = shape.filter((_, i) => i != axis);
-  const out = new MyArray(flat, shape, dtype)
+  const out = new NDArray(flat, shape, dtype)
   return __number_collapse(out);
 };
 
-MyArray.prototype.__as_boolean = function (obj) {
-  if (obj instanceof MyArray) obj = MyArray.prototype.__number_collapse(obj, true);
+NDArray.prototype.__as_boolean = function (obj) {
+  if (obj instanceof NDArray) obj = NDArray.prototype.__number_collapse(obj, true);
   else if (typeof obj == 'string') throw new Error(`'string' object can not be interpreted as boolean: ${obj}`);
   return !!(0 + obj);
 }
-MyArray.prototype.__as_number = function (obj) {
-  if (obj instanceof MyArray) obj = MyArray.prototype.__number_collapse(obj, true);
+NDArray.prototype.__as_number = function (obj) {
+  if (obj instanceof NDArray) obj = NDArray.prototype.__number_collapse(obj, true);
   else if (typeof obj == 'string') throw new Error(`'string' object can not be interpreted as boolean: ${obj}`);
   return parseFloat(obj);
 }
 
-MyArray.prototype.__make_reducer = function (dtype, reducer) {
-  const { _reduce } = MyArray.prototype;
+NDArray.prototype.__make_reducer = function (dtype, reducer) {
+  const { _reduce } = NDArray.prototype;
   /**
    * @param {ArrayOrConstant} arr
    * @param {Axis} axis
@@ -403,32 +393,32 @@ MyArray.prototype.__make_reducer = function (dtype, reducer) {
 }
 
 
-MyArray.prototype.sum = MyArray.prototype.__make_reducer(Number, (arr) => arr.reduce((a, b) => a + b, 0));
-MyArray.prototype.product = MyArray.prototype.__make_reducer(Number, (arr) => arr.reduce((a, b) => a * b, 1));
-MyArray.prototype.any = MyArray.prototype.__make_reducer(Boolean, (arr) => {
+NDArray.prototype.sum = NDArray.prototype.__make_reducer(Number, (arr) => arr.reduce((a, b) => a + b, 0));
+NDArray.prototype.product = NDArray.prototype.__make_reducer(Number, (arr) => arr.reduce((a, b) => a * b, 1));
+NDArray.prototype.any = NDArray.prototype.__make_reducer(Boolean, (arr) => {
   for (let x of arr) if (x) return true;
   return false;
 });
-MyArray.prototype.all = MyArray.prototype.__make_reducer(Boolean, (arr) => {
+NDArray.prototype.all = NDArray.prototype.__make_reducer(Boolean, (arr) => {
   for (let x of arr) if (!x) return false;
   return true;
 });
-MyArray.prototype.max = MyArray.prototype.__make_reducer(Number, (arr) => Math.max(...arr));
-MyArray.prototype.min = MyArray.prototype.__make_reducer(Number, (arr) => Math.min(...arr));
-MyArray.prototype.argmax = MyArray.prototype.__make_reducer(Number, (arr) => arr.indexOf(Math.max(...arr)));
-MyArray.prototype.argmin = MyArray.prototype.__make_reducer(Number, (arr) => arr.indexOf(Math.min(...arr)));
-MyArray.prototype.mean = MyArray.prototype.__make_reducer(Number, (arr) => arr.reduce((a, b) => a + b, 0) / arr.length);
-MyArray.prototype.var = function (arr, axis = null, keepdims = false) {
+NDArray.prototype.max = NDArray.prototype.__make_reducer(Number, (arr) => Math.max(...arr));
+NDArray.prototype.min = NDArray.prototype.__make_reducer(Number, (arr) => Math.min(...arr));
+NDArray.prototype.argmax = NDArray.prototype.__make_reducer(Number, (arr) => arr.indexOf(Math.max(...arr)));
+NDArray.prototype.argmin = NDArray.prototype.__make_reducer(Number, (arr) => arr.indexOf(Math.min(...arr)));
+NDArray.prototype.mean = NDArray.prototype.__make_reducer(Number, (arr) => arr.reduce((a, b) => a + b, 0) / arr.length);
+NDArray.prototype.var = function (arr, axis = null, keepdims = false) {
   ({ axis, keepdims } = Object.assign({ axis, keepdims }, this));
-  const { mean, subtract, multiply } = MyArray.prototype;
+  const { mean, subtract, multiply } = NDArray.prototype;
   const arrMean = mean.bind({ axis, keepdims: true })(arr);
   arr = subtract(arr, arrMean);
   arr = multiply(arr, arr);
   return mean.bind({ axis, keepdims })(arr);
 };
-MyArray.prototype.std = function (arr, axis = null, keepdims = false) {
+NDArray.prototype.std = function (arr, axis = null, keepdims = false) {
   ({ axis, keepdims } = Object.assign({ axis, keepdims }, this));
-  const { pow, var: _var } = MyArray.prototype;
+  const { pow, var: _var } = NDArray.prototype;
   const variance = _var.bind({ axis, keepdims })(arr);
   return pow(variance, 0.5);
 };
@@ -444,17 +434,17 @@ MyArray.prototype.std = function (arr, axis = null, keepdims = false) {
  * @param {ArrayOrConstant} B 
  * @param {*} func
  * @param {*} dtype
- * @param {MyArray?} out
+ * @param {NDArray?} out
  * @returns {ArrayOrConstant}
  */
-MyArray.prototype._binary_operation = function (A, B, func, dtype, out = null) {
+NDArray.prototype._binary_operation = function (A, B, func, dtype, out = null) {
   // Find output shape and input broadcast shapes
-  const { asarray, _broadcast_shapes, __shape_shifts, empty, __number_collapse } = MyArray.prototype;
+  const { asarray, _broadcast_shapes, __shape_shifts, empty, __number_collapse } = NDArray.prototype;
   A = asarray(A);
   B = asarray(B);
   const [shape, shapeA, shapeB] = _broadcast_shapes(A.shape, B.shape);
   if (out == null) out = empty(shape, dtype);
-  else if (!(out instanceof MyArray)) throw new Error(`Out must be of type ${MyArray}. Got ${typeof out}`);
+  else if (!(out instanceof NDArray)) throw new Error(`Out must be of type ${NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
   const flatOut = [];
   const shiftsA = __shape_shifts(shapeA);
@@ -474,7 +464,7 @@ MyArray.prototype._binary_operation = function (A, B, func, dtype, out = null) {
   return __number_collapse(out);
 }
 
-MyArray.prototype._broadcast_shapes = function (shapeA, shapeB) {
+NDArray.prototype._broadcast_shapes = function (shapeA, shapeB) {
   const shape = [];
   const maxDim = Math.max(shapeA.length, shapeB.length);
   shapeA = [...Array.from({ length: maxDim - shapeA.length }, () => 1), ...shapeA];
@@ -489,52 +479,66 @@ MyArray.prototype._broadcast_shapes = function (shapeA, shapeB) {
   return [shape, shapeA, shapeB];
 }
 
-/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:MyArray)=>ArrayOrConstant} BinaryOperator */
+/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:NDArray)=>ArrayOrConstant} BinaryOperator */
 
 /**@returns {BinaryOperator} */
-MyArray.prototype.__make_operator = function (dtype, func) {
-  /** @param {MyArray?} out */
+NDArray.prototype.__make_operator = function (dtype, func) {
+/** @param {NDArray?} out */
   return function (A, B, out = null) {
-    return MyArray.prototype._binary_operation(A, B, func, dtype, out);
+    return NDArray.prototype._binary_operation(A, B, func, dtype, out);
+  };
+}
+
+/**@returns {BinaryOperator} */
+NDArray.prototype.__make_operator_special = function (funcNum, funcBool) {
+  /** @param {NDArray?} out */
+  return function (A, B, out = null) {
+    A = NDArray.prototype.asarray(A);
+    B = NDArray.prototype.asarray(B);
+    let dtype = A.dtype, func;
+    if (A.dtype != B.dtype) console.warn(`Warning: operating arrays of different dtypes. Using ${dtype}`);
+    if (dtype == Boolean) func = funcBool;
+    else func = funcNum;
+    return NDArray.prototype._binary_operation(A, B, func, dtype, out);
   };
 }
 
 /**@type {Object.<string, BinaryOperator>} */
-MyArray.prototype.op = {
-  "+": MyArray.prototype.__make_operator(Number, (a, b) => a + b),
-  "-": MyArray.prototype.__make_operator(Number, (a, b) => a - b),
-  "*": MyArray.prototype.__make_operator(Number, (a, b) => a * b),
-  "/": MyArray.prototype.__make_operator(Number, (a, b) => a / b),
-  "%": MyArray.prototype.__make_operator(Number, (a, b) => (a % b)),
-  "//": MyArray.prototype.__make_operator(Number, (a, b) => Math.floor(a / b)),
-  "**": MyArray.prototype.__make_operator(Number, (a, b) => Math.pow(a, b)),
-  "<": MyArray.prototype.__make_operator(Boolean, (a, b) => a < b),
-  ">": MyArray.prototype.__make_operator(Boolean, (a, b) => a > b),
-  ">=": MyArray.prototype.__make_operator(Boolean, (a, b) => a >= b),
-  "<=": MyArray.prototype.__make_operator(Boolean, (a, b) => a <= b),
-  "==": MyArray.prototype.__make_operator(Boolean, (a, b) => a == b),
-  "!=": MyArray.prototype.__make_operator(Boolean, (a, b) => a != b),
-  "|": MyArray.prototype.__make_operator(Number, (a, b) => a | b),
-  "&": MyArray.prototype.__make_operator(Number, (a, b) => a & b),
-  "^": MyArray.prototype.__make_operator(Number, (a, b) => a ^ b),
-  "<<": MyArray.prototype.__make_operator(Number, (a, b) => a << b),
-  ">>": MyArray.prototype.__make_operator(Number, (a, b) => a >> b),
+NDArray.prototype.op = {
+  "+": NDArray.prototype.__make_operator(Number, (a, b) => a + b),
+  "-": NDArray.prototype.__make_operator(Number, (a, b) => a - b),
+  "*": NDArray.prototype.__make_operator(Number, (a, b) => a * b),
+  "/": NDArray.prototype.__make_operator(Number, (a, b) => a / b),
+  "%": NDArray.prototype.__make_operator(Number, (a, b) => (a % b)),
+  "//": NDArray.prototype.__make_operator(Number, (a, b) => Math.floor(a / b)),
+  "**": NDArray.prototype.__make_operator(Number, (a, b) => Math.pow(a, b)),
+  "<": NDArray.prototype.__make_operator(Boolean, (a, b) => a < b),
+  ">": NDArray.prototype.__make_operator(Boolean, (a, b) => a > b),
+  ">=": NDArray.prototype.__make_operator(Boolean, (a, b) => a >= b),
+  "<=": NDArray.prototype.__make_operator(Boolean, (a, b) => a <= b),
+  "==": NDArray.prototype.__make_operator(Boolean, (a, b) => a == b),
+  "!=": NDArray.prototype.__make_operator(Boolean, (a, b) => a != b),
+  "|": NDArray.prototype.__make_operator_special((a, b) => a | b, (a, b) => a || b),
+  "&": NDArray.prototype.__make_operator_special((a, b) => a & b, (a, b) => a && b),
+  "^": NDArray.prototype.__make_operator(Number, (a, b) => a ^ b),
+  "<<": NDArray.prototype.__make_operator(Number, (a, b) => a << b),
+  ">>": NDArray.prototype.__make_operator(Number, (a, b) => a >> b),
   // Operators with custom ascii identifiers:
-  "||": MyArray.prototype.__make_operator(Boolean, (a, b) => a || b),
-  "&&": MyArray.prototype.__make_operator(Boolean, (a, b) => a && b),
-  "max": MyArray.prototype.__make_operator(Number, (a, b) => Math.max(a, b)),
-  "min": MyArray.prototype.__make_operator(Number, (a, b) => Math.min(a, b)),
+  "||": NDArray.prototype.__make_operator(Boolean, (a, b) => a || b),
+  "&&": NDArray.prototype.__make_operator(Boolean, (a, b) => a && b),
+  "max": NDArray.prototype.__make_operator(Number, (a, b) => Math.max(a, b)),
+  "min": NDArray.prototype.__make_operator(Number, (a, b) => Math.min(a, b)),
 };
 
 
 /** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, slicesSpec:any)=>void} AssignmentOperator */
 
 /**@returns {AssignmentOperator} */
-MyArray.prototype.__make_assignment_operator = function (dtype, func) {
-  const { _binary_operation, asarray, ravel } = MyArray.prototype;
+NDArray.prototype.__make_assignment_operator = function (dtype, func) {
+  const { _binary_operation, asarray, ravel } = NDArray.prototype;
   /** @param {*?} slicesSpec */
   return function (tgt, src, slicesSpec) {
-    if (!(tgt instanceof MyArray)) throw new Error(`Can not assign to a non-array. Found ${typeof tgt}: ${tgt}`);
+    if (!(tgt instanceof NDArray)) throw new Error(`Can not assign to a non-array. Found ${typeof tgt}: ${tgt}`);
     if (!slicesSpec) {
       _binary_operation(tgt, src, func, dtype, tgt);
     } else {
@@ -548,78 +552,78 @@ MyArray.prototype.__make_assignment_operator = function (dtype, func) {
 }
 
 /**@type {Object.<string, AssignmentOperator>} */
-MyArray.prototype.op_assign = {
-  "=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => b),
-  "+=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a + b),
-  "-=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a - b),
-  "*=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a * b),
-  "/=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a / b),
-  "%=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => (a % b)),
-  "//=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.floor(a / b)),
-  "**=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.pow(a, b)),
-  "|=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a | b),
-  "&=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a & b),
-  "^=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a ^ b),
-  "<<=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a << b),
-  ">>=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => a >> b),
+NDArray.prototype.op_assign = {
+  "=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => b),
+  "+=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a + b),
+  "-=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a - b),
+  "*=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a * b),
+  "/=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a / b),
+  "%=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => (a % b)),
+  "//=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => Math.floor(a / b)),
+  "**=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => Math.pow(a, b)),
+  "|=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a | b),
+  "&=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a & b),
+  "^=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a ^ b),
+  "<<=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a << b),
+  ">>=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => a >> b),
   // Operators with custom ascii identifiers:
-  "max=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.max(a, b)),
-  "min=": MyArray.prototype.__make_assignment_operator(Number, (a, b) => Math.min(a, b)),
-  "||=": MyArray.prototype.__make_assignment_operator(Boolean, (a, b) => a || b),
-  "&&=": MyArray.prototype.__make_assignment_operator(Boolean, (a, b) => a && b),
+  "max=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => Math.max(a, b)),
+  "min=": NDArray.prototype.__make_assignment_operator(Number, (a, b) => Math.min(a, b)),
+  "||=": NDArray.prototype.__make_assignment_operator(Boolean, (a, b) => a || b),
+  "&&=": NDArray.prototype.__make_assignment_operator(Boolean, (a, b) => a && b),
 };
 
 
 // Extended, non-ascii operator names for fun
-MyArray.prototype.opx = Object.assign({
+NDArray.prototype.opx = Object.assign({
   // Operators with custom non-ascii identifiers:
   // "≈≈": MyArray.prototype.isclose,
-  "↑": MyArray.prototype.op["max"],
-  "↓": MyArray.prototype.op["min"],
-  "≤": MyArray.prototype.op["leq"],
-  "≥": MyArray.prototype.op["geq"],
-  "≠": MyArray.prototype.op["neq"],
-  "↑=": MyArray.prototype.op["max="],
-  "↓=": MyArray.prototype.op["min="],
-}, MyArray.prototype.op);
+  "↑": NDArray.prototype.op["max"],
+  "↓": NDArray.prototype.op["min"],
+  "≤": NDArray.prototype.op["leq"],
+  "≥": NDArray.prototype.op["geq"],
+  "≠": NDArray.prototype.op["neq"],
+  "↑=": NDArray.prototype.op["max="],
+  "↓=": NDArray.prototype.op["min="],
+}, NDArray.prototype.op);
 
 
-MyArray.prototype.add = MyArray.prototype.op["+"];
-MyArray.prototype.subtract = MyArray.prototype.op["-"];
-MyArray.prototype.multiply = MyArray.prototype.op["*"];
-MyArray.prototype.divide = MyArray.prototype.op["/"];
-MyArray.prototype.mod = MyArray.prototype.op["%"];
-MyArray.prototype.divide_int = MyArray.prototype.op["//"];
-MyArray.prototype.pow = MyArray.prototype.op["**"];
-MyArray.prototype.boolean_or = MyArray.prototype.op["|"];
-MyArray.prototype.boolean_and = MyArray.prototype.op["&"];
-MyArray.prototype.boolean_xor = MyArray.prototype.op["^"];
-MyArray.prototype.boolean_shift_left = MyArray.prototype.op["<<"];
-MyArray.prototype.boolean_shift_right = MyArray.prototype.op[">>"];
-MyArray.prototype.gt = MyArray.prototype.op[">"];
-MyArray.prototype.lt = MyArray.prototype.op["<"];
-MyArray.prototype.geq = MyArray.prototype.op[">="];
-MyArray.prototype.leq = MyArray.prototype.op["<="];
-MyArray.prototype.eq = MyArray.prototype.op["=="];
-MyArray.prototype.neq = MyArray.prototype.op["!="];
-MyArray.prototype.maximum = MyArray.prototype.op["↑"];
-MyArray.prototype.minimum = MyArray.prototype.op["↓"];
+NDArray.prototype.add = NDArray.prototype.op["+"];
+NDArray.prototype.subtract = NDArray.prototype.op["-"];
+NDArray.prototype.multiply = NDArray.prototype.op["*"];
+NDArray.prototype.divide = NDArray.prototype.op["/"];
+NDArray.prototype.mod = NDArray.prototype.op["%"];
+NDArray.prototype.divide_int = NDArray.prototype.op["//"];
+NDArray.prototype.pow = NDArray.prototype.op["**"];
+NDArray.prototype.boolean_or = NDArray.prototype.op["|"];
+NDArray.prototype.boolean_and = NDArray.prototype.op["&"];
+NDArray.prototype.boolean_xor = NDArray.prototype.op["^"];
+NDArray.prototype.boolean_shift_left = NDArray.prototype.op["<<"];
+NDArray.prototype.boolean_shift_right = NDArray.prototype.op[">>"];
+NDArray.prototype.gt = NDArray.prototype.op[">"];
+NDArray.prototype.lt = NDArray.prototype.op["<"];
+NDArray.prototype.geq = NDArray.prototype.op[">="];
+NDArray.prototype.leq = NDArray.prototype.op["<="];
+NDArray.prototype.eq = NDArray.prototype.op["=="];
+NDArray.prototype.neq = NDArray.prototype.op["!="];
+NDArray.prototype.maximum = NDArray.prototype.op["↑"];
+NDArray.prototype.minimum = NDArray.prototype.op["↓"];
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-MyArray.prototype.boolean_not = function (A) { return MyArray.prototype.boolean_xor(A, 1); };
+NDArray.prototype.boolean_not = function (A) { return NDArray.prototype.boolean_xor(A, 1); };
 
 
 
-MyArray.prototype.isclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
+NDArray.prototype.isclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   ({ rtol, atol, equal_nan } = Object.assign({ rtol, atol, equal_nan }, this));
   const func = (a, b) => {
     if (Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b) <= atol + rtol * b;
     return (a == b) || (equal_nan && Number.isNaN(a) && Number.isNaN(b));
   }
-  return MyArray.prototype._binary_operation(A, B, func, Boolean)
+  return NDArray.prototype._binary_operation(A, B, func, Boolean)
 }
 
-MyArray.prototype.allclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
+NDArray.prototype.allclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   ({ rtol, atol, equal_nan } = Object.assign({ rtol, atol, equal_nan }, this));
   // Equivalent to all(isclose(A, B, rtol, atol, equal_nan)), but shortcutting if false 
   const func = (a, b) => { //copied from isclose
@@ -631,7 +635,7 @@ MyArray.prototype.allclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_n
     if (!func(a, b)) throw different;
     return 0;
   }
-  try { MyArray.prototype._binary_operation(A, B, wrapper, Number) }
+  try { NDArray.prototype._binary_operation(A, B, wrapper, Number) }
   catch (err) {
     if (err === different) return false;
     else throw err;
@@ -644,21 +648,21 @@ MyArray.prototype.allclose = function (A, B, rtol = 1.e-5, atol = 1.e-8, equal_n
 //    array instantiation and reshaping
 // ==============================
 
-MyArray.prototype.asarray = function (A) {
-  if (A instanceof MyArray) return A;
-  else return MyArray.prototype.from_js_array(A);
+NDArray.prototype.asarray = function (A) {
+  if (A instanceof NDArray) return A;
+  else return NDArray.prototype.fromJS(A);
 }
-MyArray.prototype.array = function (A) {
+NDArray.prototype.array = function (A) {
   // @ts-ignore
-  if (A instanceof MyArray) {
+  if (A instanceof NDArray) {
     let flat = A._simpleIndexes == null ? [...A.flat] : A.flat;
-    return new MyArray(flat, A.shape, A.dtype);
+    return new NDArray(flat, A.shape, A.dtype);
   }
-  else return MyArray.prototype.from_js_array(A);
+  else return NDArray.prototype.fromJS(A);
 }
-MyArray.prototype.from_js_array = function (arr) {
-  if (typeof arr === "number") return new MyArray([arr], [], Number);
-  if (typeof arr === "boolean") return new MyArray([arr ? 1 : 0], [], Boolean);
+NDArray.prototype.fromJS = function (arr) {
+  if (typeof arr === "number") return new NDArray([arr], [], Number);
+  if (typeof arr === "boolean") return new NDArray([arr ? 1 : 0], [], Boolean);
   if (!Array.isArray(arr)) throw new Error(`Can't parse as array: ${arr}`);
   const shape = [];
   let root = arr;
@@ -687,13 +691,15 @@ MyArray.prototype.from_js_array = function (arr) {
     }
   }
   pushToFlat(arr, 0);
-  return new MyArray(flat, shape, dtype)
+  return new NDArray(flat, shape, dtype)
 }
 
-MyArray.prototype.to_js_array = function (arr) {
-  if (!(arr instanceof MyArray)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
-  arr = MyArray.prototype.__number_collapse(arr);
-  if (!(arr instanceof MyArray)) return arr;
+NDArray.prototype.toJS = function (arr) {
+  if (typeof arr == "number" || typeof arr == "boolean") return arr;
+  if (Array.isArray(arr)) return arr.map(NDArray.prototype.toJS);
+  if (!(arr instanceof NDArray)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
+  arr = NDArray.prototype.__number_collapse(arr);
+  if (!(arr instanceof NDArray)) return arr;
 
   // let out = [], top;
   // let q = /**@type {[MyArray, any][]}*/([[arr, out]])
@@ -725,9 +731,9 @@ MyArray.prototype.to_js_array = function (arr) {
   return recursiveReshape([...arr.flat], arr.shape);
 }
 
-MyArray.prototype.ravel = function (A) {
-  A = MyArray.prototype.asarray(A);
-  return new MyArray(A.flat, [A.size], A.dtype);
+NDArray.prototype.ravel = function (A) {
+  A = NDArray.prototype.asarray(A);
+  return new NDArray(A.flat, [A.size], A.dtype);
 };
 
 
@@ -735,14 +741,14 @@ MyArray.prototype.ravel = function (A) {
 //     Slicing
 // =========================================
 
-MyArray.prototype.__shape_shifts = function (shape) {
+NDArray.prototype.__shape_shifts = function (shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
   const shifts = Array.from({ length: shape.length }, (_) => 0);
   shifts[shape.length - 1] = 1;
   for (let i = shape.length - 2; i >= 0; i--) shifts[i] = shifts[i + 1] * shape[i + 1];
   return shifts;
 }
-MyArray.prototype.__parse_sliceRange = function (axis_size, { start, stop, step }) {
+NDArray.prototype.__parse_sliceRange = function (axis_size, { start, stop, step }) {
   if (start == null) start = 0;
   else if (start < 0) start = axis_size + start;
   if (stop == null) stop = axis_size;
@@ -826,7 +832,7 @@ AxisIndex.prototype.parse_range = function (size, start = null, stop = null, ste
 
 
 
-/**@typedef {':'|number|{isRange:boolean, start:null|number, stop:null|number, step:null|number}|MyArray|number[]} SliceSpec */
+/**@typedef {':'|number|{isRange:boolean, start:null|number, stop:null|number, step:null|number}|NDArray|number[]} SliceSpec */
 /**@typedef {':'|'...'|'None'|SliceSpec} GeneralSliceSpec */
 
 
@@ -859,9 +865,9 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
     if (index < 0 || index >= size) throw new Error(`Index ${index} out of bounds [0..${size})`);
     spec = { type: 'number', index };
   }
-  else if (sliceSpec instanceof MyArray || Array.isArray(sliceSpec)) {
+  else if (sliceSpec instanceof NDArray || Array.isArray(sliceSpec)) {
     let indices;
-    let arr = MyArray.prototype.asarray(sliceSpec)
+    let arr = NDArray.prototype.asarray(sliceSpec)
     if (arr.dtype == Number) {
       // Array of indices
       if (arr.shape.length > 1) throw new Error(
@@ -950,48 +956,49 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
 //    pointwise math functions
 // ==============================
 
-MyArray.prototype._apply = function (A, func, dtype) {
-  A = MyArray.prototype.asarray(A);
-  return new MyArray(A.flat.map(func), A.shape, dtype);
+NDArray.prototype._apply = function (A, func, dtype) {
+  A = NDArray.prototype.asarray(A);
+  return new NDArray(A.flat.map(func), A.shape, dtype);
 }
 
-MyArray.prototype.__make_pointwise = function (func, dtype = Number) {
+NDArray.prototype.__make_pointwise = function (func, dtype = Number) {
   return function (A) {
-    return MyArray.prototype._apply(A, func, dtype);
+    return NDArray.prototype._apply(A, func, dtype);
   }
 }
 
-MyArray.prototype.sign = MyArray.prototype.__make_pointwise(Math.sign);
-MyArray.prototype.sqrt = MyArray.prototype.__make_pointwise(Math.sqrt);
-MyArray.prototype.abs = MyArray.prototype.__make_pointwise(Math.abs);
-MyArray.prototype.exp = MyArray.prototype.__make_pointwise(Math.exp);
-MyArray.prototype.log = MyArray.prototype.__make_pointwise(Math.log);
-MyArray.prototype.log2 = MyArray.prototype.__make_pointwise(Math.log2);
-MyArray.prototype.log10 = MyArray.prototype.__make_pointwise(Math.log10);
-MyArray.prototype.log1p = MyArray.prototype.__make_pointwise(Math.log1p);
-MyArray.prototype.sin = MyArray.prototype.__make_pointwise(Math.sin);
-MyArray.prototype.cos = MyArray.prototype.__make_pointwise(Math.cos);
-MyArray.prototype.tan = MyArray.prototype.__make_pointwise(Math.tan);
-MyArray.prototype.asin = MyArray.prototype.__make_pointwise(Math.asin);
-MyArray.prototype.acos = MyArray.prototype.__make_pointwise(Math.acos);
-MyArray.prototype.atan = MyArray.prototype.__make_pointwise(Math.atan);
-MyArray.prototype.cosh = MyArray.prototype.__make_pointwise(Math.cosh);
-MyArray.prototype.sinh = MyArray.prototype.__make_pointwise(Math.sinh);
-MyArray.prototype.tanh = MyArray.prototype.__make_pointwise(Math.tanh);
-MyArray.prototype.acosh = MyArray.prototype.__make_pointwise(Math.acosh);
-MyArray.prototype.asinh = MyArray.prototype.__make_pointwise(Math.asinh);
-MyArray.prototype.atanh = MyArray.prototype.__make_pointwise(Math.atanh);
-MyArray.prototype._round = MyArray.prototype.__make_pointwise(Math.round);
-MyArray.prototype.round = function (A, decimals = 0) {
-  if (decimals == 0) MyArray.prototype._round(A);
-  return MyArray.prototype._apply(A, x => parseFloat(x.toFixed(decimals)), Number);
+NDArray.prototype.sign = NDArray.prototype.__make_pointwise(Math.sign);
+NDArray.prototype.sqrt = NDArray.prototype.__make_pointwise(Math.sqrt);
+NDArray.prototype.abs = NDArray.prototype.__make_pointwise(Math.abs);
+NDArray.prototype.exp = NDArray.prototype.__make_pointwise(Math.exp);
+NDArray.prototype.log = NDArray.prototype.__make_pointwise(Math.log);
+NDArray.prototype.log2 = NDArray.prototype.__make_pointwise(Math.log2);
+NDArray.prototype.log10 = NDArray.prototype.__make_pointwise(Math.log10);
+NDArray.prototype.log1p = NDArray.prototype.__make_pointwise(Math.log1p);
+NDArray.prototype.sin = NDArray.prototype.__make_pointwise(Math.sin);
+NDArray.prototype.cos = NDArray.prototype.__make_pointwise(Math.cos);
+NDArray.prototype.tan = NDArray.prototype.__make_pointwise(Math.tan);
+NDArray.prototype.asin = NDArray.prototype.__make_pointwise(Math.asin);
+NDArray.prototype.acos = NDArray.prototype.__make_pointwise(Math.acos);
+NDArray.prototype.atan = NDArray.prototype.__make_pointwise(Math.atan);
+NDArray.prototype.atan2 = NDArray.prototype.__make_pointwise(Math.atan2);
+NDArray.prototype.cosh = NDArray.prototype.__make_pointwise(Math.cosh);
+NDArray.prototype.sinh = NDArray.prototype.__make_pointwise(Math.sinh);
+NDArray.prototype.tanh = NDArray.prototype.__make_pointwise(Math.tanh);
+NDArray.prototype.acosh = NDArray.prototype.__make_pointwise(Math.acosh);
+NDArray.prototype.asinh = NDArray.prototype.__make_pointwise(Math.asinh);
+NDArray.prototype.atanh = NDArray.prototype.__make_pointwise(Math.atanh);
+NDArray.prototype._round = NDArray.prototype.__make_pointwise(Math.round);
+NDArray.prototype.round = function (A, decimals = 0) {
+  if (decimals == 0) NDArray.prototype._round(A);
+  return NDArray.prototype._apply(A, x => parseFloat(x.toFixed(decimals)), Number);
 }
 
 // ==============================
 //    utils for js lists
 // ==============================
 
-MyArray.prototype.nested = {
+NDArray.prototype.nested = {
   _binary_operation(A, B, func) {
     // Pointwise check for equality for arbitrary nested js arrays (without broadcasting)
     const C = [];
@@ -1044,7 +1051,7 @@ MyArray.prototype.nested = {
       if (a !== b && !(nan_equal && Number.isNaN(a) && Number.isNaN(b))) throw different;
       return 0;
     }
-    try { MyArray.prototype.nested._binary_operation(A, B, func) }
+    try { NDArray.prototype.nested._binary_operation(A, B, func) }
     catch (err) {
       if (err === different) return false;
       else throw err;
@@ -1061,7 +1068,7 @@ MyArray.prototype.nested = {
       if (!func(a, b)) throw different;
       return 0;
     }
-    try { MyArray.prototype.nested._binary_operation(A, B, wrapper) }
+    try { NDArray.prototype.nested._binary_operation(A, B, wrapper) }
     catch (err) {
       if (err === different) return false;
       else throw err;
@@ -1072,8 +1079,8 @@ MyArray.prototype.nested = {
 
 
 
-MyArray.prototype.grammar = {}
-MyArray.prototype.grammar.grammar = String.raw`
+NDArray.prototype.grammar = {}
+NDArray.prototype.grammar.grammar = String.raw`
 ArrayGrammar {
   Instruction
   = Variable "[" Slice "]" AssignSymbol ArithmeticLogicExp -- sliceAssignment
@@ -1172,33 +1179,35 @@ ArrayGrammar {
 }
 `;
 
-MyArray.prototype.grammar.ohmGrammar = ohm.grammar(MyArray.prototype.grammar.grammar);
+NDArray.prototype.grammar.ohmGrammar = ohm.grammar(NDArray.prototype.grammar.grammar);
 
 
-MyArray.prototype.grammar.__makeSemantics = () => {
+NDArray.prototype.grammar.__makeSemantics = () => {
 
   const semanticVariables = [];
   const semantics = {
     Instruction_sliceAssignment($tgt, _open, $slicesSpec, _close, $symbol, $src) {
-      // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
       const _tgt = $tgt.parse();
       const _src = $src.parse();
       const symbol = $symbol.sourceString;
       const slicesSpec = $slicesSpec.parse();
-      const { asarray, op_assign, to_js_array } = MyArray.prototype;
+      const { asarray, op_assign, toJS: to_js_array } = NDArray.prototype;
       let tgt = asarray(_tgt);
       op_assign[symbol](_tgt, _src, slicesSpec);
-      tgt = to_js_array(tgt);
-      while (_tgt.length) _tgt.pop();
-      // @ts-ignore
-      _tgt.push(..._tgt);
+      if (tgt !== _tgt) {
+      // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
+        tgt = to_js_array(tgt);
+        while (_tgt.length) _tgt.pop();
+        // @ts-ignore
+        _tgt.push(..._tgt);
+      }
       return null;
     },
     Instruction_expression($arr) {
       const arr = $arr.parse();
       if (typeof arr === "number") return arr;
       if (Array.isArray(arr)) return arr;
-      return MyArray.prototype.to_js_array(arr);
+      return NDArray.prototype.__number_collapse(arr);
     },
     Precedence11: BinaryOperation,
     Precedence10: BinaryOperation,
@@ -1224,7 +1233,7 @@ MyArray.prototype.grammar.__makeSemantics = () => {
     Arr_call($name, $names, _, $callArgs) {
       let name = $name.sourceString + $names.sourceString;
       if (name.slice(0, 3) == "np.") name = name.slice(3);
-      const func = MyArray.prototype[name];
+      const func = NDArray.prototype[name];
       if (func === undefined) throw new Error(`Unrecognized function ${name}`)
       const { args, kwArgs } = $callArgs.parse();
       return func.bind(kwArgs)(...args);
@@ -1233,7 +1242,7 @@ MyArray.prototype.grammar.__makeSemantics = () => {
       let arr = $arr.parse();
       let name = $name.sourceString;
       if (name.slice(0, 3) == "np.") name = name.slice(3);
-      const func = MyArray.prototype[name];
+      const func = NDArray.prototype[name];
       if (func === undefined) throw new Error(`Unrecognized method ${name}`)
       const { args, kwArgs } = $callArgs.parse();
       return func.bind(kwArgs)(arr, ...args);
@@ -1285,19 +1294,18 @@ MyArray.prototype.grammar.__makeSemantics = () => {
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
-      for (let i in list) if (list[i] instanceof MyArray) list[i] = MyArray.prototype.to_js_array(list[i]);
+      for (let i in list) if (list[i] instanceof NDArray) list[i] = NDArray.prototype.toJS(list[i]);
       return list;
     },
     _terminal() { return null; },
   };
 
   function BinaryOperation($A, $symbol, $B) {
-    const { opx } = MyArray.prototype;
     const A = $A.parse();
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    return MyArray.prototype.op[symbol](A, B);
+    return NDArray.prototype.opx[symbol](A, B);
   }
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
@@ -1305,13 +1313,13 @@ MyArray.prototype.grammar.__makeSemantics = () => {
     if (symbol == "") return B;
     switch (symbol) {
       case "+": return B;
-      case "-": return MyArray.prototype.multiply(-1, B);
-      case "^": return MyArray.prototype.boolean_not(B);
+      case "-": return NDArray.prototype.multiply(-1, B);
+      case "^": return NDArray.prototype.boolean_not(B);
     }
     throw new Error(`Programming Error: ${symbol}`);
   }
 
-  const { ohmGrammar } = MyArray.prototype.grammar;
+  const { ohmGrammar } = NDArray.prototype.grammar;
 
   const ohmSemantics = ohmGrammar.createSemantics();
   ohmSemantics.addOperation('parse', semantics);
@@ -1334,30 +1342,42 @@ MyArray.prototype.grammar.__makeSemantics = () => {
 }
 
 
-MyArray.prototype.grammar.__parser_pool = [MyArray.prototype.grammar.__makeSemantics()];
+NDArray.prototype.grammar.__parser_pool = [NDArray.prototype.grammar.__makeSemantics()];
 
 /**
  * @param {TemplateStringsArray} template
  * @param {any[]} variables
  */
-MyArray.prototype.grammar.parse = function (template, ...variables) {
+NDArray.prototype.grammar.parse = function (template, ...variables) {
   // Thread control, because the parser depends on semanticVariables,
   // but we don't want to waste CPU time recreating the parser on each call
   // No cleaning is done (we assume that the number of threads is negligible compared to the memory size)
-  const { __parser_pool: pool } = MyArray.prototype.grammar;
+  const { __parser_pool: pool } = NDArray.prototype.grammar;
   for (let i = 0; i < pool.length; i++) {
     const parser = pool[i];
     if (parser.busy++ == 0) {
       try { return parser.parse(template, ...variables); }
       finally { parser.busy = 0; }
     }
-    if (i == pool.length) pool.push(MyArray.prototype.grammar.__makeSemantics());
+    if (i == pool.length) pool.push(NDArray.prototype.grammar.__makeSemantics());
   }
 }
+/**
+ * @param {TemplateStringsArray} template
+ * @param {any[]} variables
+ */
+NDArray.prototype.grammar.parseJS = function (template, ...variables) {
+  const arr = NDArray.prototype.grammar.parse(template, ...variables)
+  return NDArray.prototype.toJS(arr);
+}
 
-MyArray.prototype.linspace = function (start, stop, num = 50, endpoint = true) {
+NDArray.prototype.parse = NDArray.prototype.grammar.parse;
+NDArray.prototype.parseJS = NDArray.prototype.grammar.parseJS;
+
+
+NDArray.prototype.linspace = function (start, stop, num = 50, endpoint = true) {
   ({ stop, num, endpoint } = Object.assign({ stop, num, endpoint }, this));
-  const { multiply, arange, add, __as_number } = MyArray.prototype;
+  const { multiply, arange, add, __as_number } = NDArray.prototype;
   start = __as_number(start);
   stop = __as_number(stop);
   let n = (num - (endpoint ? 1 : 0))
@@ -1365,17 +1385,17 @@ MyArray.prototype.linspace = function (start, stop, num = 50, endpoint = true) {
   return arr;
 }
 
-MyArray.prototype.geomspace = function (start, stop, num = 50, endpoint = true) {
+NDArray.prototype.geomspace = function (start, stop, num = 50, endpoint = true) {
   ({ stop, num, endpoint } = Object.assign({ stop, num, endpoint }, this));
-  const { exp, log, linspace } = MyArray.prototype;
+  const { exp, log, linspace } = NDArray.prototype;
   start = log(start);
   stop = log(stop);
   return exp(linspace(start, stop, num, endpoint));
 }
 
 
-MyArray.prototype.reshape = function (A, shape, ...more_shape) {
-  const { __parse_shape, __as_number } = MyArray.prototype;
+NDArray.prototype.reshape = function (A, shape, ...more_shape) {
+  const { __parse_shape, __as_number } = NDArray.prototype;
   if (!more_shape.length) shape = __parse_shape(shape);
   else shape = [shape, ...more_shape].map(__as_number)
   const n = A.size;
@@ -1387,8 +1407,13 @@ MyArray.prototype.reshape = function (A, shape, ...more_shape) {
     }
     shape[inferredIndex] = n / productOfKnownDims;
   }
-  return new MyArray(A.flat, shape, A.dtype);
+  return new NDArray(A.flat, shape, A.dtype);
+};
+
+NDArray.prototype.copy = function (A) {
+  return new NDArray([...A.flat], A.shape, A.dtype);
 };
 
 
-module.exports = MyArray;
+
+module.exports = NDArray;
