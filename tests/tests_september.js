@@ -59,7 +59,7 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
     throw new Error(`Mismatch for ${str}`);
   }
   console.log("========", str, "============");
-  console.log(MyArray.prototype.from_js_array(obtained));
+  console.log(MyArray.prototype.from_js_array(obtained).toString());
   return obtained;
 }
 
@@ -70,6 +70,10 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 // console.log('=============');
 
 // Unit tests:
+
+npTest`np.arange(10000).reshape(100,2,50)`
+npTest`np.arange(10000).reshape(100,10,10,1)`
+npTest`np.arange(10000).reshape(100,2,50,1)`
 
 npTest`np.arange(120).reshape(2,3,4,5)[1][1]`
 
