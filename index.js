@@ -745,9 +745,11 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
  * @returns {AxesIndex}
  */
 AxesIndex.prototype.parse = function (shape, slicesSpec) {
-  const /**@type {AxisIndex[]}*/ axisIndexes = [];
-  const apparentShape = [];
-  const internalShape = [];
+  const buffers = {
+    axisIndexes: /**@type {AxisIndex[]}*/([]),
+    apparentShape: /**@type {number[]}*/([]),
+    internalShape: /**@type {number[]}*/([]),
+  }
   let /**@type {1|-1}*/ readDir = 1;
   const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
   let axis = 0, j = 0, remainingAxes = shape.length;
@@ -757,14 +759,12 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
     slicesSpec[j] = undefined; // For ellipsis to avoid reading twice
     j += readDir;
     if (generalSpec == "None") {
-      apparentShape.push(1);
+      buffers.apparentShape.push(1);
       continue;
     } else if (generalSpec == "...") {
       if (readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
       readDir = -1;
-      reversedAfter.axisIndexes = axisIndexes.length;
-      reversedAfter.apparentShape = apparentShape.length;
-      reversedAfter.internalShape = internalShape.length;
+      for (let key in reversedAfter) reversedAfter[key] = buffers[key].length;
       j = slicesSpec.length - 1;
       axis = shape.length - 1;
       continue;
@@ -778,17 +778,14 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
       refSize *= shape[axis];
       axis += readDir;
     }
-    axisIndexes.push(axisIndex);
-    if (axisIndex.spec.type != "number") apparentShape.push(axisIndex.size);
-    internalShape.push(refSize);
+    buffers.axisIndexes.push(axisIndex);
+    if (axisIndex.spec.type != "number") buffers.apparentShape.push(axisIndex.size);
+    buffers.internalShape.push(refSize);
   }
   if (readDir == -1) { // reverse the right to left elements
-    internalShape.splice(0, reversedAfter.internalShape).concat(internalShape.reverse());
-    apparentShape.splice(0, reversedAfter.apparentShape).concat(apparentShape.reverse());
-    axisIndexes.splice(0, reversedAfter.axisIndexes).concat(axisIndexes.reverse());
+    for (let key in buffers) buffers[key].splice(0, reversedAfter[key]).concat(buffers[key].reverse());
   }
-
-  return new AxesIndex(apparentShape, internalShape, axisIndexes);
+  return new AxesIndex(buffers.apparentShape, buffers.internalShape, buffers.axisIndexes);
 }
 
 
