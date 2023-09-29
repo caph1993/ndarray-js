@@ -336,6 +336,9 @@ NDArray.prototype.arange = function (arg0, arg1 = null) {
   else start = arg0, end = arg1;
   return NDArray.prototype._new(end - start, (_, i) => start + i, Number)
 };
+NDArray.prototype.__random = function (shape) {
+  return NDArray.prototype._new(shape, (_) => Math.random(), Number)
+};
 
 // ==============================
 //       Reducing functions
@@ -483,7 +486,7 @@ NDArray.prototype._broadcast_shapes = function (shapeA, shapeB) {
 
 /**@returns {BinaryOperator} */
 NDArray.prototype.__make_operator = function (dtype, func) {
-/** @param {NDArray?} out */
+  /** @param {NDArray?} out */
   return function (A, B, out = null) {
     return NDArray.prototype._binary_operation(A, B, func, dtype, out);
   };
@@ -1195,7 +1198,7 @@ NDArray.prototype.grammar.__makeSemantics = () => {
       let tgt = asarray(_tgt);
       op_assign[symbol](_tgt, _src, slicesSpec);
       if (tgt !== _tgt) {
-      // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
+        // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
         tgt = to_js_array(tgt);
         while (_tgt.length) _tgt.pop();
         // @ts-ignore
@@ -1415,5 +1418,21 @@ NDArray.prototype.copy = function (A) {
 };
 
 
+NDArray.prototype.random = {
+  random(shape) {
+    return NDArray.prototype.__random(shape);
+  },
+  uniform(a, b, shape) {
+    const { random, op } = NDArray.prototype;
+    return op['+'](a, op['*'](random.random(shape), b - a));
+  },
+  exponential(mean, shape) {
+    const { random, log, op } = NDArray.prototype;
+    return op['*'](mean, op['-'](0, log(random.random(shape))));
+  },
+  // normal,
+  // shuffle,
+  // permutation,
+};
 
 module.exports = NDArray;
