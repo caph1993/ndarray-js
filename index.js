@@ -366,9 +366,10 @@ MyArray.prototype.op = {
 
 
 /** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, slicesSpec:any)=>void} AssignmentOperator */
+
 /**@returns {AssignmentOperator} */
 MyArray.prototype.__make_assignment_operator = function (dtype, func) {
-  const { _binary_operation, _idx_slice, asarray, ravel } = MyArray.prototype;
+  const { _binary_operation, asarray, ravel } = MyArray.prototype;
   /** @param {*?} slicesSpec */
   return function (tgt, src, slicesSpec) {
     if (!(tgt instanceof MyArray)) throw new Error(`Can not assign to a non-array. Found ${typeof tgt}: ${tgt}`);
@@ -376,7 +377,7 @@ MyArray.prototype.__make_assignment_operator = function (dtype, func) {
       _binary_operation(tgt, src, func, dtype, tgt);
     } else {
       src = asarray(src);
-      let [_, indices] = _idx_slice(tgt.shape, slicesSpec);
+      let { indices } = AxesIndex.prototype.parse(tgt.shape, slicesSpec);
       let tmpTgt = asarray(indices.map(i => tgt._flat[i]));
       _binary_operation(tmpTgt, ravel(src), func, dtype, tmpTgt);
       for (let i of indices) tgt._flat[i] = tmpTgt._flat[i];
@@ -556,7 +557,7 @@ MyArray.prototype.ravel = function (A) {
 
 MyArray.prototype.slice = function (arr, slicesSpec) {
   // This can result either in a view or a copy
-  const [shape, indices] = MyArray.prototype._idx_slice(arr.shape, slicesSpec);
+  const { shape, indices } = AxesIndex.prototype.parse(arr.shape, slicesSpec);
   return new MyArray(indices.map(i => arr._flat[i]), shape, arr.dtype);
 }
 
@@ -650,19 +651,24 @@ class AxesIndex {
   /**
    * @param {AxisIndex[]} axisIndexes
    */
-  constructor(outShape, vShape, axisIndexes) {
-    this.shape = outShape;
-    this.vShape = vShape;
+  constructor(apparentShape, internalShape, axisIndexes) {
+    this.shape = apparentShape;
+    this.internalShape = internalShape;
     this.axisIndexes = axisIndexes;
     this._indices = null;
+    this._size = null;
   }
   get indices() {
     if (this._indices) return this._indices;
-    let indices = MyArray.prototype.__slices_to_indices(this.vShape, this.slices);
+    let indices = MyArray.prototype.__slices_to_indices(this.internalShape, this.slices);
     return this._indices = indices;
   }
   get slices() {
     return this.axisIndexes.map(idx => idx.indices);
+  }
+  get size() {
+    if (this._size) return this._size;
+    return this._size = this.axisIndexes.map(idx => idx.size).reduce((a, b) => a * b, 0);
   }
 }
 
@@ -701,7 +707,7 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
     let indices;
     sliceSpec = MyArray.prototype.asarray(sliceSpec)
     if (sliceSpec.dtype == Number) {
-    // Array of indices
+      // Array of indices
       if (sliceSpec.shape.length > 1) throw new Error(
         `Expected 1D array of indices or nD array of booleans. ` +
         `Found shape=${sliceSpec.shape} and dtype=${sliceSpec.dtype}`
@@ -721,7 +727,7 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
     let { start, stop, step } = sliceSpec;
     const range = AxisIndex.prototype.parse_range(size, start, stop, step);
     if (range.start == 0 && range.nSteps == size && range.step == 1) {
-    // Small optimization: all of these are just ":": ["::","0::1", ":axisSize:", etc.]
+      // Small optimization: all of these are just ":": ["::","0::1", ":axisSize:", etc.]
       spec = { type: ':', size: size };
     } else {
       spec = { type: 'range', range };
@@ -739,35 +745,30 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
  * @returns {AxesIndex}
  */
 AxesIndex.prototype.parse = function (shape, slicesSpec) {
-  const vShape = [];
-  const outShape = [];
-  let /**@type {AxisIndex[]}*/ axisIndexes = [];
-  let ellipsis = {
-    readDir: 1,
-    vShape: NaN,
-    outShape: NaN,
-    axisIndexes: NaN,
-  }
-  let axis = 0, sliceI = 0, remainingAxes = shape.length;
+  const /**@type {AxisIndex[]}*/ axisIndexes = [];
+  const apparentShape = [];
+  const internalShape = [];
+  let /**@type {1|-1}*/ readDir = 1;
+  const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
+  let axis = 0, j = 0, remainingAxes = shape.length;
   while (remainingAxes > 0) {
-    let generalSpec = slicesSpec[sliceI];
+    let generalSpec = slicesSpec[j];
     //@ts-ignore
-    slicesSpec[sliceI] = undefined; // For ellipsis to avoid reading twice
-    sliceI += ellipsis.readDir;
+    slicesSpec[j] = undefined; // For ellipsis to avoid reading twice
+    j += readDir;
     if (generalSpec == "None") {
-      outShape.push(1);
+      apparentShape.push(1);
       continue;
     } else if (generalSpec == "...") {
-      if (ellipsis.readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
-      ellipsis.readDir = -1;
-      ellipsis.vShape = vShape.length;
-      ellipsis.outShape = outShape.length;
-      ellipsis.axisIndexes = axisIndexes.length;
-      sliceI = slicesSpec.length - 1;
+      if (readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
+      readDir = -1;
+      reversedAfter.axisIndexes = axisIndexes.length;
+      reversedAfter.apparentShape = apparentShape.length;
+      reversedAfter.internalShape = internalShape.length;
+      j = slicesSpec.length - 1;
       axis = shape.length - 1;
       continue;
     }
-
     const { axisIndex, span } = AxisIndex.prototype.parse(generalSpec, shape[axis]);
     // Advance the axis cursor span axes in readDir and compute the total size of consumed axes
     remainingAxes -= span;
@@ -775,38 +776,21 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
     for (let i = 0; i < span; i++) {
       if (axis < 0 || axis >= shape.length) throw new Error(`Index spans over more dimensions than available`);
       refSize *= shape[axis];
-      axis += ellipsis.readDir;
+      axis += readDir;
     }
-    if (axisIndex.spec.type != "number") outShape.push(axisIndex.size);
-    vShape.push(refSize);
     axisIndexes.push(axisIndex);
+    if (axisIndex.spec.type != "number") apparentShape.push(axisIndex.size);
+    internalShape.push(refSize);
   }
-  //if (slicesSpec.filter(x => x !== undefined).length) throw new Error(`Index exceeds the number of dimensions`);
-  if (ellipsis.readDir == -1) {
-    // reverse the right to left elements
-    vShape.splice(0, ellipsis.vShape).concat(vShape.reverse());
-    outShape.splice(0, ellipsis.outShape).concat(outShape.reverse());
-    axisIndexes.splice(0, ellipsis.axisIndexes).concat(axisIndexes.reverse());
+  if (readDir == -1) { // reverse the right to left elements
+    internalShape.splice(0, reversedAfter.internalShape).concat(internalShape.reverse());
+    apparentShape.splice(0, reversedAfter.apparentShape).concat(apparentShape.reverse());
+    axisIndexes.splice(0, reversedAfter.axisIndexes).concat(axisIndexes.reverse());
   }
-  return new AxesIndex(outShape, vShape, axisIndexes);
+
+  return new AxesIndex(apparentShape, internalShape, axisIndexes);
 }
 
-
-MyArray.prototype._idx_slice = function (shape, slicesSpec) {
-  // Iterative cartesian product of the slices.
-  const axesIndex = AxesIndex.prototype.parse(shape, slicesSpec);
-
-  const outShape = axesIndex.shape;
-  const slices = axesIndex.slices;
-  const vShape = axesIndex.vShape;
-
-  if (slices.map(l => l.length).reduce((a, b) => a * b, 1) == 0) {
-    return [outShape, []];
-  }
-  // const indices = MyArray.prototype.__slices_to_indices(vShape, slices);
-  const indices = axesIndex.indices;
-  return [outShape, indices];
-}
 
 
 // ==============================
