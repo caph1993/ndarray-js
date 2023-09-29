@@ -667,45 +667,99 @@ class AxesIndex {
 }
 
 
-/**@typedef {':'|'...'|'None'|number|{isRange:boolean, start:null|number, stop:null|number, step:null|number}|MyArray|number[]} SliceSpec */
-/**@typedef {':'|'number'|'range'|'array'} IndexType */
+/**@typedef {':'|number|{isRange:boolean, start:null|number, stop:null|number, step:null|number}|MyArray|number[]} SliceSpec */
+/**@typedef {':'|'...'|'None'|SliceSpec} GeneralSliceSpec */
 
 
 /**
- * @param {SliceSpec[]} slicesSpec
- * @returns {AxesIndex}
+ * We are reading `slicesSpec` and `shape` in parallel, in the reading direction readDir.
+ * With respect to `shape` we are at the given `axis`.
+ * With respect to `slicesSpec`, we found `sliceSpec`, which we should process.
+ * @param {SliceSpec} sliceSpec
  */
-AxesIndex.prototype.parse = function (shape, slicesSpec) {
+AxisIndex.prototype.parse = function (sliceSpec, size) {
   /**
    * 
-   * vShape (virtual shape) matches shape unless there are boolean masks spanning
+   * span (virtual shape) matches shape unless there are boolean masks spanning
    * over several axes/dimensions.
    * For example, in `np.ones((2,3,4,5))[:, np.arange(12).reshape((3,4))>5, 1]`,
    * the boolean mask is spanning over axes 1 and 2. In this case, the output should
    * merge these axes, resulting in an a vShape of (2, 12, 5).
    * The boolean mask is then converted to indices in the flattened merged axis.
    */
+  /**@type {AxisIndexSpec} */
+  let spec;
+  let span = 1;
+
+  if (sliceSpec == ':' || sliceSpec === undefined) {
+    spec = { type: ':', size: size };
+  }
+  else if (typeof sliceSpec === "number") {
+    spec = { type: 'number', index: sliceSpec };
+  }
+  else if (sliceSpec instanceof MyArray || Array.isArray(sliceSpec)) {
+    let indices;
+    sliceSpec = MyArray.prototype.asarray(sliceSpec)
+    if (sliceSpec.dtype == Number) {
+    // Array of indices
+      if (sliceSpec.shape.length > 1) throw new Error(
+        `Expected 1D array of indices or nD array of booleans. ` +
+        `Found shape=${sliceSpec.shape} and dtype=${sliceSpec.dtype}`
+      );
+      indices = sliceSpec.flat;
+    } else {
+      // Boolean mask
+      indices = [];
+      sliceSpec.flat.forEach((if_value, i) => if_value && indices.push(i));
+      // Next lines: the boolean mask spans over more than 1 axis
+      span = Math.max(1, sliceSpec.shape.length);
+      // Multiply the (possibly inverted) interval
+    }
+    spec = { type: 'array', indices };
+  }
+  else if (sliceSpec.isRange) {
+    let { start, stop, step } = sliceSpec;
+    const range = AxisIndex.prototype.parse_range(size, start, stop, step);
+    if (range.start == 0 && range.nSteps == size && range.step == 1) {
+    // Small optimization: all of these are just ":": ["::","0::1", ":axisSize:", etc.]
+      spec = { type: ':', size: size };
+    } else {
+      spec = { type: 'range', range };
+    }
+  }
+  else throw new Error(`Unknown index type. Found ${typeof sliceSpec}: ${sliceSpec}`);
+
+  const axisIndex = new AxisIndex(spec);
+  return { axisIndex, span };
+}
+
+
+/**
+ * @param {GeneralSliceSpec[]} slicesSpec
+ * @returns {AxesIndex}
+ */
+AxesIndex.prototype.parse = function (shape, slicesSpec) {
   const vShape = [];
   const outShape = [];
   let /**@type {AxisIndex[]}*/ axisIndexes = [];
   let ellipsis = {
-    axisDir: 1,
+    readDir: 1,
     vShape: NaN,
     outShape: NaN,
     axisIndexes: NaN,
   }
-  let axis = 0, sliceI = 0, nonVisitedAxes = shape.length;
-  while (nonVisitedAxes > 0) {
-    let inputSpec = slicesSpec[sliceI];
+  let axis = 0, sliceI = 0, remainingAxes = shape.length;
+  while (remainingAxes > 0) {
+    let generalSpec = slicesSpec[sliceI];
     //@ts-ignore
     slicesSpec[sliceI] = undefined; // For ellipsis to avoid reading twice
-    sliceI += ellipsis.axisDir;
-    if (inputSpec == "None") {
+    sliceI += ellipsis.readDir;
+    if (generalSpec == "None") {
       outShape.push(1);
       continue;
-    } else if (inputSpec == "...") {
-      if (ellipsis.axisDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
-      ellipsis.axisDir = -1;
+    } else if (generalSpec == "...") {
+      if (ellipsis.readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
+      ellipsis.readDir = -1;
       ellipsis.vShape = vShape.length;
       ellipsis.outShape = outShape.length;
       ellipsis.axisIndexes = axisIndexes.length;
@@ -713,59 +767,22 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
       axis = shape.length - 1;
       continue;
     }
-    /**@type {AxisIndexSpec} */
-    let spec;
-    let axisSize = shape[axis];
-    let visitedAxes = 1;
-    if (inputSpec == ':' || inputSpec === undefined) {
-      spec = { type: ':', size: shape[axis] };
-    }
-    else if (typeof inputSpec === "number") {
-      spec = { type: 'number', index: inputSpec };
-    }
-    else if (inputSpec instanceof MyArray || Array.isArray(inputSpec)) {
-      let indices;
-      inputSpec = MyArray.prototype.asarray(inputSpec)
-      if (inputSpec.dtype == Number) {
-        // Array of indices
-        if (inputSpec.shape.length > 1) throw new Error(
-          `Expected 1D array of indices or nD array of booleans. ` +
-          `Found shape=${inputSpec.shape} and dtype=${inputSpec.dtype}`
-        );
-        indices = inputSpec.flat;
-      } else {
-        // Boolean mask
-        indices = [];
-        inputSpec.flat.forEach((if_value, i) => if_value && indices.push(i));
-        // Next lines: the boolean mask spans over more than 1 axis
-        visitedAxes = Math.max(1, inputSpec.shape.length);
-        // Multiply the (possibly inverted) interval
-        for (let n = visitedAxes - 1, i = axis; n; n--) axisSize *= shape[i += ellipsis.axisDir];
-        if (axisSize < 0) throw new Error(`Index with boolean mask spans over more dimensions than available`);
-      }
-      spec = { type: 'array', indices };
-    }
-    else if (inputSpec.isRange) {
-      let { start, stop, step } = inputSpec;
-      const range = AxisIndex.prototype.parse_range(shape[axis], start, stop, step);
-      if (range.start == 0 && range.nSteps == shape[axis] && range.step == 1) {
-        // Small optimization: all of these are just ":": ["::","0::1", ":axisSize:", etc.]
-        spec = { type: ':', size: shape[axis] };
-      } else {
-        spec = { type: 'range', range };
-      }
-    }
-    else throw new Error(`Unknown index type. Found ${typeof inputSpec}: ${inputSpec}`);
 
-    const axisIndex = new AxisIndex(spec);
-    axisIndexes.push(axisIndex);
-    vShape.push(axisSize);
+    const { axisIndex, span } = AxisIndex.prototype.parse(generalSpec, shape[axis]);
+    // Advance the axis cursor span axes in readDir and compute the total size of consumed axes
+    remainingAxes -= span;
+    let refSize = 1;
+    for (let i = 0; i < span; i++) {
+      if (axis < 0 || axis >= shape.length) throw new Error(`Index spans over more dimensions than available`);
+      refSize *= shape[axis];
+      axis += ellipsis.readDir;
+    }
     if (axisIndex.spec.type != "number") outShape.push(axisIndex.size);
-    axis += ellipsis.axisDir * visitedAxes;
-    nonVisitedAxes -= visitedAxes;
+    vShape.push(refSize);
+    axisIndexes.push(axisIndex);
   }
   //if (slicesSpec.filter(x => x !== undefined).length) throw new Error(`Index exceeds the number of dimensions`);
-  if (ellipsis.axisDir == -1) {
+  if (ellipsis.readDir == -1) {
     // reverse the right to left elements
     vShape.splice(0, ellipsis.vShape).concat(vShape.reverse());
     outShape.splice(0, ellipsis.outShape).concat(outShape.reverse());
