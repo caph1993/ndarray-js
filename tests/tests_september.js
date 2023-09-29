@@ -25,10 +25,21 @@ function npTest(template, ...variables) {
   const program = `
 import numpy as np
 import json
+
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        if isinstance(obj, np.floating):
+            return float(obj)
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return super(NpEncoder, self).default(obj)
+
 out = ${str}
 if isinstance(out, np.ndarray):
     out = out.tolist()
-print(json.dumps(out), flush=True)
+print(json.dumps(out, cls=NpEncoder), flush=True)
 `
   const process = spawnSync('python3', ['-c', program]);
   const stdout = process.stdout.toString();
@@ -47,12 +58,43 @@ print(json.dumps(out), flush=True)
     console.error(JSON.stringify(obtained));
     throw new Error(`Mismatch for ${str}`);
   }
+  console.log("========", str, "============");
+  console.log(MyArray.prototype.from_js_array(obtained));
   return obtained;
 }
 
+
+// console.log('=============');
+// console.log(`${MyArray.prototype.grammar.parse`np.arange(120).reshape(2,3,4,5)[:, np.arange(12).reshape((3,4))<10]`}`);
+// console.log(`${MyArray.prototype.grammar.parse`np.linspace(0, 1, 10)`}`);
+// console.log('=============');
+
 // Unit tests:
 
+npTest`np.arange(120).reshape(2,3,4,5)[1][1]`
+
+
+npTest`np.arange(120).reshape(2,3,4,5)[1][:,:][2]`
+npTest`np.arange(120).reshape(2,3,4,5)[1][:,:][2][:]`
+
+
+npTest`np.arange(120).reshape(2,3,4,5)[0][:]`
+npTest`np.arange(120).reshape(2,3,4,5)[:]`
+npTest`np.arange(120).reshape(2,3,4,5)[:,:]`
+npTest`np.arange(120).reshape(2,3,4,5)[:,:][0]`
+
+
+npTest`np.arange(120).reshape(2,3,4,5)[0]`
+npTest`np.arange(120).reshape(2,3,4,5)[0][:,:]`
+npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2]`
+npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:]`
+npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1]`
+npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1,3]`
+
 npTest`np.arange(120).reshape(2,3,4,5)[0, np.arange(12).reshape((3,4))<5]`
+npTest`np.arange(120).reshape(2,3,4,5)[0,2,1,3]`
+npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1,3]`
+
 
 npTest`np.linspace(0, 1, 10)`
 npTest`np.linspace(0.5, 1.3, 10)`

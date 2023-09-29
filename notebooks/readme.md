@@ -20,19 +20,19 @@ TO DO:
 - (DONE) Better support for kwargs using this 
 - (DONE) npm and license
 - (DONE) (can be improved) improve assignment: options have add(A,B, out=..., where=...) they have `__iadd__ = add(A, B, A) ` and define array views. I should do the same, but views take time, I think. They also say `.reshape() creates a view` and `advanced indexing creates a copy` and `It must be noted here that during the assignment of x[[1, 2]] = [[10, 11, 12], [13, 14, 15]], no view or copy is created as the assignment happens in-place.`. So, `y = x[[1, 2]]` creates a copy but `y = x[1:3]` creates a view. According to my experiments, "advanced indexing" occurs when the sliceSpec contains boolean masks or integer indices. For fixed integer, range slices, ellipsis, 'None', and ':'.
+- (DONE) List all the functions that access array.flat
+- (DONE) compose simple indexes
 
 
-- List all the functions that access array.flat
-- compose simple indexes
+- Print in different format
 
+- parser should not return to_list, should it?
+
+- Handle the or operator "|" properly: for booleans gives booleans. For numbers gives numbers. 
 
 - speed up tests by running several python tests at once. Maybe printing to file?
 - Get click to work in Guake
 
-- Print in different format
-- parser should not return to_list, should it?
-
-- Handle the or operator "|" properly: for booleans gives booleans. For numbers gives numbers. 
 - Support for 128 bits dtype? (I don't use that much)
 
 - What about np`statement; \n statement;\n ...;\n return blah, blah, blah`
