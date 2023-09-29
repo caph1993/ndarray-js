@@ -52,6 +52,8 @@ print(json.dumps(out), flush=True)
 
 // Unit tests:
 
+npTest`np.arange(120).reshape(2,3,4,5)[0, np.arange(12).reshape((3,4))<5]`
+
 npTest`np.linspace(0, 1, 10)`
 npTest`np.linspace(0.5, 1.3, 10)`
 npTest`np.geomspace(32, 45, 13)`

@@ -23,12 +23,15 @@ TO DO:
 
 
 - List all the functions that access array.flat
+- compose simple indexes
+
 
 - speed up tests by running several python tests at once. Maybe printing to file?
 - Get click to work in Guake
 
-- parser should not return to_list, should it?
 - Print in different format
+- parser should not return to_list, should it?
+
 - Handle the or operator "|" properly: for booleans gives booleans. For numbers gives numbers. 
 - Support for 128 bits dtype? (I don't use that much)
 

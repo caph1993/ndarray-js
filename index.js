@@ -5,7 +5,6 @@ var ohm = require('ohm-js');
 /** @typedef {NumberConstructor|BooleanConstructor} DType */
 /** @typedef {MyArray|number|boolean} ArrayOrConstant */
 /** @typedef {null|number} Axis */
-/** @typedef {null|{size:Number, ranges:{refSize:number, range:number|[number,number,number]|null}[], indices:null|number[]}} SimpleIndex */
 
 /**@template {boolean|number} T*/
 class MyArray {
@@ -18,32 +17,87 @@ class MyArray {
     this._flat = flat;
     this.shape = shape; // invariant: immutable
     this.dtype = dtype;
-    this._simpleIndex = null;
+    this._simpleIndexes = null;
   }
-  /** @type {SimpleIndex|null} */ _simpleIndex;
+  /** @type {AxesIndex|null} */ _simpleIndexes;
 
   get size() {
-    return this._simpleIndex == null ? this._flat.length : this._simpleIndex.size;
+    return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;
   }
   get flat() {
-    if (this._simpleIndex == null) return this._flat;
-    const indices = MyArray.prototype.__simpleIndex_to_slices(this._simpleIndex);
+    if (this._simpleIndexes == null) return this._flat;
+    const indices = this._simpleIndexes.indices;
     return indices.map(i => this._flat[i]);
   }
   set flat(list) {
     if (list.length != this.size)
       throw new Error(`Length mismatch. Can't write ${list.length} values into ${this.size} available positions.`);
     const n = this.size;
-    if (this._simpleIndex == null) {
+    if (this._simpleIndexes == null) {
       for (let i = 0; i < n; i++) this._flat[i] = list[i];
     } else {
-      const indices = MyArray.prototype.__simpleIndex_to_slices(this._simpleIndex);
+      const indices = this._simpleIndexes.indices;
       for (let i = 0; i < n; i++) this._flat[indices[i]] = list[i];
     }
   }
 }
 
-MyArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndex} */ simpleIndex) {
+// MyArray.prototype.toString = function () {
+//   return `NDArray(${MyArray.prototype.to_js_array(this)})`;
+// }
+
+MyArray.prototype.slice = function (arr, slicesSpec) {
+  // This can result either in a view or a copy, depending if the index is simple or advanced.
+  // The index is simple if there are only ranges, numbers, ":" and at most one "..."
+  // If index is simple, don't call ".indices" and make view
+  // If index is advanced, get indices and make copy
+  const axesIndex = AxesIndex.prototype.parse(arr.shape, slicesSpec);
+  if (!axesIndex.isSimple) {
+    const src_flat = arr.flat;
+    const flat = axesIndex.indices.map(i => src_flat[i]);
+    return new MyArray(flat, axesIndex.shape, arr.dtype);
+  } else {
+    const composition = MyArray.prototype.__compose_simpleIndexes(arr._simpleIndexes, axesIndex);
+    const out = new MyArray(arr._flat, axesIndex.shape, arr.dtype);
+    out._simpleIndexes = composition;
+    return out;
+  }
+}
+
+/** @typedef {null|{size:Number, ranges:{refSize:number, range:number|[number,number,number]|null}[], indices:null|number[]}} SimpleIndexes */
+
+class AxesIndex {
+  /**
+   * @param {AxisIndex[]} axisIndexes
+   */
+  constructor(apparentShape, internalShape, axisIndexes) {
+    this.shape = apparentShape;
+    this.internalShape = internalShape;
+    this.axisIndexes = axisIndexes;
+    this._indices = null;
+    this._size = null;
+    this.isSimple = this.axisIndexes.map(idx => idx.isSimple).reduce((a, b) => a && b, true);
+  }
+  get indices() {
+    if (this._indices) return this._indices;
+    let indices = MyArray.prototype.__slices_to_indices(this.internalShape, this.__slices);
+    return this._indices = indices;
+  }
+  get __slices() {
+    return this.axisIndexes.map(idx => idx.indices);
+  }
+  get size() {
+    if (this._size) return this._size;
+    return this._size = this.axisIndexes.map(idx => idx.size).reduce((a, b) => a * b, 0);
+  }
+}
+
+
+
+
+/** @typedef {{size:Number, ranges:{refSize:number, range:number|[number,number,number]|null}[], indices:null|number[]}} SimpleIndex */
+
+MyArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndexes} */ simpleIndex) {
   if (!simpleIndex) throw new Error(`This function can only be called on views`);
   if (simpleIndex.indices) return simpleIndex.indices;
   const { ranges } = simpleIndex;
@@ -59,44 +113,50 @@ MyArray.prototype.__simpleIndex_to_slices = function (/** @type {SimpleIndex} */
 
 /**
  * 
- * @param {SimpleIndex} first 
- * @param {SimpleIndex} second 
- * @returns {SimpleIndex}
+ * @param {AxesIndex} first 
+ * @param {AxesIndex} second 
+ * @returns {AxesIndex}
  */
 MyArray.prototype.__compose_simpleIndexes = function (first, second) {
   if (first == null) return second;
   if (second == null) return first;
-  const inRange = (x, start, stop) => (start <= x && x < stop) || (start >= x && x > stop);
   let size = 1, j = 0;
-  const ranges = [];
-  for (let i = 0; i < first.ranges.length; i++) {
-    let { refSize: refSizeA, range: rangeA } = first.ranges[i];
-    if (typeof rangeA == "number") continue;
-    let { refSize: refSizeB, range: rangeB } = second.ranges[j] || { refSize: refSizeA, range: null };
-    if (refSizeA != refSizeB) throw new Error(`Mismatch of index reference size: ${refSizeA}!=${refSizeB}`);
-    let /**@type {null|number|[number,number,number]} */ range;
-    if (rangeA == null) range = rangeB;
-    else if (rangeB == null) range = rangeA;
+  const axisIndexes = [];
+  for (let i = 0; i < first.axisIndexes.length; i++) {
+    let { spec: specA } = first.axisIndexes[i];
+    let { spec: specB } = second.axisIndexes[j];
+    if (specA.type == "array") throw new Error(`Expected simple index. Found advanced: ${specA.type}`);
+    if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
+    if (specA.type == "number") continue;
+
+    let /**@type {AxisIndexSpec} */ spec;
+    if (specA.type == ":") spec = specB;
+    else if (specB.type == ":") spec = specA;
     else {
-      let [startA, stopA, stepA] = rangeA;
-      if (typeof rangeB == "number") {
-        range = startA + rangeB * stepA;
-        if (!inRange(range, startA, stopA)) throw new Error(`Index out of bounds`);
+      let { start: startA, step: stepA, nSteps: nStepsA } = specA.range;
+      if (specB.type == "number") {
+        // TO DO: check BOUNDS OF INTEGER in Axis.parse
+        let { index } = specB;
+        if (index < 0) index = nStepsA + index;
+        if (index < 0 || index >= nStepsA) throw new Error(`Index ${index} out of bounds [0..${nStepsA})`);
+        index = startA + index * stepA;
+        spec = { type: "number", index };
       } else {
-        let [startB, stopB, stepB] = rangeB;
-        let step = stepA * stepB;
-        let start = startA + startB * stepA;
-        let stop = stopA - stopB * stepA;
-        if (!inRange(start, startA, stopA)) start = stop = 0;
-        range = [start, stop, step];
-        size *= Math.floor(Math.abs(start - stop) / step);
+        let { start: startB, step: stepB, nSteps: nStepsB } = specB.range;
+        let sub = AxisIndex.prototype.parse_range(nStepsA, startB, startB + nStepsB * stepB, stepB);
+        let step = sub.step * stepA;
+        let start = startA + sub.start * step;
+        let nSteps = sub.nSteps;
+        spec = { type: "range", range: { start, step, nSteps } };
       }
     }
-    ranges.push({ refSize: refSizeA, range: range });
+    axisIndexes.push(new AxisIndex(spec));
     j++;
   }
-  if (j < second.ranges.length) throw new Error(`Index too long. Expected ${j} axes. Found ${second.ranges.length}`)
-  return { ranges, size, indices: null };
+  if (j < second.axisIndexes.length) throw new Error(`Index too long. Expected ${j} axes. Found ${second.axisIndexes.length}`)
+  const apparentShape = second.shape;
+  const internalShape = first.internalShape; // ????? I'M NOT SURE 
+  return new AxesIndex(apparentShape, internalShape, axisIndexes);
 }
 
 
@@ -110,6 +170,7 @@ MyArray.prototype.__compose_simpleIndexes = function (first, second) {
  */
 MyArray.prototype.__slices_to_indices = function (shape, slices) {
   const { __shape_shifts } = MyArray.prototype;
+  for (let slice of slices) if (slice.length == 0) return [];
   const shifts = __shape_shifts(shape);
   const iShifts = slices.map((indices, axis) => {
     // out[i] = How much does the cursor increase if we change from [...,indices[i],...] to [...,indices[(i+1)%n],...]
@@ -346,8 +407,8 @@ MyArray.prototype.op = {
   "%": MyArray.prototype.__make_operator(Number, (a, b) => (a % b)),
   "//": MyArray.prototype.__make_operator(Number, (a, b) => Math.floor(a / b)),
   "**": MyArray.prototype.__make_operator(Number, (a, b) => Math.pow(a, b)),
-  ">": MyArray.prototype.__make_operator(Boolean, (a, b) => a > b),
   "<": MyArray.prototype.__make_operator(Boolean, (a, b) => a < b),
+  ">": MyArray.prototype.__make_operator(Boolean, (a, b) => a > b),
   ">=": MyArray.prototype.__make_operator(Boolean, (a, b) => a >= b),
   "<=": MyArray.prototype.__make_operator(Boolean, (a, b) => a <= b),
   "==": MyArray.prototype.__make_operator(Boolean, (a, b) => a == b),
@@ -489,7 +550,7 @@ MyArray.prototype.asarray = function (A) {
 MyArray.prototype.array = function (A) {
   // @ts-ignore
   if (A instanceof MyArray) {
-    let flat = A._simpleIndex == null ? [...A.flat] : A.flat;
+    let flat = A._simpleIndexes == null ? [...A.flat] : A.flat;
     return new MyArray(flat, A.shape, A.dtype);
   }
   else return MyArray.prototype.from_js_array(A);
@@ -528,7 +589,7 @@ MyArray.prototype.from_js_array = function (arr) {
   return new MyArray(flat, shape, dtype)
 }
 MyArray.prototype.to_js_array = function (arr) {
-  if (!(arr instanceof MyArray)) throw new Error(`Expected MyArray: ${arr}`);
+  if (!(arr instanceof MyArray)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
   arr = MyArray.prototype.__number_collapse(arr);
   function recursiveReshape(flatArr, shapeArr) {
     if (shapeArr.length === 0) {
@@ -553,13 +614,6 @@ MyArray.prototype.ravel = function (A) {
 // =========================================
 //     Slicing
 // =========================================
-
-
-MyArray.prototype.slice = function (arr, slicesSpec) {
-  // This can result either in a view or a copy
-  const { shape, indices } = AxesIndex.prototype.parse(arr.shape, slicesSpec);
-  return new MyArray(indices.map(i => arr._flat[i]), shape, arr.dtype);
-}
 
 MyArray.prototype.__shape_shifts = function (shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
@@ -594,11 +648,13 @@ MyArray.prototype.__parse_sliceRange = function (axis_size, { start, stop, step 
 
 class AxisIndex {
   /**
+   * Invariant: Immutable
    * @param {AxisIndexSpec} spec
    */
   constructor(spec) {
     this.spec = spec;
     this._indices = null;
+    this.isSimple = (this.spec.type != "array");
   }
   get indices() {
     if (this._indices) return this._indices;
@@ -647,30 +703,6 @@ AxisIndex.prototype.parse_range = function (size, start = null, stop = null, ste
   return { start, step, nSteps };
 }
 
-class AxesIndex {
-  /**
-   * @param {AxisIndex[]} axisIndexes
-   */
-  constructor(apparentShape, internalShape, axisIndexes) {
-    this.shape = apparentShape;
-    this.internalShape = internalShape;
-    this.axisIndexes = axisIndexes;
-    this._indices = null;
-    this._size = null;
-  }
-  get indices() {
-    if (this._indices) return this._indices;
-    let indices = MyArray.prototype.__slices_to_indices(this.internalShape, this.slices);
-    return this._indices = indices;
-  }
-  get slices() {
-    return this.axisIndexes.map(idx => idx.indices);
-  }
-  get size() {
-    if (this._size) return this._size;
-    return this._size = this.axisIndexes.map(idx => idx.size).reduce((a, b) => a * b, 0);
-  }
-}
 
 
 /**@typedef {':'|number|{isRange:boolean, start:null|number, stop:null|number, step:null|number}|MyArray|number[]} SliceSpec */
@@ -701,24 +733,27 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
     spec = { type: ':', size: size };
   }
   else if (typeof sliceSpec === "number") {
-    spec = { type: 'number', index: sliceSpec };
+    let index = sliceSpec
+    if (index < 0) index = size + index;
+    if (index < 0 || index >= size) throw new Error(`Index ${index} out of bounds [0..${size})`);
+    spec = { type: 'number', index };
   }
   else if (sliceSpec instanceof MyArray || Array.isArray(sliceSpec)) {
     let indices;
-    sliceSpec = MyArray.prototype.asarray(sliceSpec)
-    if (sliceSpec.dtype == Number) {
+    let arr = MyArray.prototype.asarray(sliceSpec)
+    if (arr.dtype == Number) {
       // Array of indices
-      if (sliceSpec.shape.length > 1) throw new Error(
+      if (arr.shape.length > 1) throw new Error(
         `Expected 1D array of indices or nD array of booleans. ` +
-        `Found shape=${sliceSpec.shape} and dtype=${sliceSpec.dtype}`
+        `Found shape=${arr.shape} and dtype=${arr.dtype}`
       );
-      indices = sliceSpec.flat;
+      indices = arr.flat;
     } else {
       // Boolean mask
       indices = [];
-      sliceSpec.flat.forEach((if_value, i) => if_value && indices.push(i));
+      arr.flat.forEach((if_value, i) => if_value && indices.push(i));
       // Next lines: the boolean mask spans over more than 1 axis
-      span = Math.max(1, sliceSpec.shape.length);
+      span = Math.max(1, arr.shape.length);
       // Multiply the (possibly inverted) interval
     }
     spec = { type: 'array', indices };
