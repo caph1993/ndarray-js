@@ -24,6 +24,8 @@ TO DO:
 
 - List all the functions that access array.flat
 
+- speed up tests by running several python tests at once. Maybe printing to file?
+- Get click to work in Guake
 
 - parser should not return to_list, should it?
 - Print in different format
