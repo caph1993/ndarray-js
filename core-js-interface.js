@@ -73,7 +73,8 @@ function toJS(arr) {
     }
     return innerArray;
   }
-  return recursiveReshape([...arr.flat], arr.shape);
+  const out = recursiveReshape([...arr.flat], arr.shape);
+  return out;
 }
 
 

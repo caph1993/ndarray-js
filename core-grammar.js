@@ -133,7 +133,8 @@ grammar.__makeSemantics = () => {
       const arr = $arr.parse();
       if (typeof arr === "number") return arr;
       if (Array.isArray(arr)) return arr;
-      return NDArray.prototype.__number_collapse(arr);
+      const out = NDArray.prototype.__number_collapse(arr);
+      return out;
     },
     Precedence11: BinaryOperation,
     Precedence10: BinaryOperation,

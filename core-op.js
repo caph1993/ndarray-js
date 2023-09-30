@@ -65,15 +65,18 @@ function _broadcast_shapes(shapeA, shapeB) {
 /**@returns {BinaryOperator} */
 function __make_operator(dtype, func) {
   /** @param {NDArray?} out */
-  return function (A, B, out = null) {
+  function operator(A, B, out = null) {
+    if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
     return binary_operation(A, B, func, dtype, out);
   };
+  return operator;
 }
 
 /**@returns {BinaryOperator} */
 function __make_operator_special(funcNum, funcBool) {
   /** @param {NDArray?} out */
-  return function (A, B, out = null) {
+  function operator(A, B, out = null) {
+    if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
     A = NDArray.prototype.asarray(A);
     B = NDArray.prototype.asarray(B);
     let dtype = A.dtype, func;
@@ -82,6 +85,7 @@ function __make_operator_special(funcNum, funcBool) {
     else func = funcNum;
     return binary_operation(A, B, func, dtype, out);
   };
+  return operator;
 }
 
 /**@type {Object.<string, BinaryOperator>} */
@@ -168,9 +172,11 @@ function _assign_operation_toJS(tgtJS, src, slicesSpec, func, dtype) {
 
 /**@returns {AssignmentOperator} */
 function __make_assignment_operator(dtype, func) {
-  return function (tgt, src, slicesSpec) {
+  function operator(tgt, src, slicesSpec) {
+    if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
     return assign_operation(tgt, src, slicesSpec, func, dtype);
   }
+  return operator;
 }
 
 /**@type {Object.<string, AssignmentOperator>} */

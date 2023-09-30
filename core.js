@@ -174,7 +174,7 @@ function classMethodDecorator(func) {
   // @ts-ignore
   return function () {
     if (this instanceof NDArray) return func.bind(NDArray.prototype)(this, ...arguments);
-    return func(...arguments);
+    return func.bind(this)(...arguments);
   }
 }
 

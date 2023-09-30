@@ -32,6 +32,7 @@ TO DO:
 
 
 - separate these as core: slice, _binary_operator, _assign_operator, _reduce, _apply, "_transform" (e.g. sort)
+- enable GeneralSliceSpec to accept string '::-1' instead of already parsed range object.
 
 
 
@@ -40,7 +41,6 @@ TO DO:
 - np.where
 - maximum and minimum with ↑ and ↓. What priority wr to + *, ** and the logical operators?
 
-- enable GeneralSliceSpec to accept string '::-1' instead of already parsed range object.
 
 - Optimize with webpack
 - Add license to webpack

@@ -71,6 +71,10 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 // Unit tests:
 
+npTest`np.ones(${[10, 2]})`
+npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True)`
+npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True) + np.arange(2)`
+
 npTest`np.arange(10000).reshape(100,2,50)`
 npTest`np.arange(10000).reshape(100,10,10,1)`
 npTest`np.arange(10000).reshape(100,2,50,1)`
