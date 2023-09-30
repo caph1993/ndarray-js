@@ -3,7 +3,7 @@
 
 /** @typedef {import("./core")} NDArray*/
 
-const { NDArray } = require("./core-globals").GLOBALS;
+const { NDArray } = require("./globals").GLOBALS;
 
 /**
  * @param {NDArray} arr 
@@ -52,7 +52,7 @@ function humanReadable(arr) {
     return `[${out.join(sep)}]`;
   }
 
-  let prefix = 'Arr';
+  let prefix = 'np';
   let suffix = `, shape=(${arr.shape}), dtype=${arr.dtype.name}`;
   let out = str(simplify(list), 1 + prefix.length);
   function alignColumns(inputString, delimiter = ',') {

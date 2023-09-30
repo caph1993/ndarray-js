@@ -37,7 +37,7 @@ class NDArray {
   }
 }
 
-require('./core-globals').GLOBALS.NDArray = NDArray;
+require('./globals').GLOBALS.NDArray = NDArray;
 
 
 // ==============================
@@ -140,22 +140,8 @@ NDArray.prototype._new = function (shape, f, dtype) {
   return new NDArray(flat, shape, dtype);
 };
 
-NDArray.prototype.zeros = function (shape, /**@type {DType} */dtype = Number) {
-  const c = dtype == Boolean ? false : 0;
-  return NDArray.prototype._new(shape, (_) => c, dtype)
-};
 NDArray.prototype.empty = function (shape, /**@type {DType} */dtype = Number) {
   return NDArray.prototype._new(shape, (_) => undefined, dtype)
-};
-NDArray.prototype.ones = function (shape, /**@type {DType} */dtype = Number) {
-  const c = dtype == Boolean ? true : 1;
-  return NDArray.prototype._new(shape, (_) => c, dtype)
-};
-NDArray.prototype.arange = function (arg0, arg1 = null) {
-  let start, end;
-  if (arg1 === null) start = 0, end = arg0;
-  else start = arg0, end = arg1;
-  return NDArray.prototype._new(end - start, (_, i) => start + i, Number)
 };
 NDArray.prototype.__random = function (shape) {
   return NDArray.prototype._new(shape, (_) => Math.random(), Number)
@@ -194,17 +180,10 @@ var print = require('./core-print');
 NDArray.prototype.toString = classMethodDecorator(print.humanReadable);
 
 
+
 // ==============================
-//    Grammar parser
+//    Reduce
 // ==============================
-
-var grammar = require('./core-grammar');
-NDArray.prototype.grammar = grammar;
-NDArray.prototype.parse = NDArray.prototype.grammar.parse;
-NDArray.prototype.parseJS = NDArray.prototype.grammar.parseJS;
-
-
-
 
 var reduce = require('./core-reduce');
 
@@ -235,26 +214,26 @@ NDArray.prototype.op_assign = op.op_assign;
 NDArray.prototype.opx = op.opx;
 
 
-NDArray.prototype.add = NDArray.prototype.op["+"];
-NDArray.prototype.subtract = NDArray.prototype.op["-"];
-NDArray.prototype.multiply = NDArray.prototype.op["*"];
-NDArray.prototype.divide = NDArray.prototype.op["/"];
-NDArray.prototype.mod = NDArray.prototype.op["%"];
-NDArray.prototype.divide_int = NDArray.prototype.op["//"];
-NDArray.prototype.pow = NDArray.prototype.op["**"];
-NDArray.prototype.boolean_or = NDArray.prototype.op["|"];
-NDArray.prototype.boolean_and = NDArray.prototype.op["&"];
-NDArray.prototype.boolean_xor = NDArray.prototype.op["^"];
-NDArray.prototype.boolean_shift_left = NDArray.prototype.op["<<"];
-NDArray.prototype.boolean_shift_right = NDArray.prototype.op[">>"];
-NDArray.prototype.gt = NDArray.prototype.op[">"];
-NDArray.prototype.lt = NDArray.prototype.op["<"];
-NDArray.prototype.geq = NDArray.prototype.op[">="];
-NDArray.prototype.leq = NDArray.prototype.op["<="];
-NDArray.prototype.eq = NDArray.prototype.op["=="];
-NDArray.prototype.neq = NDArray.prototype.op["!="];
-NDArray.prototype.maximum = NDArray.prototype.op["↑"];
-NDArray.prototype.minimum = NDArray.prototype.op["↓"];
+NDArray.prototype.add = op.op["+"];
+NDArray.prototype.subtract = op.op["-"];
+NDArray.prototype.multiply = op.op["*"];
+NDArray.prototype.divide = op.op["/"];
+NDArray.prototype.mod = op.op["%"];
+NDArray.prototype.divide_int = op.op["//"];
+NDArray.prototype.pow = op.op["**"];
+NDArray.prototype.boolean_or = op.op["|"];
+NDArray.prototype.boolean_and = op.op["&"];
+NDArray.prototype.boolean_xor = op.op["^"];
+NDArray.prototype.boolean_shift_left = op.op["<<"];
+NDArray.prototype.boolean_shift_right = op.op[">>"];
+NDArray.prototype.gt = op.op[">"];
+NDArray.prototype.lt = op.op["<"];
+NDArray.prototype.geq = op.op[">="];
+NDArray.prototype.leq = op.op["<="];
+NDArray.prototype.eq = op.op["=="];
+NDArray.prototype.neq = op.op["!="];
+NDArray.prototype.maximum = op.op["↑"];
+NDArray.prototype.minimum = op.op["↓"];
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
 NDArray.prototype.boolean_not = function (A) { return NDArray.prototype.boolean_xor(A, 1); };
@@ -272,9 +251,8 @@ NDArray.prototype.allclose = op.allclose;
 // ==============================
 
 var jsInterface = require('./core-js-interface');
-NDArray.prototype.fromJS = jsInterface.fromJS;
-NDArray.prototype.toJS = jsInterface.toJS;
-NDArray.prototype.nested = jsInterface.nested;
+NDArray.prototype.fromJS = classMethodDecorator(jsInterface.fromJS);
+NDArray.prototype.toJS = classMethodDecorator(jsInterface.toJS);
 
 
 
@@ -284,89 +262,29 @@ NDArray.prototype.nested = jsInterface.nested;
 //    pointwise math functions
 // ==============================
 
-NDArray.prototype._apply = function (A, func, dtype) {
+function apply_pointwise(A, func, dtype) {
+  if (this instanceof NDArray) return apply_pointwise.bind(NDArray.prototype)(this, ...arguments);
   A = NDArray.prototype.asarray(A);
   return new NDArray(A.flat.map(func), A.shape, dtype);
 }
 
-NDArray.prototype.__make_pointwise = function (func, dtype = Number) {
-  return function (A) {
-    return NDArray.prototype._apply(A, func, dtype);
-  }
-}
+NDArray.prototype.apply_pointwise = apply_pointwise;
 
-NDArray.prototype.sign = NDArray.prototype.__make_pointwise(Math.sign);
-NDArray.prototype.sqrt = NDArray.prototype.__make_pointwise(Math.sqrt);
-NDArray.prototype.abs = NDArray.prototype.__make_pointwise(Math.abs);
-NDArray.prototype.exp = NDArray.prototype.__make_pointwise(Math.exp);
-NDArray.prototype.log = NDArray.prototype.__make_pointwise(Math.log);
-NDArray.prototype.log2 = NDArray.prototype.__make_pointwise(Math.log2);
-NDArray.prototype.log10 = NDArray.prototype.__make_pointwise(Math.log10);
-NDArray.prototype.log1p = NDArray.prototype.__make_pointwise(Math.log1p);
-NDArray.prototype.sin = NDArray.prototype.__make_pointwise(Math.sin);
-NDArray.prototype.cos = NDArray.prototype.__make_pointwise(Math.cos);
-NDArray.prototype.tan = NDArray.prototype.__make_pointwise(Math.tan);
-NDArray.prototype.asin = NDArray.prototype.__make_pointwise(Math.asin);
-NDArray.prototype.acos = NDArray.prototype.__make_pointwise(Math.acos);
-NDArray.prototype.atan = NDArray.prototype.__make_pointwise(Math.atan);
-NDArray.prototype.atan2 = NDArray.prototype.__make_pointwise(Math.atan2);
-NDArray.prototype.cosh = NDArray.prototype.__make_pointwise(Math.cosh);
-NDArray.prototype.sinh = NDArray.prototype.__make_pointwise(Math.sinh);
-NDArray.prototype.tanh = NDArray.prototype.__make_pointwise(Math.tanh);
-NDArray.prototype.acosh = NDArray.prototype.__make_pointwise(Math.acosh);
-NDArray.prototype.asinh = NDArray.prototype.__make_pointwise(Math.asinh);
-NDArray.prototype.atanh = NDArray.prototype.__make_pointwise(Math.atanh);
-NDArray.prototype._round = NDArray.prototype.__make_pointwise(Math.round);
-NDArray.prototype.round = function (A, decimals = 0) {
-  if (decimals == 0) NDArray.prototype._round(A);
-  return NDArray.prototype._apply(A, x => parseFloat(x.toFixed(decimals)), Number);
-}
+function round(A, decimals = 0) {
+  if (this instanceof NDArray) return round.bind(NDArray.prototype)(this, ...arguments);
+  if (decimals == 0) apply_pointwise(A, Math.round, Number);
+  return apply_pointwise(A, x => parseFloat(x.toFixed(decimals)), Number);
+};
+
+NDArray.prototype.round = round;
 
 
 //=============================
 
 
 
-NDArray.prototype.linspace = function (start, stop, num = 50, endpoint = true) {
-  ({ stop, num, endpoint } = Object.assign({ stop, num, endpoint }, this));
-  const { multiply, arange, add, __as_number } = NDArray.prototype;
-  start = __as_number(start);
-  stop = __as_number(stop);
-  let n = (num - (endpoint ? 1 : 0))
-  let arr = add(multiply(arange(num), (stop - start) / n), start);
-  return arr;
-}
-
-NDArray.prototype.geomspace = function (start, stop, num = 50, endpoint = true) {
-  ({ stop, num, endpoint } = Object.assign({ stop, num, endpoint }, this));
-  const { exp, log, linspace } = NDArray.prototype;
-  start = log(start);
-  stop = log(stop);
-  return exp(linspace(start, stop, num, endpoint));
-}
 
 
-
-
-
-
-
-NDArray.prototype.random = {
-  random(shape) {
-    return NDArray.prototype.__random(shape);
-  },
-  uniform(a, b, shape) {
-    const { random, op } = NDArray.prototype;
-    return op['+'](a, op['*'](random.random(shape), b - a));
-  },
-  exponential(mean, shape) {
-    const { random, log, op } = NDArray.prototype;
-    return op['*'](mean, op['-'](0, log(random.random(shape))));
-  },
-  // normal,
-  // shuffle,
-  // permutation,
-};
 
 
 

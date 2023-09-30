@@ -2,7 +2,7 @@
 
 /** @typedef {import("./core")} NDArray*/
 
-const { NDArray } = require("./core-globals").GLOBALS;
+const { NDArray } = require("./globals").GLOBALS;
 
 
 /** @typedef {null|number} AxisArg */

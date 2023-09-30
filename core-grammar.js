@@ -1,7 +1,7 @@
 //@ts-check
 /** @typedef {import("./core")} NDArray*/
 
-const { NDArray } = require("./core-globals").GLOBALS;
+const { NDArray, np } = require("./globals").GLOBALS;
 var ohm = require('ohm-js');
 
 const grammar = {}
@@ -160,7 +160,7 @@ grammar.__makeSemantics = () => {
     Arr_call($name, $names, _, $callArgs) {
       let name = $name.sourceString + $names.sourceString;
       if (name.slice(0, 3) == "np.") name = name.slice(3);
-      const func = NDArray.prototype[name];
+      const func = np[name];
       if (func === undefined) throw new Error(`Unrecognized function ${name}`)
       const { args, kwArgs } = $callArgs.parse();
       return func.bind(kwArgs)(...args);
@@ -168,8 +168,7 @@ grammar.__makeSemantics = () => {
     Arr_method($arr, _dot, $name, $callArgs) {
       let arr = $arr.parse();
       let name = $name.sourceString;
-      if (name.slice(0, 3) == "np.") name = name.slice(3);
-      const func = NDArray.prototype[name];
+      const func = arr[name];
       if (func === undefined) throw new Error(`Unrecognized method ${name}`)
       const { args, kwArgs } = $callArgs.parse();
       return func.bind(kwArgs)(arr, ...args);
@@ -178,8 +177,9 @@ grammar.__makeSemantics = () => {
     Arr_attribute($arr, _, $name) { return $arr.parse()[$name.sourceString]; },
     Variable(_, $i, __) {
       const i = parseInt($i.sourceString);
-      const arr = semanticVariables[i];
-      return arr;
+      let value = semanticVariables[i];
+      if(Array.isArray(value)) value = np.array(value);
+      return value;
     },
     int($sign, $value) {
       const value = parseInt($value.sourceString);
@@ -289,15 +289,6 @@ grammar.parse = function (template, ...variables) {
     if (i == pool.length) pool.push(grammar.__makeSemantics());
   }
 }
-/**
- * @param {TemplateStringsArray} template
- * @param {any[]} variables
- */
-grammar.parseJS = function (template, ...variables) {
-  const arr = grammar.parse(template, ...variables)
-  return NDArray.prototype.toJS(arr);
-}
-
 
 
 module.exports = grammar;

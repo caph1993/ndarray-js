@@ -1,23 +1,17 @@
 
 console.log('Start')
 var { spawnSync } = require('child_process'); // For testing
-var MyArray = require('../index');
+var np = require('../index');
 // console.log(np`np.arange(120).reshape([-1,3])`)
 // console.log(np`np.arange(120).reshape([-1, 3])[2:-3:6]`)
 
-/**
- * @param {TemplateStringsArray} template
- * @param {any[]} variables
- * */
-function np(template, ...variables) {
-  return MyArray.prototype.grammar.parseJS(template, ...variables);
-}
 
 
 function npTest(template, ...variables) {
   let idx = 0;
   const str = template.join('###').replace(/###/g, () => {
     let value = variables[idx++];
+    if (value instanceof np.NDArray) value = value.toJS();
     let out = JSON.stringify(value)
     if (Array.isArray(value)) out = `np.array(${out})`;
     return out;
@@ -41,35 +35,39 @@ if isinstance(out, np.ndarray):
     out = out.tolist()
 print(json.dumps(out, cls=NpEncoder), flush=True)
 `
+  console.log("========", str, "============");
   const process = spawnSync('python3', ['-c', program]);
   const stdout = process.stdout.toString();
-  if (!stdout.length) throw new Error(process.stderr.toString());
+  if (!stdout.length) throw new Error(`No output produced by python program. STDERR:\n${process.stderr.toString()}`);
   const expected = JSON.parse(stdout);
   let obtained;
   try {
-    obtained = np(template, ...variables);
+    obtained = np.JS(template, ...variables);
   } catch (err) {
     console.error(JSON.stringify(expected));
     console.error(`numpy-js failed for ${str}`);
     throw err;
   }
-  if (!MyArray.prototype.nested.allClose(obtained, expected)) {
+  if (!np.nested.allClose(obtained, expected)) {
     console.error(JSON.stringify(expected));
     console.error(JSON.stringify(obtained));
     throw new Error(`Mismatch for ${str}`);
   }
-  console.log("========", str, "============");
-  console.log(MyArray.prototype.fromJS(obtained).toString());
+  console.log(np.fromJS(obtained).toString());
   return obtained;
 }
 
 
 // console.log('=============');
-// console.log(`${MyArray.prototype.grammar.parse`np.arange(120).reshape(2,3,4,5)[:, np.arange(12).reshape((3,4))<10]`}`);
-// console.log(`${MyArray.prototype.grammar.parse`np.linspace(0, 1, 10)`}`);
+// console.log(`${np.grammar.parse`np.arange(120).reshape(2,3,4,5)[:, np.arange(12).reshape((3,4))<10]`}`);
+// console.log(`${np.grammar.parse`np.linspace(0, 1, 10)`}`);
 // console.log('=============');
 
 // Unit tests:
+
+var a = npTest`np.array(([1,2], [3,6], [9, 10]))`
+npTest`${a}.sum(axis=0)`
+npTest`${a}.sum(axis=1)`
 
 npTest`np.ones(${[10, 2]})`
 npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True)`
@@ -104,10 +102,10 @@ npTest`np.arange(120).reshape(2,3,4,5)[0,2,1,3]`
 npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1,3]`
 
 
+npTest`np.linspace(200, -45.3, 100)`
 npTest`np.linspace(0, 1, 10)`
 npTest`np.linspace(0.5, 1.3, 10)`
 npTest`np.geomspace(32, 45, 13)`
-npTest`np.linspace(200, -45.3, 100)`
 npTest`np.exp(${np`np.linspace(3, 6.5, 10)`})`
 
 npTest`np.arange(120).reshape([-1,3])`

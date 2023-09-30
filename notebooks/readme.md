@@ -28,13 +28,18 @@ TO DO:
 - (DONE) Support for 128 bits dtype? (Nope. I don't use that much, and js does not support that natively)
 
 - make the module callable
-- provide to calls: if template string... otherwise, asarray np`...` np(...)
+- provide two calls: if template string... otherwise, asarray np`...` np(...)
 
 
 - separate these as core: slice, _binary_operator, _assign_operator, _reduce, _apply, "_transform" (e.g. sort)
+
+- don't put everything into the array class. E.g., np.array.linspace makes no sense.
+
 - enable GeneralSliceSpec to accept string '::-1' instead of already parsed range object.
 
+- reduce is called "apply_along_axis" in numpy jargon, and it supports nd output, so it's my "transform"
 
+- I can't find a "apply_pointwise" function. Instead they have "vectorize" for functions.
 
 - is there a way to copy the jsdoc of another function, but replacing the first argument?
 

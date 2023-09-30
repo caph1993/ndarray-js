@@ -17,9 +17,11 @@
 
 
 /** @typedef {typeof import("./core")} NDArrayPrototype*/
+/** @typedef {typeof import("./index")} npPrototype*/
 
 module.exports = {
   GLOBALS: {
     NDArray:/** @type {NDArrayPrototype}*/ (/** @type {*}*/ (null)),
+    np:/** @type {npPrototype}*/ (/** @type {*}*/ (null)),
   },
 };
