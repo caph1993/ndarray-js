@@ -28,7 +28,7 @@ TO DO:
 - (DONE) Support for 128 bits dtype? (Nope. I don't use that much, and js does not support that natively)
 
 
-
+- is there a way to copy the jsdoc of another function, but replacing the first argument?
 
 - np.where
 - maximum and minimum with ↑ and ↓. What priority wr to + *, ** and the logical operators?

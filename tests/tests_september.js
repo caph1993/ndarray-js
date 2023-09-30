@@ -1,7 +1,7 @@
 
 console.log('Start')
 var { spawnSync } = require('child_process'); // For testing
-var MyArray = require('../index');
+var MyArray = require('../core');
 // console.log(np`np.arange(120).reshape([-1,3])`)
 // console.log(np`np.arange(120).reshape([-1, 3])[2:-3:6]`)
 
