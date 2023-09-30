@@ -27,6 +27,13 @@ TO DO:
 - (DONE) parser should not return to_list, should it?
 - (DONE) Support for 128 bits dtype? (Nope. I don't use that much, and js does not support that natively)
 
+- make the module callable
+- provide to calls: if template string... otherwise, asarray np`...` np(...)
+
+
+- separate these as core: slice, _binary_operator, _assign_operator, _reduce, _apply, "_transform" (e.g. sort)
+
+
 
 - is there a way to copy the jsdoc of another function, but replacing the first argument?
 
