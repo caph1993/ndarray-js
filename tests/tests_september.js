@@ -1,4 +1,4 @@
-
+//@ts-check
 console.log('Start')
 var { spawnSync } = require('child_process'); // For testing
 var np = require('../index');
@@ -42,14 +42,18 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
   const expected = JSON.parse(stdout);
   let obtained;
   try {
-    obtained = np.JS(template, ...variables);
+    obtained = np.toJS(template, ...variables);
   } catch (err) {
+    console.error('EXPECTED:');
     console.error(JSON.stringify(expected));
-    console.error(`numpy-js failed for ${str}`);
+    console.error('OBTAINED:');
+    console.error(`(ERROR)`);
     throw err;
   }
-  if (!np.nested.allClose(obtained, expected)) {
+  if (!np.modules.jsUtils.allClose(obtained, expected)) {
+    console.error('EXPECTED:');
     console.error(JSON.stringify(expected));
+    console.error('OBTAINED:');
     console.error(JSON.stringify(obtained));
     throw new Error(`Mismatch for ${str}`);
   }
@@ -64,6 +68,13 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 // console.log('=============');
 
 // Unit tests:
+
+
+npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )`
+npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ]`
+npTest`np.ravel(np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ])`
+npTest`np.ravel(np.reshape( np.arange(120), ${[2, 3, 4, 5]} )[ :, 0, ${[1, 2]}, : ])`
+npTest`np.linspace(200, -45.3, 100)`
 
 var a = npTest`np.array(([1,2], [3,6], [9, 10]))`
 npTest`${a}.sum(axis=0)`
@@ -102,7 +113,6 @@ npTest`np.arange(120).reshape(2,3,4,5)[0,2,1,3]`
 npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1,3]`
 
 
-npTest`np.linspace(200, -45.3, 100)`
 npTest`np.linspace(0, 1, 10)`
 npTest`np.linspace(0.5, 1.3, 10)`
 npTest`np.geomspace(32, 45, 13)`

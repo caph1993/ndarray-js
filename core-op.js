@@ -8,6 +8,9 @@ const { NDArray } = require("./globals").GLOBALS;
 
 const indexes = require('./core-indexes');
 
+const asarray = NDArray.prototype.modules.basic.asarray;
+const ravel = NDArray.prototype.modules.basic.ravel;
+
 /**
  * 
  * @param {ArrayOrConstant} A 
@@ -20,11 +23,11 @@ const indexes = require('./core-indexes');
 function binary_operation(A, B, func, dtype, out = null) {
   if (this instanceof NDArray) return func.bind(NDArray.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
-  const { asarray, __shape_shifts, empty, __number_collapse } = NDArray.prototype;
+  const { __shape_shifts, __number_collapse } = NDArray.prototype;
   A = asarray(A);
   B = asarray(B);
   const [shape, shapeA, shapeB] = _broadcast_shapes(A.shape, B.shape);
-  if (out == null) out = empty(shape, dtype);
+  if (out == null) out = NDArray.prototype._new(shape, (_) => undefined, dtype);
   else if (!(out instanceof NDArray)) throw new Error(`Out must be of type ${NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
   const flatOut = [];
@@ -60,32 +63,29 @@ function _broadcast_shapes(shapeA, shapeB) {
   return [shape, shapeA, shapeB];
 }
 
-/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:NDArray)=>ArrayOrConstant} BinaryOperator */
+/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:NDArray)=>NDArray} BinaryOperator */
 
-/**@returns {BinaryOperator} */
 function __make_operator(dtype, func) {
-  /** @param {NDArray?} out */
   function operator(A, B, out = null) {
     if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
     return binary_operation(A, B, func, dtype, out);
   };
-  return operator;
+  return /**@type {BinaryOperator}*/(operator);
 }
 
-/**@returns {BinaryOperator} */
 function __make_operator_special(funcNum, funcBool) {
   /** @param {NDArray?} out */
   function operator(A, B, out = null) {
     if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
-    A = NDArray.prototype.asarray(A);
-    B = NDArray.prototype.asarray(B);
+    A = asarray(A);
+    B = asarray(B);
     let dtype = A.dtype, func;
     if (A.dtype != B.dtype) console.warn(`Warning: operating arrays of different dtypes. Using ${dtype}`);
     if (dtype == Boolean) func = funcBool;
     else func = funcNum;
     return binary_operation(A, B, func, dtype, out);
   };
-  return operator;
+  return /**@type {BinaryOperator}*/(operator);
 }
 
 /**@type {Object.<string, BinaryOperator>} */
@@ -126,7 +126,7 @@ const op = {
 function assign_operation(tgt, src, slicesSpec, func, dtype) {
   // @ts-ignore
   if (this instanceof NDArray) return assign_operation(this, ...arguments);
-  const { _binary_operation, asarray, ravel } = NDArray.prototype;
+  const { _binary_operation } = NDArray.prototype;
   if (!(tgt instanceof NDArray)) return _assign_operation_toJS(tgt, src, slicesSpec, func, dtype)
   if (!slicesSpec) {
     _binary_operation(tgt, src, func, dtype, tgt);
@@ -155,14 +155,13 @@ function assign_operation(tgt, src, slicesSpec, func, dtype) {
  * @param {indexes.GeneralSliceSpec[]} slicesSpec
  */
 function _assign_operation_toJS(tgtJS, src, slicesSpec, func, dtype) {
-  const { asarray, toJS } = NDArray.prototype;
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);
   console.warn('Assignment to JS array is experimental and slow.')
   // Parse the whole array
   const cpy = asarray(tgtJS);
   assign_operation(cpy, src, slicesSpec, func, dtype);
   // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-  const outJS = toJS(cpy);
+  const outJS = NDArray.prototype.modules.jsInterface.toJS(cpy);
   while (tgtJS.length) tgtJS.pop();
   // @ts-ignore
   tgtJS.push(...outJS);

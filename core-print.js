@@ -5,10 +5,7 @@
 
 const { NDArray } = require("./globals").GLOBALS;
 
-/**
- * @param {NDArray} arr 
- * @returns {string}
- */
+
 function humanReadable(arr) {
   if (arr.shape.length == 0) return arr.flat[0].toString();
   let budgets = arr.shape.map(_ => 1);
@@ -37,8 +34,8 @@ function humanReadable(arr) {
   while (rLimit > 0 && arr.shape[rLimit] == 1) {
     rLimit--;
   }
-  if (arr.dtype == Number) arr = NDArray.prototype.round(arr, 2);
-  let list = NDArray.prototype.toJS(arr);
+  if (arr.dtype == Number) arr = NDArray.prototype.modules.elementwise.round(arr, 2);
+  let list = NDArray.prototype.modules.jsInterface.toJS(arr);
 
   function str(list, indent = 0, depth = 0) {
     if (list == '...' || depth >= arr.shape.length) return list;

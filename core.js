@@ -14,7 +14,7 @@ class NDArray {
     this.dtype = dtype;
     this._simpleIndexes = null;
   }
-  /** @type {indexes.AxesIndex|null} */ _simpleIndexes;
+  /** @type {import("./core-indexes").AxesIndex|null} */ _simpleIndexes;
 
   get size() {
     return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;
@@ -40,55 +40,49 @@ class NDArray {
 require('./globals').GLOBALS.NDArray = NDArray;
 
 
+const modules = {};
+NDArray.prototype.modules = modules; // NEEDED before loading the modules!
+
+modules.basic = require('./core-basic');
+modules.indexes = require('./core-indexes');
+modules.elementwise = require('./core-elementwise');
+modules.print = require('./core-print');
+modules.reduce = require('./core-reduce');
+modules.op = require('./core-op');
+modules.jsInterface = require('./core-js-interface');
+
+
+
 // ==============================
 //    Basic methods
 // ==============================
 
+const basic = modules.basic;
 
-NDArray.prototype.reshape = function (A, shape, ...more_shape) {
-  const { __parse_shape, __as_number } = NDArray.prototype;
-  if (!more_shape.length) shape = __parse_shape(shape);
-  else shape = [shape, ...more_shape].map(__as_number)
-  const n = A.size;
-  const inferredIndex = shape.indexOf(-1);
-  if (inferredIndex !== -1) {
-    const productOfKnownDims = shape.filter(dim => dim !== -1).reduce((acc, val) => acc * val, 1);
-    if (n % productOfKnownDims !== 0) {
-      throw new Error("Invalid shape. The total number of elements must match the product of the known dimensions.");
-    }
-    shape[inferredIndex] = n / productOfKnownDims;
-  }
-  return new NDArray(A.flat, shape, A.dtype);
+NDArray.prototype.reshape = function (shape, ...more_shape) {
+  return basic.reshape(this, shape, ...more_shape);
 };
 
-NDArray.prototype.ravel = function (A) {
-  A = NDArray.prototype.asarray(A);
-  return new NDArray(A.flat, [A.size], A.dtype);
+NDArray.prototype.ravel = function () {
+  return basic.ravel(this);
 };
 
-
-NDArray.prototype.copy = function (A) {
-  return new NDArray([...A.flat], A.shape, A.dtype);
-};
-
-NDArray.prototype.isarray = function (arr) {
-  return arr instanceof NDArray;
+NDArray.prototype.copy = function () {
+  return basic.copy(this);
 };
 
 /** @returns {NDArray} */
-NDArray.prototype.asarray = function (A) {
-  if (A instanceof NDArray) return A;
-  else return NDArray.prototype.fromJS(A);
+NDArray.prototype.asarray = function () {
+  return basic.asarray(this);
 }
+
 /** @returns {NDArray} */
-NDArray.prototype.array = function (A) {
-  // @ts-ignore
-  if (A instanceof NDArray) {
-    let flat = A._simpleIndexes == null ? [...A.flat] : A.flat;
-    return new NDArray(flat, A.shape, A.dtype);
-  }
-  else return NDArray.prototype.fromJS(A);
+NDArray.prototype.array = function () {
+  return basic.array(this);
 }
+
+
+
 
 NDArray.prototype.__shape_shifts = function (shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
@@ -99,9 +93,13 @@ NDArray.prototype.__shape_shifts = function (shape) {
 }
 
 /**
- * 
+ * If the array is 0D, it returns it's unique element (number or boolean).
+ * The signature is kept as NDArray for type consistency, even though the
+ * output is a number or a boolean. This is consistent with the facts that
+ * (1) all functions requiring arrays work with numbers as well because they call asarray,
+ * and (2) semantically, a constant is an array.
  * @param {NDArray} arr 
- * @returns {NDArray|number|boolean}
+ * @returns {NDArray|number}
  */
 NDArray.prototype.__number_collapse = function (arr, expect = false) {
   if (!arr.shape.length) return arr.flat[0];
@@ -140,64 +138,54 @@ NDArray.prototype._new = function (shape, f, dtype) {
   return new NDArray(flat, shape, dtype);
 };
 
-NDArray.prototype.empty = function (shape, /**@type {DType} */dtype = Number) {
-  return NDArray.prototype._new(shape, (_) => undefined, dtype)
-};
-NDArray.prototype.__random = function (shape) {
-  return NDArray.prototype._new(shape, (_) => Math.random(), Number)
-};
-
-
-
-
-
-/**
- * @template {Function} T
- * @param {T} func
- * @returns {T}
- */
-function classMethodDecorator(func) {
-  // @ts-ignore
-  return function () {
-    if (this instanceof NDArray) return func.bind(NDArray.prototype)(this, ...arguments);
-    return func.bind(this)(...arguments);
-  }
-}
 
 // ==============================
 //    Slicing
 // ==============================
 
-var indexes = require('./core-indexes');
-NDArray.prototype.slice = classMethodDecorator(indexes.slice);
-
+/**
+ * @param {import("./core-indexes").GeneralSliceSpec[]} slicesSpec
+ */
+NDArray.prototype.slice = function (...slicesSpec) {
+  return modules.indexes.slice(this, ...slicesSpec);
+}
 
 // ==============================
 //    Printing
 // ==============================
 
-var print = require('./core-print');
-NDArray.prototype.toString = classMethodDecorator(print.humanReadable);
-
+NDArray.prototype.toString = function () {
+  return modules.print.humanReadable(this);
+}
 
 
 // ==============================
 //    Reduce
 // ==============================
 
-var reduce = require('./core-reduce');
 
-NDArray.prototype.sum = classMethodDecorator(reduce.reducers.sum);
-NDArray.prototype.product = classMethodDecorator(reduce.reducers.product);
-NDArray.prototype.any = classMethodDecorator(reduce.reducers.any);
-NDArray.prototype.all = classMethodDecorator(reduce.reducers.all);
-NDArray.prototype.max = classMethodDecorator(reduce.reducers.max);
-NDArray.prototype.min = classMethodDecorator(reduce.reducers.min);
-NDArray.prototype.argmax = classMethodDecorator(reduce.reducers.argmax);
-NDArray.prototype.argmin = classMethodDecorator(reduce.reducers.argmin);
-NDArray.prototype.mean = classMethodDecorator(reduce.reducers.mean);
-NDArray.prototype.var = classMethodDecorator(reduce.reducers.var);
-NDArray.prototype.std = classMethodDecorator(reduce.reducers.std);
+
+
+
+
+function reduceDecorator(func) {
+  /** @param {import("./core-reduce").AxisArg} axis  @param {boolean} keepdims */
+  return function (axis = null, keepdims = false) {
+    return func(this, axis, keepdims);
+  }
+}
+
+NDArray.prototype.sum = reduceDecorator(modules.reduce.reducers.sum);
+NDArray.prototype.product = reduceDecorator(modules.reduce.reducers.product);
+NDArray.prototype.any = reduceDecorator(modules.reduce.reducers.any);
+NDArray.prototype.all = reduceDecorator(modules.reduce.reducers.all);
+NDArray.prototype.max = reduceDecorator(modules.reduce.reducers.max);
+NDArray.prototype.min = reduceDecorator(modules.reduce.reducers.min);
+NDArray.prototype.argmax = reduceDecorator(modules.reduce.reducers.argmax);
+NDArray.prototype.argmin = reduceDecorator(modules.reduce.reducers.argmin);
+NDArray.prototype.mean = reduceDecorator(modules.reduce.reducers.mean);
+NDArray.prototype.var = reduceDecorator(modules.reduce.reducers.var);
+NDArray.prototype.std = reduceDecorator(modules.reduce.reducers.std);
 
 
 
@@ -205,89 +193,74 @@ NDArray.prototype.std = classMethodDecorator(reduce.reducers.std);
 //       Operators: Binary operations, assignment operations and unary boolean_not
 // ==============================
 
-var op = require('./core-op');
-
-NDArray.prototype.op = op.op;
-NDArray.prototype._binary_operation = op.binary_operation;
-
-NDArray.prototype.op_assign = op.op_assign;
-NDArray.prototype.opx = op.opx;
 
 
-NDArray.prototype.add = op.op["+"];
-NDArray.prototype.subtract = op.op["-"];
-NDArray.prototype.multiply = op.op["*"];
-NDArray.prototype.divide = op.op["/"];
-NDArray.prototype.mod = op.op["%"];
-NDArray.prototype.divide_int = op.op["//"];
-NDArray.prototype.pow = op.op["**"];
-NDArray.prototype.boolean_or = op.op["|"];
-NDArray.prototype.boolean_and = op.op["&"];
-NDArray.prototype.boolean_xor = op.op["^"];
-NDArray.prototype.boolean_shift_left = op.op["<<"];
-NDArray.prototype.boolean_shift_right = op.op[">>"];
-NDArray.prototype.gt = op.op[">"];
-NDArray.prototype.lt = op.op["<"];
-NDArray.prototype.geq = op.op[">="];
-NDArray.prototype.leq = op.op["<="];
-NDArray.prototype.eq = op.op["=="];
-NDArray.prototype.neq = op.op["!="];
-NDArray.prototype.maximum = op.op["↑"];
-NDArray.prototype.minimum = op.op["↓"];
+NDArray.prototype.op = modules.op.op;
+NDArray.prototype._binary_operation = modules.op.binary_operation;
+
+NDArray.prototype.op_assign = modules.op.op_assign;
+NDArray.prototype.opx = modules.op.opx;
+
+
+function opDecorator(func) {
+  /**
+   * @param {import("./core-op").ArrayOrConstant} other
+   * @param {NDArray?} out
+   * @returns {NDArray}
+   */
+  return function (other, out = null) {
+    return func(this, other, out);
+  }
+}
+
+NDArray.prototype.add = opDecorator(modules.op.op["+"]);
+NDArray.prototype.subtract = opDecorator(modules.op.op["-"]);
+NDArray.prototype.multiply = opDecorator(modules.op.op["*"]);
+NDArray.prototype.divide = opDecorator(modules.op.op["/"]);
+NDArray.prototype.mod = opDecorator(modules.op.op["%"]);
+NDArray.prototype.divide_int = opDecorator(modules.op.op["//"]);
+NDArray.prototype.pow = opDecorator(modules.op.op["**"]);
+NDArray.prototype.boolean_or = opDecorator(modules.op.op["|"]);
+NDArray.prototype.boolean_and = opDecorator(modules.op.op["&"]);
+NDArray.prototype.boolean_xor = opDecorator(modules.op.op["^"]);
+NDArray.prototype.boolean_shift_left = opDecorator(modules.op.op["<<"]);
+NDArray.prototype.boolean_shift_right = opDecorator(modules.op.op[">>"]);
+NDArray.prototype.gt = opDecorator(modules.op.op[">"]);
+NDArray.prototype.lt = opDecorator(modules.op.op["<"]);
+NDArray.prototype.geq = opDecorator(modules.op.op[">="]);
+NDArray.prototype.leq = opDecorator(modules.op.op["<="]);
+NDArray.prototype.eq = opDecorator(modules.op.op["=="]);
+NDArray.prototype.neq = opDecorator(modules.op.op["!="]);
+NDArray.prototype.maximum = opDecorator(modules.op.op["↑"]);
+NDArray.prototype.minimum = opDecorator(modules.op.op["↓"]);
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.boolean_not = function (A) { return NDArray.prototype.boolean_xor(A, 1); };
+NDArray.prototype.boolean_not = function (A) { return modules.op.op["^"](A, 1); };
 
 
-NDArray.prototype.isclose = op.isclose;
-NDArray.prototype.allclose = op.allclose;
-
-
-
-
+NDArray.prototype.isclose = modules.op.isclose;
+NDArray.prototype.allclose = modules.op.allclose;
 
 // ==============================
 //    array instantiation and reshaping
 // ==============================
 
-var jsInterface = require('./core-js-interface');
-NDArray.prototype.fromJS = classMethodDecorator(jsInterface.fromJS);
-NDArray.prototype.toJS = classMethodDecorator(jsInterface.toJS);
-
-
-
-
-
-// ==============================
-//    pointwise math functions
-// ==============================
-
-function apply_pointwise(A, func, dtype) {
-  if (this instanceof NDArray) return apply_pointwise.bind(NDArray.prototype)(this, ...arguments);
-  A = NDArray.prototype.asarray(A);
-  return new NDArray(A.flat.map(func), A.shape, dtype);
+NDArray.prototype.fromJS = function (A) {
+  return modules.jsInterface.fromJS(A);
+}
+NDArray.prototype.toJS = function () {
+  return modules.jsInterface.toJS(this);
 }
 
-NDArray.prototype.apply_pointwise = apply_pointwise;
+// ==============================
+//    elementwise methods
+// ==============================
 
-function round(A, decimals = 0) {
-  if (this instanceof NDArray) return round.bind(NDArray.prototype)(this, ...arguments);
-  if (decimals == 0) apply_pointwise(A, Math.round, Number);
-  return apply_pointwise(A, x => parseFloat(x.toFixed(decimals)), Number);
+NDArray.prototype.round = function (decimals = 0) {
+  return modules.elementwise.round(this, decimals);
 };
 
-NDArray.prototype.round = round;
-
-
 //=============================
-
-
-
-
-
-
-
-
 
 
 module.exports = NDArray;

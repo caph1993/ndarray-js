@@ -2,7 +2,9 @@
 /** @typedef {import("./core")} NDArray*/
 
 const { NDArray, np } = require("./globals").GLOBALS;
+
 var ohm = require('ohm-js');
+
 
 const grammar = {}
 grammar.grammar = String.raw`
@@ -117,12 +119,11 @@ grammar.__makeSemantics = () => {
       const _src = $src.parse();
       const symbol = $symbol.sourceString;
       const slicesSpec = $slicesSpec.parse();
-      const { asarray, op_assign, toJS: to_js_array } = NDArray.prototype;
-      let tgt = asarray(_tgt);
-      op_assign[symbol](_tgt, _src, slicesSpec);
+      let tgt = NDArray.prototype.modules.basic.asarray(_tgt);
+      NDArray.prototype.modules.op.op_assign[symbol](_tgt, _src, slicesSpec);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-        tgt = to_js_array(tgt);
+        tgt = NDArray.prototype.modules.jsInterface.toJS(tgt);
         while (_tgt.length) _tgt.pop();
         // @ts-ignore
         _tgt.push(..._tgt);
@@ -130,11 +131,12 @@ grammar.__makeSemantics = () => {
       return null;
     },
     Instruction_expression($arr) {
-      const arr = $arr.parse();
+      let arr = $arr.parse();
       if (typeof arr === "number") return arr;
+      if (typeof arr === "boolean") return arr;
       if (Array.isArray(arr)) return arr;
-      const out = NDArray.prototype.__number_collapse(arr);
-      return out;
+      if (arr instanceof NDArray) arr = NDArray.prototype.__number_collapse(arr);
+      return arr;
     },
     Precedence11: BinaryOperation,
     Precedence10: BinaryOperation,
@@ -168,9 +170,11 @@ grammar.__makeSemantics = () => {
     Arr_method($arr, _dot, $name, $callArgs) {
       let arr = $arr.parse();
       let name = $name.sourceString;
-      const func = arr[name];
-      if (func === undefined) throw new Error(`Unrecognized method ${name}`)
       const { args, kwArgs } = $callArgs.parse();
+      let func = arr[name];
+      if (func === undefined) throw new Error(`Unrecognized method ${name}`);
+      func = np[name];
+      if (func === undefined) throw new Error(`BUG. Please report this error: array.${name}(...) is a valid method but is not available as np.${name}(array, ...)`);
       return func.bind(kwArgs)(arr, ...args);
     },
     Parenthesis(_, $arr, __) { return $arr.parse(); },
@@ -178,7 +182,7 @@ grammar.__makeSemantics = () => {
     Variable(_, $i, __) {
       const i = parseInt($i.sourceString);
       let value = semanticVariables[i];
-      if(Array.isArray(value)) value = np.array(value);
+      if (Array.isArray(value)) value = np.array(value);
       return value;
     },
     int($sign, $value) {
@@ -187,10 +191,7 @@ grammar.__makeSemantics = () => {
       else return value
     },
     SliceRange($start, _, $stop, __, $step) {
-      const start = $start.parse();
-      const stop = $stop.parse();
-      const step = $step.parse();
-      return { start, stop, step, isRange: true };
+      return this.sourceString;
     },
 
     CallArgs(_open, $args, _comma, $kwArgs, _trailing, _close) {
@@ -221,7 +222,8 @@ grammar.__makeSemantics = () => {
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
-      for (let i in list) if (list[i] instanceof NDArray) list[i] = NDArray.prototype.toJS(list[i]);
+      const { toJS } = NDArray.prototype.modules.jsInterface;
+      for (let i in list) if (list[i] instanceof NDArray) list[i] = toJS(list[i]);
       return list;
     },
     _terminal() { return null; },
@@ -232,16 +234,18 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    return NDArray.prototype.opx[symbol](A, B);
+    const { opx } = NDArray.prototype.modules.op;
+    return opx[symbol](A, B);
   }
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
+    const { opx } = NDArray.prototype.modules.op;
     switch (symbol) {
       case "+": return B;
-      case "-": return NDArray.prototype.multiply(-1, B);
-      case "^": return NDArray.prototype.boolean_not(B);
+      case "-": return opx["*"](-1, B);
+      case "~": return opx["^"](1, B);
     }
     throw new Error(`Programming Error: ${symbol}`);
   }

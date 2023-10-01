@@ -4,6 +4,14 @@
 
 const { NDArray } = require("./globals").GLOBALS;
 
+
+// /**@typedef {{isRange:boolean, start:null|number, stop:null|number, step:null|number}} RangeSpec */
+/**@typedef {string} RangeSpec */
+
+/**@typedef {':'|number|RangeSpec|NDArray|number[]} SliceSpec */
+
+/**@typedef {':'|'...'|'None'|null|SliceSpec} GeneralSliceSpec */
+
 /**
  * @param {NDArray} arr
  * @param {GeneralSliceSpec[]} slicesSpec
@@ -14,7 +22,6 @@ function slice(arr, ...slicesSpec) {
   // If index is simple, don't call ".indices" and make view
   // If index is advanced, get indices and make copy
   // @ts-ignore
-  if (this !== NDArray.prototype) return NDArray.prototype.slice(this, ...arguments);
   if (!(arr instanceof NDArray)) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
   const axesIndex = AxesIndex.prototype.parse(arr.shape, slicesSpec);
   if (axesIndex.isConstant) {
@@ -237,10 +244,20 @@ AxisIndex.prototype.parse_range = function (size, start = null, stop = null, ste
   return { start, step, nSteps };
 }
 
+/**
+ * 
+ * @param {string} rangeString
+ * @returns {{start:number|null,stop:number|null,step:number|null}}
+ */
+AxisIndex.prototype.parse_range_spec = function (rangeString) {
+  const numbers = rangeString.split(':').map(s => s.length ? parseInt(s) : null);
+  if (numbers.length == 0) throw new Error('Unexpected empty index. Expected colons.');
+  if (numbers.length > 3) throw new Error(`Too many colons in index ${rangeString}`);
+  let [start, stop, step, ..._] = [...numbers, null, null];
+  return { start, stop, step };
+}
 
 
-/**@typedef {':'|number|{isRange:boolean, start:null|number, stop:null|number, step:null|number}|NDArray|number[]} SliceSpec */
-/**@typedef {':'|'...'|'None'|SliceSpec} GeneralSliceSpec */
 
 
 /**
@@ -273,7 +290,7 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
     spec = { type: 'number', index };
   }
   else if (sliceSpec instanceof NDArray || Array.isArray(sliceSpec)) {
-    let arr = NDArray.prototype.asarray(sliceSpec)
+    let arr = NDArray.prototype.modules.basic.asarray(sliceSpec);
     let indices;
     if (arr.dtype == Number) {
       // Array of indices
@@ -291,10 +308,9 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
       // Multiply the (possibly inverted) interval
     }
     spec = { type: 'array', indices };
-  } //@ts-ignore
-  else if (sliceSpec.isRange) {
-    //@ts-ignore
-    let { start, stop, step } = sliceSpec;
+  }
+  else if (typeof sliceSpec == "string") {
+    let { start, stop, step } = AxisIndex.prototype.parse_range_spec(sliceSpec);
     const range = AxisIndex.prototype.parse_range(size, start, stop, step);
     if (range.start == 0 && range.nSteps == size && range.step == 1) {
       // Small optimization: all of these are just ":": ["::","0::1", ":axisSize:", etc.]
@@ -328,7 +344,7 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
     //@ts-ignore
     slicesSpec[j] = undefined; // For ellipsis to avoid reading twice
     j += readDir;
-    if (generalSpec == "None") {
+    if (generalSpec == "None" || generalSpec === null) {
       buffers.apparentShape.push(1);
       continue;
     } else if (generalSpec == "...") {

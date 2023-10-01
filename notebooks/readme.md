@@ -26,32 +26,28 @@ TO DO:
 - (DONE) Handle the or operator "|" properly: for booleans gives booleans. For numbers gives numbers. 
 - (DONE) parser should not return to_list, should it?
 - (DONE) Support for 128 bits dtype? (Nope. I don't use that much, and js does not support that natively)
+- (DONE) make the module callable
+- (DONE) provide two calls: if template string... otherwise, asarray np`...` np(...)
+- (DONE) don't put everything into the array class. E.g., np.array.linspace makes no sense.
+- (DONE) separate these as core: slice, _binary_operator, _assign_operator, _reduce, _apply, "_transform" (e.g. sort)
+- (DONE) I can't find a "apply_pointwise" function. Instead they have "vectorize" for functions. call it apply_pointwise
+- (DONE) enable GeneralSliceSpec to accept string '::-1' instead of already parsed range object.
 
-- make the module callable
-- provide two calls: if template string... otherwise, asarray np`...` np(...)
 
+- implement "transform". Take into account that reduce is called "apply_along_axis" in numpy jargon, and it supports nd output, so it's my "transform"
 
-- separate these as core: slice, _binary_operator, _assign_operator, _reduce, _apply, "_transform" (e.g. sort)
-
-- don't put everything into the array class. E.g., np.array.linspace makes no sense.
-
-- enable GeneralSliceSpec to accept string '::-1' instead of already parsed range object.
-
-- reduce is called "apply_along_axis" in numpy jargon, and it supports nd output, so it's my "transform"
-
-- I can't find a "apply_pointwise" function. Instead they have "vectorize" for functions.
-
+- implement vectorize
 - is there a way to copy the jsdoc of another function, but replacing the first argument?
 
-- np.where
-- maximum and minimum with ↑ and ↓. What priority wr to + *, ** and the logical operators?
+- fix the JSDoc signature of methods that replace this. A.op['+'](B)
 
+- np.where
 
 - Optimize with webpack
 - Add license to webpack
 
 - Get click to work in Guake
-- What about np`statement; \n statement;\n ...;\n return blah, blah, blah`
+- What about np`statement; \n statement;\n ...;\n return blah, blah, blah`? Proposal: let {a, b, c} = np.block`${np.var('a')} = ...`});   Alternative: let {a, b, c} = np.block`VARS {a, b, c}; a = ...; b=...; b[:,a]=3; c = b.sum()`
 
 - purposeful readme, with plots and good examples
 
@@ -63,6 +59,7 @@ TO DO:
 - np.unique
 - np.stack, np.concatenate, np.dstack, etc.
 
+- maximum and minimum with ↑ and ↓. What priority wr to + *, ** and the logical operators?
 - allow A.op['+'](B) syntax
 
 - group_by function
