@@ -173,6 +173,8 @@ grammar.__makeSemantics = () => {
       const { args, kwArgs } = $callArgs.parse();
       let func = arr[name];
       if (func === undefined) throw new Error(`Unrecognized method ${name}`);
+      if (!Object.keys(kwArgs).length) return func.bind(arr)(...args);
+      // Hack...
       func = np[name];
       if (func === undefined) throw new Error(`BUG. Please report this error: array.${name}(...) is a valid method but is not available as np.${name}(array, ...)`);
       return func.bind(kwArgs)(arr, ...args);
@@ -234,18 +236,18 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const { opx } = NDArray.prototype.modules.op;
-    return opx[symbol](A, B);
+    const { op } = NDArray.prototype.modules.op;
+    return op[symbol](A, B);
   }
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { opx } = NDArray.prototype.modules.op;
+    const { op } = NDArray.prototype.modules.op;
     switch (symbol) {
       case "+": return B;
-      case "-": return opx["*"](-1, B);
-      case "~": return opx["^"](1, B);
+      case "-": return op["*"](-1, B);
+      case "~": return op["^"](1, B);
     }
     throw new Error(`Programming Error: ${symbol}`);
   }

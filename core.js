@@ -49,6 +49,7 @@ modules.elementwise = require('./core-elementwise');
 modules.print = require('./core-print');
 modules.reduce = require('./core-reduce');
 modules.op = require('./core-op');
+modules.transform = require('./core-transform');
 modules.jsInterface = require('./core-js-interface');
 
 
@@ -190,13 +191,7 @@ NDArray.prototype.std = reduceDecorator(modules.reduce.reducers.std);
 //       Operators: Binary operations, assignment operations and unary boolean_not
 // ==============================
 
-
-
-NDArray.prototype.op = modules.op.op;
 NDArray.prototype._binary_operation = modules.op.binary_operation;
-
-NDArray.prototype.op_assign = modules.op.op_assign;
-NDArray.prototype.opx = modules.op.opx;
 
 
 function opDecorator(func) {
@@ -217,22 +212,37 @@ NDArray.prototype.divide = opDecorator(modules.op.op["/"]);
 NDArray.prototype.mod = opDecorator(modules.op.op["%"]);
 NDArray.prototype.divide_int = opDecorator(modules.op.op["//"]);
 NDArray.prototype.pow = opDecorator(modules.op.op["**"]);
-NDArray.prototype.boolean_or = opDecorator(modules.op.op["|"]);
-NDArray.prototype.boolean_and = opDecorator(modules.op.op["&"]);
-NDArray.prototype.boolean_xor = opDecorator(modules.op.op["^"]);
-NDArray.prototype.boolean_shift_left = opDecorator(modules.op.op["<<"]);
-NDArray.prototype.boolean_shift_right = opDecorator(modules.op.op[">>"]);
-NDArray.prototype.gt = opDecorator(modules.op.op[">"]);
-NDArray.prototype.lt = opDecorator(modules.op.op["<"]);
-NDArray.prototype.geq = opDecorator(modules.op.op[">="]);
-NDArray.prototype.leq = opDecorator(modules.op.op["<="]);
-NDArray.prototype.eq = opDecorator(modules.op.op["=="]);
-NDArray.prototype.neq = opDecorator(modules.op.op["!="]);
+
 NDArray.prototype.maximum = opDecorator(modules.op.op["↑"]);
 NDArray.prototype.minimum = opDecorator(modules.op.op["↓"]);
 
+NDArray.prototype.bitwise_or = opDecorator(modules.op.op["|"]);
+NDArray.prototype.bitwise_and = opDecorator(modules.op.op["&"]);
+NDArray.prototype.bitwise_shift_left = opDecorator(modules.op.op["<<"]);
+NDArray.prototype.bitwise_shift_right = opDecorator(modules.op.op[">>"]);
+
+NDArray.prototype.logical_or = opDecorator(modules.op.op["or"]);
+NDArray.prototype.logical_and = opDecorator(modules.op.op["and"]);
+
+NDArray.prototype.greater = opDecorator(modules.op.op[">"]);
+NDArray.prototype.less = opDecorator(modules.op.op["<"]);
+NDArray.prototype.greater_equal = opDecorator(modules.op.op[">="]);
+NDArray.prototype.less_equal = opDecorator(modules.op.op["<="]);
+NDArray.prototype.equal = opDecorator(modules.op.op["=="]);
+NDArray.prototype.not_equal = opDecorator(modules.op.op["!="]);
+
+
+function unaryOpDecorator(func) {
+  /** @param {NDArray?} out  @returns {NDArray} */
+  return function (out = null) {
+    return func(this, out);
+  }
+}
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.boolean_not = function (A) { return modules.op.op["^"](A, 1); };
+NDArray.prototype.bitwise_not = unaryOpDecorator(modules.op.op["~"]);
+NDArray.prototype.logical_not = unaryOpDecorator(modules.op.op["not"]);
+NDArray.prototype.bitwise_xor = unaryOpDecorator(modules.op.op["^"]);
+NDArray.prototype.logical_xor = unaryOpDecorator(modules.op.op["xor"]);
 
 
 NDArray.prototype.isclose = modules.op.isclose;
@@ -256,6 +266,16 @@ NDArray.prototype.toJS = function () {
 NDArray.prototype.round = function (decimals = 0) {
   return modules.elementwise.round(this, decimals);
 };
+
+// ==============================
+//    transform methods
+// ==============================
+
+NDArray.prototype.sort = function (axis = -1) {
+  modules.transform.sort(this, axis);
+  return null;
+};
+
 
 //=============================
 

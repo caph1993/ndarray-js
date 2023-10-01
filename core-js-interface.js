@@ -43,7 +43,7 @@ function fromJS(arr) {
 
 function toJS(arr) {
   if (this instanceof NDArray) return toJS;
-  if (typeof arr == "number" || typeof arr == "boolean") return arr;
+  if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
   if (Array.isArray(arr)) return arr.map(toJS);
   if (!(arr instanceof NDArray)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
   arr = NDArray.prototype.__number_collapse(arr);

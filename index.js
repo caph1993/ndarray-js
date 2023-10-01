@@ -75,6 +75,11 @@ np.var = reduce.reducers.var;
 np.std = reduce.reducers.std;
 
 
+const transform = NDArray.prototype.modules.transform;
+np.apply_along_axis = transform.apply_along_axis;
+np.sort = transform.sort;
+
+
 
 const op = NDArray.prototype.modules.op;
 np.add = op.op["+"];

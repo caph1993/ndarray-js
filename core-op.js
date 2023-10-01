@@ -7,6 +7,7 @@ const { NDArray } = require("./globals").GLOBALS;
 /** @typedef {NDArray|number|boolean} ArrayOrConstant */
 
 const indexes = require('./core-indexes');
+const elementwise = require('./core-elementwise');
 
 const asarray = NDArray.prototype.modules.basic.asarray;
 const ravel = NDArray.prototype.modules.basic.ravel;
@@ -88,7 +89,6 @@ function __make_operator_special(funcNum, funcBool) {
   return /**@type {BinaryOperator}*/(operator);
 }
 
-/**@type {Object.<string, BinaryOperator>} */
 const op = {
   "+": __make_operator(Number, (a, b) => a + b),
   "-": __make_operator(Number, (a, b) => a - b),
@@ -109,16 +109,33 @@ const op = {
   "<<": __make_operator(Number, (a, b) => a << b),
   ">>": __make_operator(Number, (a, b) => a >> b),
   // Operators with custom ascii identifiers:
-  "||": __make_operator(Boolean, (a, b) => a || b),
-  "&&": __make_operator(Boolean, (a, b) => a && b),
+  "or": __make_operator(Boolean, (a, b) => a || b),
+  "and": __make_operator(Boolean, (a, b) => a && b),
+  "xor": __make_operator((a, b) => !(a) != !(b)),
+
   "max": __make_operator(Number, (a, b) => Math.max(a, b)),
   "min": __make_operator(Number, (a, b) => Math.min(a, b)),
+
+  // "isclose": ,
+}
+
+op["↑"] = op["max"];
+op["↓"] = op["min"];
+op["≤"] = op["leq"];
+op["≥"] = op["geq"];
+op["≠"] = op["neq"];
+op["↑="] = op["max="];
+op["↓="] = op["min="];
+// op["≈≈"] = op[MyArray.prototype.isclose,
+
+
+/** @typedef {(A:ArrayOrConstant, out?:NDArray)=>NDArray} UnaryOperator */
+/**@type {Object.<string, UnaryOperator>} */
+const unary_op = {
+  // Unary operators:
+  "~": elementwise.bitwise_not,
+  "not": elementwise.logical_not,
 };
-
-
-
-
-
 
 
 /** @param {indexes.GeneralSliceSpec[]} slicesSpec */
@@ -196,23 +213,11 @@ const op_assign = {
   // Operators with custom ascii identifiers:
   "max=": __make_assignment_operator(Number, (a, b) => Math.max(a, b)),
   "min=": __make_assignment_operator(Number, (a, b) => Math.min(a, b)),
-  "||=": __make_assignment_operator(Boolean, (a, b) => a || b),
-  "&&=": __make_assignment_operator(Boolean, (a, b) => a && b),
+  "or=": __make_assignment_operator(Boolean, (a, b) => a || b),
+  "and=": __make_assignment_operator(Boolean, (a, b) => a && b),
 };
 
 
-// Extended, non-ascii operator names for fun
-const opx = Object.assign({
-  // Operators with custom non-ascii identifiers:
-  // "≈≈": MyArray.prototype.isclose,
-  "↑": op["max"],
-  "↓": op["min"],
-  "≤": op["leq"],
-  "≥": op["geq"],
-  "≠": op["neq"],
-  "↑=": op["max="],
-  "↓=": op["min="],
-}, op);
 
 
 // ====================================
@@ -248,7 +253,7 @@ function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 
 
 module.exports = {
-  op, op_assign, opx,
+  op, op_assign, unary_op,
   binary_operation, assign_operation,
   isclose, allclose,
 } 
