@@ -32,19 +32,18 @@ TO DO:
 - (DONE) separate these as core: slice, _binary_operator, _assign_operator, _reduce, _apply, "_transform" (e.g. sort)
 - (DONE) I can't find a "apply_pointwise" function. Instead they have "vectorize" for functions. call it apply_pointwise
 - (DONE) enable GeneralSliceSpec to accept string '::-1' instead of already parsed range object.
-
+- (DONE) fix the JSDoc signature of methods that replace this.
+- (DONE) is there a way to copy the jsdoc of another function, but replacing the first argument? No.
 
 - implement "transform". Take into account that reduce is called "apply_along_axis" in numpy jargon, and it supports nd output, so it's my "transform"
 
-- implement vectorize
-- is there a way to copy the jsdoc of another function, but replacing the first argument?
-
-- fix the JSDoc signature of methods that replace this. A.op['+'](B)
-
-- np.where
-
 - Optimize with webpack
 - Add license to webpack
+
+
+- implement vectorize
+- np.where
+
 
 - Get click to work in Guake
 - What about np`statement; \n statement;\n ...;\n return blah, blah, blah`? Proposal: let {a, b, c} = np.block`${np.var('a')} = ...`});   Alternative: let {a, b, c} = np.block`VARS {a, b, c}; a = ...; b=...; b[:,a]=3; c = b.sum()`
