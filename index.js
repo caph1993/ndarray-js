@@ -15,7 +15,7 @@ const np = function (template, ...variables) {
   }
   else {
     if (variables.length) throw new Error(`Wrong input. ${usage}`);
-    return np.asarray(template)
+    return np.asarray(template);
   }
 }
 
@@ -62,10 +62,18 @@ np.slice = NDArray.prototype.modules.indexes.slice;
 
 
 const reduce = NDArray.prototype.modules.reduce;
-np.all = reduce.reducers.all;
-np.any = reduce.reducers.any;
 np.sum = reduce.reducers.sum;
 np.product = reduce.reducers.product;
+np.any = reduce.reducers.any;
+np.all = reduce.reducers.all;
+np.max = reduce.reducers.max;
+np.min = reduce.reducers.min;
+np.argmax = reduce.reducers.argmax;
+np.argmin = reduce.reducers.argmin;
+np.mean = reduce.reducers.mean;
+np.var = reduce.reducers.var;
+np.std = reduce.reducers.std;
+
 
 
 const op = NDArray.prototype.modules.op;

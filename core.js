@@ -81,9 +81,6 @@ NDArray.prototype.array = function () {
   return basic.array(this);
 }
 
-
-
-
 NDArray.prototype.__shape_shifts = function (shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
   const shifts = Array.from({ length: shape.length }, (_) => 0);

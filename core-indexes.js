@@ -250,10 +250,16 @@ AxisIndex.prototype.parse_range = function (size, start = null, stop = null, ste
  * @returns {{start:number|null,stop:number|null,step:number|null}}
  */
 AxisIndex.prototype.parse_range_spec = function (rangeString) {
-  const numbers = rangeString.split(':').map(s => s.length ? parseInt(s) : null);
+  const numbers = rangeString.split(':').map(s => {
+    s = s.trim();
+    if (s == "") return null;
+    const n = parseInt(s)
+    if (!Number.isInteger(n)) throw new Error(`Wrong input. Slice index unrecognized: ${s}`);
+    return n;
+  });
   if (numbers.length == 0) throw new Error('Unexpected empty index. Expected colons.');
   if (numbers.length > 3) throw new Error(`Too many colons in index ${rangeString}`);
-  let [start, stop, step, ..._] = [...numbers, null, null];
+  let [start, stop, step, ..._] = [...numbers, null, null, null];
   return { start, stop, step };
 }
 
