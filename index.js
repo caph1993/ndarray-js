@@ -34,7 +34,10 @@ np.modules = {
   grammar: require('./grammar'),
   constructors: require('./constructors'),
   jsUtils: require('./js-utils'),
+  random: require('./random'),
 }
+
+np.random = np.modules.random;
 
 
 // ==============================
@@ -48,7 +51,7 @@ np.fromJS = jsInterface.fromJS;
  * @param {TemplateStringsArray|any[]|number|boolean} template
  * @param {any[]} variables
  */
-np.toJS = function (template, ...variables) {
+np.JS = function (template, ...variables) {
   return jsInterface.toJS(np(template, ...variables));
 }
 
@@ -64,6 +67,7 @@ np.slice = NDArray.prototype.modules.indexes.slice;
 const reduce = NDArray.prototype.modules.reduce;
 np.sum = reduce.reducers.sum;
 np.product = reduce.reducers.product;
+np.prod = np.product;
 np.any = reduce.reducers.any;
 np.all = reduce.reducers.all;
 np.max = reduce.reducers.max;
@@ -89,24 +93,30 @@ np.divide = op.op["/"];
 np.mod = op.op["%"];
 np.divide_int = op.op["//"];
 np.pow = op.op["**"];
-np.boolean_or = op.op["|"];
-np.boolean_and = op.op["&"];
-np.boolean_xor = op.op["^"];
-np.boolean_shift_left = op.op["<<"];
-np.boolean_shift_right = op.op[">>"];
-np.gt = op.op[">"];
-np.lt = op.op["<"];
-np.geq = op.op[">="];
-np.leq = op.op["<="];
-np.eq = op.op["=="];
-np.neq = op.op["!="];
+np.bitwise_or = op.op["|"];
+np.bitwise_and = op.op["&"];
+np.bitwise_xor = op.op["^"];
+np.bitwise_shift_left = op.op["<<"];
+np.bitwise_shift_right = op.op[">>"];
+np.greater = op.op[">"];
+np.less = op.op["<"];
+np.greater_equal = op.op[">="];
+np.less_equal = op.op["<="];
+np.equal = op.op["=="];
+np.not_equal = op.op["!="];
 np.maximum = op.op["↑"];
 np.minimum = op.op["↓"];
+np.logical_or = op.op["or"];
+np.logical_and = op.op["and"];
+np.bitwise_not = NDArray.prototype.modules.op.unary_op["~"];
+np.logical_not = NDArray.prototype.modules.op.unary_op["not"];
+
 
 
 const ew = NDArray.prototype.modules.elementwise;
 np.sign = ew.__make_elementwise(Math.sign);
 np.sqrt = ew.__make_elementwise(Math.sqrt);
+np.square = ew.__make_elementwise((a) => a * a);
 np.abs = ew.__make_elementwise(Math.abs);
 np.exp = ew.__make_elementwise(Math.exp);
 np.log = ew.__make_elementwise(Math.log);

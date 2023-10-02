@@ -252,11 +252,11 @@ NDArray.prototype.allclose = modules.op.allclose;
 //    array instantiation and reshaping
 // ==============================
 
+NDArray.prototype.JS = function () {
+  return modules.jsInterface.toJS(this);
+}
 NDArray.prototype.fromJS = function (A) {
   return modules.jsInterface.fromJS(A);
-}
-NDArray.prototype.toJS = function () {
-  return modules.jsInterface.toJS(this);
 }
 
 // ==============================

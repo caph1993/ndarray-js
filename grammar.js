@@ -162,7 +162,7 @@ grammar.__makeSemantics = () => {
     Arr_call($name, $names, _, $callArgs) {
       let name = $name.sourceString + $names.sourceString;
       if (name.slice(0, 3) == "np.") name = name.slice(3);
-      const func = np[name];
+      const func = name.split('.').reduce((obj, name) => obj[name], np);
       if (func === undefined) throw new Error(`Unrecognized function ${name}`)
       const { args, kwArgs } = $callArgs.parse();
       return func.bind(kwArgs)(...args);
@@ -243,11 +243,12 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { op } = NDArray.prototype.modules.op;
+    const { op, unary_op } = NDArray.prototype.modules.op;
     switch (symbol) {
       case "+": return B;
       case "-": return op["*"](-1, B);
-      case "~": return op["^"](1, B);
+      case "~": return unary_op["~"](B);
+      case "!": return unary_op["not"](B);
     }
     throw new Error(`Programming Error: ${symbol}`);
   }

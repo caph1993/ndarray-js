@@ -11,7 +11,7 @@ function npTest(template, ...variables) {
   let idx = 0;
   const str = template.join('###').replace(/###/g, () => {
     let value = variables[idx++];
-    if (value instanceof np.NDArray) value = value.toJS();
+    if (value instanceof np.NDArray) value = value.JS();
     let out = JSON.stringify(value)
     if (Array.isArray(value)) out = `np.array(${out})`;
     return out;
@@ -42,7 +42,7 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
   const expected = JSON.parse(stdout);
   let obtained;
   try {
-    obtained = np.toJS(template, ...variables);
+    obtained = np.JS(template, ...variables);
   } catch (err) {
     console.error('EXPECTED:');
     console.error(expected&&np.fromJS(expected));
@@ -61,11 +61,6 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
   return obtained;
 }
 
-
-// console.log('=============');
-// console.log(`${np.grammar.parse`np.arange(120).reshape(2,3,4,5)[:, np.arange(12).reshape((3,4))<10]`}`);
-// console.log(`${np.grammar.parse`np.linspace(0, 1, 10)`}`);
-// console.log('=============');
 
 // Unit tests:
 
