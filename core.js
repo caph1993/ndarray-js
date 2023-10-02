@@ -35,6 +35,20 @@ class NDArray {
       for (let i = 0; i < n; i++) this._flat[indices[i]] = list[i];
     }
   }
+  get T() {
+    return this.transpose();
+  }
+  __popKwArgs() {
+    let out = this['__kwArgs'];
+    if (out === undefined) return {};
+    delete this['__kwArgs'];
+    return out;
+  }
+  /** @param {Object<string, any>} kwArgs */
+  withKwArgs(kwArgs) {
+    this['__kwArgs'] = kwArgs;
+    return this;
+  }
 }
 
 require('./globals').GLOBALS.NDArray = NDArray;
@@ -48,7 +62,7 @@ modules.indexes = require('./core-indexes');
 modules.elementwise = require('./core-elementwise');
 modules.print = require('./core-print');
 modules.reduce = require('./core-reduce');
-modules.op = require('./core-op');
+modules.operators = require('./core-operators');
 modules.transform = require('./core-transform');
 modules.jsInterface = require('./core-js-interface');
 
@@ -169,6 +183,7 @@ NDArray.prototype.toString = function () {
 function reduceDecorator(func) {
   /** @param {import("./core-reduce").AxisArg} axis  @param {boolean} keepdims */
   return function (axis = null, keepdims = false) {
+    ({ axis, keepdims } = Object.assign({ axis, keepdims }, this.__popKwArgs()));
     return func(this, axis, keepdims);
   }
 }
@@ -191,62 +206,64 @@ NDArray.prototype.std = reduceDecorator(modules.reduce.reducers.std);
 //       Operators: Binary operations, assignment operations and unary boolean_not
 // ==============================
 
-NDArray.prototype._binary_operation = modules.op.binary_operation;
+NDArray.prototype._binary_operation = modules.operators.binary_operation;
 
 
 function opDecorator(func) {
   /**
-   * @param {import("./core-op").ArrayOrConstant} other
+   * @param {import("./core-operators").ArrayOrConstant} other
    * @param {NDArray?} out
    * @returns {NDArray}
    */
   return function (other, out = null) {
+    ({ out } = Object.assign({ out }, this.__popKwArgs()));
     return func(this, other, out);
   }
 }
 
-NDArray.prototype.add = opDecorator(modules.op.op["+"]);
-NDArray.prototype.subtract = opDecorator(modules.op.op["-"]);
-NDArray.prototype.multiply = opDecorator(modules.op.op["*"]);
-NDArray.prototype.divide = opDecorator(modules.op.op["/"]);
-NDArray.prototype.mod = opDecorator(modules.op.op["%"]);
-NDArray.prototype.divide_int = opDecorator(modules.op.op["//"]);
-NDArray.prototype.pow = opDecorator(modules.op.op["**"]);
+NDArray.prototype.add = opDecorator(modules.operators.op["+"]);
+NDArray.prototype.subtract = opDecorator(modules.operators.op["-"]);
+NDArray.prototype.multiply = opDecorator(modules.operators.op["*"]);
+NDArray.prototype.divide = opDecorator(modules.operators.op["/"]);
+NDArray.prototype.mod = opDecorator(modules.operators.op["%"]);
+NDArray.prototype.divide_int = opDecorator(modules.operators.op["//"]);
+NDArray.prototype.pow = opDecorator(modules.operators.op["**"]);
 
-NDArray.prototype.maximum = opDecorator(modules.op.op["↑"]);
-NDArray.prototype.minimum = opDecorator(modules.op.op["↓"]);
+NDArray.prototype.maximum = opDecorator(modules.operators.op["↑"]);
+NDArray.prototype.minimum = opDecorator(modules.operators.op["↓"]);
 
-NDArray.prototype.bitwise_or = opDecorator(modules.op.op["|"]);
-NDArray.prototype.bitwise_and = opDecorator(modules.op.op["&"]);
-NDArray.prototype.bitwise_shift_left = opDecorator(modules.op.op["<<"]);
-NDArray.prototype.bitwise_shift_right = opDecorator(modules.op.op[">>"]);
+NDArray.prototype.bitwise_or = opDecorator(modules.operators.op["|"]);
+NDArray.prototype.bitwise_and = opDecorator(modules.operators.op["&"]);
+NDArray.prototype.bitwise_shift_left = opDecorator(modules.operators.op["<<"]);
+NDArray.prototype.bitwise_shift_right = opDecorator(modules.operators.op[">>"]);
 
-NDArray.prototype.logical_or = opDecorator(modules.op.op["or"]);
-NDArray.prototype.logical_and = opDecorator(modules.op.op["and"]);
+NDArray.prototype.logical_or = opDecorator(modules.operators.op["or"]);
+NDArray.prototype.logical_and = opDecorator(modules.operators.op["and"]);
 
-NDArray.prototype.greater = opDecorator(modules.op.op[">"]);
-NDArray.prototype.less = opDecorator(modules.op.op["<"]);
-NDArray.prototype.greater_equal = opDecorator(modules.op.op[">="]);
-NDArray.prototype.less_equal = opDecorator(modules.op.op["<="]);
-NDArray.prototype.equal = opDecorator(modules.op.op["=="]);
-NDArray.prototype.not_equal = opDecorator(modules.op.op["!="]);
+NDArray.prototype.greater = opDecorator(modules.operators.op[">"]);
+NDArray.prototype.less = opDecorator(modules.operators.op["<"]);
+NDArray.prototype.greater_equal = opDecorator(modules.operators.op[">="]);
+NDArray.prototype.less_equal = opDecorator(modules.operators.op["<="]);
+NDArray.prototype.equal = opDecorator(modules.operators.op["=="]);
+NDArray.prototype.not_equal = opDecorator(modules.operators.op["!="]);
 
 
 function unaryOpDecorator(func) {
   /** @param {NDArray?} out  @returns {NDArray} */
   return function (out = null) {
+    ({ out } = Object.assign({ out }, this.__popKwArgs()));
     return func(this, out);
   }
 }
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_not = unaryOpDecorator(modules.op.op["~"]);
-NDArray.prototype.logical_not = unaryOpDecorator(modules.op.op["not"]);
-NDArray.prototype.bitwise_xor = unaryOpDecorator(modules.op.op["^"]);
-NDArray.prototype.logical_xor = unaryOpDecorator(modules.op.op["xor"]);
+NDArray.prototype.bitwise_not = unaryOpDecorator(modules.operators.op["~"]);
+NDArray.prototype.logical_not = unaryOpDecorator(modules.operators.op["not"]);
+NDArray.prototype.bitwise_xor = unaryOpDecorator(modules.operators.op["^"]);
+NDArray.prototype.logical_xor = unaryOpDecorator(modules.operators.op["xor"]);
 
 
-NDArray.prototype.isclose = modules.op.isclose;
-NDArray.prototype.allclose = modules.op.allclose;
+NDArray.prototype.isclose = modules.operators.isclose;
+NDArray.prototype.allclose = modules.operators.allclose;
 
 // ==============================
 //    array instantiation and reshaping
@@ -264,6 +281,7 @@ NDArray.prototype.fromJS = function (A) {
 // ==============================
 
 NDArray.prototype.round = function (decimals = 0) {
+  ({ decimals } = Object.assign({ decimals }, this.__popKwArgs()));
   return modules.elementwise.round(this, decimals);
 };
 
@@ -271,7 +289,14 @@ NDArray.prototype.round = function (decimals = 0) {
 //    transform methods
 // ==============================
 
+/** @param {null|number[]} axes */
+NDArray.prototype.transpose = function (axes = null) {
+  ({ axes } = Object.assign({ axes }, this.__popKwArgs()));
+  return modules.transform.transpose(this, axes);
+};
+
 NDArray.prototype.sort = function (axis = -1) {
+  ({ axis } = Object.assign({ axis }, this.__popKwArgs()));
   modules.transform.sort(this, axis);
   return null;
 };

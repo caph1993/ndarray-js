@@ -80,36 +80,38 @@ np.std = reduce.reducers.std;
 
 
 const transform = NDArray.prototype.modules.transform;
+np.transpose = transform.transpose;
 np.apply_along_axis = transform.apply_along_axis;
 np.sort = transform.sort;
 
 
 
-const op = NDArray.prototype.modules.op;
-np.add = op.op["+"];
-np.subtract = op.op["-"];
-np.multiply = op.op["*"];
-np.divide = op.op["/"];
-np.mod = op.op["%"];
-np.divide_int = op.op["//"];
-np.pow = op.op["**"];
-np.bitwise_or = op.op["|"];
-np.bitwise_and = op.op["&"];
-np.bitwise_xor = op.op["^"];
-np.bitwise_shift_left = op.op["<<"];
-np.bitwise_shift_right = op.op[">>"];
-np.greater = op.op[">"];
-np.less = op.op["<"];
-np.greater_equal = op.op[">="];
-np.less_equal = op.op["<="];
-np.equal = op.op["=="];
-np.not_equal = op.op["!="];
-np.maximum = op.op["↑"];
-np.minimum = op.op["↓"];
-np.logical_or = op.op["or"];
-np.logical_and = op.op["and"];
-np.bitwise_not = NDArray.prototype.modules.op.unary_op["~"];
-np.logical_not = NDArray.prototype.modules.op.unary_op["not"];
+const operators = NDArray.prototype.modules.operators;
+np.add = operators.op["+"];
+np.subtract = operators.op["-"];
+np.multiply = operators.op["*"];
+np.divide = operators.op["/"];
+np.mod = operators.op["%"];
+np.divide_int = operators.op["//"];
+np.pow = operators.op["**"];
+np.bitwise_or = operators.op["|"];
+np.bitwise_and = operators.op["&"];
+np.bitwise_xor = operators.op["^"];
+np.bitwise_shift_left = operators.op["<<"];
+np.bitwise_shift_right = operators.op[">>"];
+np.greater = operators.op[">"];
+np.less = operators.op["<"];
+np.greater_equal = operators.op[">="];
+np.less_equal = operators.op["<="];
+np.equal = operators.op["=="];
+np.not_equal = operators.op["!="];
+np.maximum = operators.op["↑"];
+np.minimum = operators.op["↓"];
+np.logical_or = operators.op["or"];
+np.logical_and = operators.op["and"];
+
+np.bitwise_not = operators.unary_op["~"];
+np.logical_not = operators.unary_op["not"];
 
 
 

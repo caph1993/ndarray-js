@@ -79,8 +79,8 @@ ArrayGrammar {
   KwArgs = NonemptyListOf<KwArg, ",">
   KwArg = Name "=" ArgValue
 
-  ArgValue = Constant | JsArray | ArithmeticLogicExp
-  Constant = "True" | "False" | "None" | "np.nan" | "np.inf" | String
+  ArgValue = Constant | JsArray | ArithmeticLogicExp | String
+  Constant = "True" | "False" | "None" | "np.nan" | "np.inf"
   JsArray
     = "[" ListOf<ArgValue, ","> ","? "]"
     | "(" ListOf<ArgValue, ","> ","? ")"
@@ -120,7 +120,7 @@ grammar.__makeSemantics = () => {
       const symbol = $symbol.sourceString;
       const slicesSpec = $slicesSpec.parse();
       let tgt = NDArray.prototype.modules.basic.asarray(_tgt);
-      NDArray.prototype.modules.op.op_assign[symbol](_tgt, _src, slicesSpec);
+      NDArray.prototype.modules.operators.op_assign[symbol](_tgt, _src, slicesSpec);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
         tgt = NDArray.prototype.modules.jsInterface.toJS(tgt);
@@ -171,13 +171,8 @@ grammar.__makeSemantics = () => {
       let arr = $arr.parse();
       let name = $name.sourceString;
       const { args, kwArgs } = $callArgs.parse();
-      let func = arr[name];
-      if (func === undefined) throw new Error(`Unrecognized method ${name}`);
-      if (!Object.keys(kwArgs).length) return func.bind(arr)(...args);
-      // Hack...
-      func = np[name];
-      if (func === undefined) throw new Error(`BUG. Please report this error: array.${name}(...) is a valid method but is not available as np.${name}(array, ...)`);
-      return func.bind(kwArgs)(arr, ...args);
+      if (arr[name] === undefined) throw new Error(`Unrecognized method ${name}`);
+      return arr.withKwArgs(kwArgs)[name](...args);
     },
     Parenthesis(_, $arr, __) { return $arr.parse(); },
     Arr_attribute($arr, _, $name) { return $arr.parse()[$name.sourceString]; },
@@ -195,27 +190,28 @@ grammar.__makeSemantics = () => {
     SliceRange($start, _, $stop, __, $step) {
       return this.sourceString;
     },
-
+    Constant($x) {
+      switch ($x.sourceString) {
+        case "True": return true;
+        case "False": return false;
+        case "None": return null;
+        // case "np.nan": return null;
+        // case "np.ing": return null;
+      }
+      throw new Error(`Unrecognized constant ${$x.sourceString}`)
+    },
+    String(_open, $str, _close) {
+      return $str.sourceString;
+    },
     CallArgs(_open, $args, _comma, $kwArgs, _trailing, _close) {
       const args = $args.parse() || [];
-      let parse_constants = (s) => {
-        switch (s) {
-          case "True": return true;
-          case "False": return false;
-          case "None": return null;
-        }
-        if (s.length && s[0] == '"' && s[s.length - 1] == '"') return s;
-        if (s.length && s[0] == "'" && s[s.length - 1] == "'") return s;
-        return s;
-      }
       let entries = $kwArgs.parse() || [];
-      entries = entries.map(([k, v]) => [k, parse_constants(v)]);
       let kwArgs = Object.fromEntries(entries);
       return { args, kwArgs };
     },
     KwArg($key, _equals, $value) {
       const key = $key.sourceString;
-      const value = $value.sourceString;
+      const value = $value.parse();
       return [key, value];
     },
     NonemptyListOf(first, _, more) {
@@ -236,14 +232,14 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const { op } = NDArray.prototype.modules.op;
+    const { op } = NDArray.prototype.modules.operators;
     return op[symbol](A, B);
   }
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { op, unary_op } = NDArray.prototype.modules.op;
+    const { op, unary_op } = NDArray.prototype.modules.operators;
     switch (symbol) {
       case "+": return B;
       case "-": return op["*"](-1, B);

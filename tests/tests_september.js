@@ -45,31 +45,42 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
     obtained = np.JS(template, ...variables);
   } catch (err) {
     console.error('EXPECTED:');
-    console.error(expected&&np.fromJS(expected));
+    console.error(expected && np.fromJS(expected));
     console.error('OBTAINED:');
     console.error(`(ERROR)`);
     throw err;
   }
   if (!np.modules.jsUtils.allClose(obtained, expected)) {
     console.error('EXPECTED:');
-    console.error(expected&&np.fromJS(expected));
+    console.error(expected && np.fromJS(expected));
     console.error('OBTAINED:');
-    console.error(obtained&&np.fromJS(obtained));
+    console.error(obtained && np.fromJS(obtained));
     throw new Error(`Mismatch for ${str}`);
   }
-  console.log(obtained&&np.fromJS(obtained).toString());
+  console.log(obtained && np.fromJS(obtained).toString());
   return obtained;
 }
 
 
 // Unit tests:
 
+npTest`np.transpose(np.arange(120).reshape(2,5,4,3))`
+npTest`np.transpose(np.arange(120).reshape(2,5,4,3), axes=[1,3,2,0])`
+
+npTest`np.arange(120).reshape(2,5,4,3).transpose()`
+npTest`np.arange(120).transpose()`
+npTest`np.arange(120).reshape(3,-1).transpose()`
+npTest`np.array(3).transpose()`
+
+
+
+npTest`np.sort(-np.arange(120).reshape(2,5,4,3))`
+npTest`np.sort(-np.arange(120).reshape(2,5,4,3), axis=0)`
+
 npTest`np.sum(-np.arange(120).reshape(2,5,4,3), axis=0)`
 npTest`np.sum(-np.arange(120).reshape(2,5,4,3), axis=1)`
 npTest`np.sum(-np.arange(120).reshape(2,5,4,3), axis=2)`
 npTest`np.sum(-np.arange(120).reshape(2,5,4,3), axis=3)`
-npTest`np.sort(-np.arange(120).reshape(2,5,4,3))`
-npTest`np.sort(-np.arange(120).reshape(2,5,4,3), axis=0)`
 
 
 npTest`np.sin(np.linspace(0,10,1000))`

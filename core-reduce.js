@@ -73,7 +73,7 @@ reducers.mean = __make_reducer(Number, (arr) => arr.reduce((a, b) => a + b, 0) /
 reducers.var = function (arr, axis = null, keepdims = false) {
   ({ axis, keepdims } = Object.assign({ axis, keepdims }, this));
   const arrMean = reducers.mean.bind({ axis, keepdims: true })(arr);
-  const { op } = NDArray.prototype.modules.op;
+  const { op } = NDArray.prototype.modules.operators;
   arr = op["-"](arr, arrMean);
   arr = op["*"](arr, arr);
   return reducers.mean.bind({ axis, keepdims })(arr);
@@ -81,7 +81,7 @@ reducers.var = function (arr, axis = null, keepdims = false) {
 reducers.std = function (arr, axis = null, keepdims = false) {
   ({ axis, keepdims } = Object.assign({ axis, keepdims }, this));
   const variance = reducers.var.bind({ axis, keepdims })(arr);
-  const { op } = NDArray.prototype.modules.op;
+  const { op } = NDArray.prototype.modules.operators;
   return op["**"](variance, 0.5);
 };
 
