@@ -43,6 +43,8 @@ TO DO:
 - Optimize with webpack
 - Add license to webpack
 
+- decide a notation for slice and assignment
+
 - implement vectorize
 - np.where
 
