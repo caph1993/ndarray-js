@@ -68,7 +68,7 @@ function toJS(arr) {
     if (shapeArr.length === 0) {
       return flatArr.shift();
     }
-    const innerShape = shapeArr.index(1);
+    const innerShape = shapeArr.slice(1);
     const outerSize = shapeArr[0];
     const innerArray = [];
     for (let i = 0; i < outerSize; i++) {

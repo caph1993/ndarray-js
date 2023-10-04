@@ -114,17 +114,17 @@ function concatenate(arrays, axis = null) {
   if (!arrays.length) throw new Error(`Expected at least two arrays`);
   const nDims = arrays[0].shape.length;
   if (axis < 0) axis = nDims + axis;
-  const shape = [...arrays[0].shape];
+  const shapeIn = [...arrays[0].shape];
   const flat = [];
-  shape[axis] = 0;
+  const shape = shapeIn.map((_, i) => i == 0 ? 0 : shapeIn[i == axis ? 0 : i]);
   for (let arr of arrays) {
-    if (!allEq(arr.shape.filter((_, i) => i != axis), shape.filter((_, i) => i != axis))) throw new Error(`Inconsistent input shape ${shape} with respect to ${arr.shape.map((v, i) => i == axis ? '?' : v)}`);
-    shape[axis] += arr.shape[axis];
+    if (!allEq(arr.shape.filter((_, i) => i != axis), shapeIn.filter((_, i) => i != axis))) throw new Error(`Inconsistent input shape ${shapeIn} with respect to ${arr.shape.map((v, i) => i == axis ? '?' : v)}`);
+    shape[0] += arr.shape[axis];
     arr = axis == 0 ? arr : swapAxes(arr, axis, 0);
     flat.push(...arr.flat);
   }
   // TO DO: infer or expect dtype here:
-  const out = new NDArray(flat, shape.map((_, i) => shape[i == 0 ? axis : i == axis ? 0 : i]));
+  const out = new NDArray(flat, shape);
   if (axis == 0) return out;
   else return swapAxes(out, axis, 0);
 }
