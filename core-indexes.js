@@ -8,22 +8,22 @@ const { NDArray } = require("./globals").GLOBALS;
 // /**@typedef {{isRange:boolean, start:null|number, stop:null|number, step:null|number}} RangeSpec */
 /**@typedef {string} RangeSpec */
 
-/**@typedef {':'|number|RangeSpec|NDArray|number[]} SliceSpec */
+/**@typedef {':'|number|RangeSpec|NDArray|number[]} indexSpec */
 
-/**@typedef {':'|'...'|'None'|null|SliceSpec} GeneralSliceSpec */
+/**@typedef {':'|'...'|'None'|null|indexSpec} GeneralIndexSpec */
 
 /**
  * @param {NDArray} arr
- * @param {GeneralSliceSpec[]} slicesSpec
+ * @param {GeneralIndexSpec[]} indexSpec
  */
-function slice(arr, ...slicesSpec) {
+function index(arr, ...indexSpec) {
   // This can result either in a value, a view, a copy.
   // The index is simple if there are only ranges, numbers, ":" and at most one "..."
   // If index is simple, don't call ".indices" and make view
   // If index is advanced, get indices and make copy
-  // @ts-ignore
+  let { copy } = Object.assign({ copy: false }, arr.__popKwArgs());
   if (!(arr instanceof NDArray)) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
-  const axesIndex = AxesIndex.prototype.parse(arr.shape, slicesSpec);
+  const axesIndex = AxesIndex.prototype.parse(arr.shape, indexSpec);
   if (axesIndex.isConstant) {
     let [index] = axesIndex.indices;
     return arr.flat[index];
@@ -31,11 +31,14 @@ function slice(arr, ...slicesSpec) {
     const composition = __compose_simpleIndexes(arr._simpleIndexes, axesIndex);
     const out = new NDArray(arr._flat, axesIndex.shape, arr.dtype);
     out._simpleIndexes = composition;
-    return out;
+    if (arr['__warnAssignments']) out['__warnAssignments'] = true;
+    return copy ? out.copy() : out;
   } else {
     const src_flat = arr.flat;
     const flat = axesIndex.indices.map(i => src_flat[i]);
-    return new NDArray(flat, axesIndex.shape, arr.dtype);
+    const out = new NDArray(flat, axesIndex.shape, arr.dtype);
+    if (!copy) out['__warnAssignments'] = true;
+    return out;
   }
 }
 
@@ -267,12 +270,12 @@ AxisIndex.prototype.parse_range_spec = function (rangeString) {
 
 
 /**
- * We are reading `slicesSpec` and `shape` in parallel, in the reading direction readDir.
+ * We are reading `indexSpec` and `shape` in parallel, in the reading direction readDir.
  * With respect to `shape` we are at the given `axis`.
- * With respect to `slicesSpec`, we found `sliceSpec`, which we should process.
- * @param {SliceSpec} sliceSpec
+ * With respect to `indexSpec`, we found `indexSpec`, which we should process.
+ * @param {indexSpec} indexSpec
  */
-AxisIndex.prototype.parse = function (sliceSpec, size) {
+AxisIndex.prototype.parse = function (indexSpec, size) {
   /**
    * 
    * span (virtual shape) matches shape unless there are boolean masks spanning
@@ -286,17 +289,17 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
   let spec;
   let span = 1;
 
-  if (sliceSpec == ':' || sliceSpec === undefined) {
+  if (indexSpec == ':' || indexSpec === undefined) {
     spec = { type: ':', size: size };
   }
-  else if (typeof sliceSpec === "number") {
-    let index = sliceSpec
+  else if (typeof indexSpec === "number") {
+    let index = indexSpec
     if (index < 0) index = size + index;
     if (index < 0 || index >= size) throw new Error(`Index ${index} out of bounds [0..${size})`);
     spec = { type: 'number', index };
   }
-  else if (sliceSpec instanceof NDArray || Array.isArray(sliceSpec)) {
-    let arr = NDArray.prototype.modules.basic.asarray(sliceSpec);
+  else if (indexSpec instanceof NDArray || Array.isArray(indexSpec)) {
+    let arr = NDArray.prototype.modules.basic.asarray(indexSpec);
     let indices;
     if (arr.dtype == Number) {
       // Array of indices
@@ -315,8 +318,8 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
     }
     spec = { type: 'array', indices };
   }
-  else if (typeof sliceSpec == "string") {
-    let { start, stop, step } = AxisIndex.prototype.parse_range_spec(sliceSpec);
+  else if (typeof indexSpec == "string") {
+    let { start, stop, step } = AxisIndex.prototype.parse_range_spec(indexSpec);
     const range = AxisIndex.prototype.parse_range(size, start, stop, step);
     if (range.start == 0 && range.nSteps == size && range.step == 1) {
       // Small optimization: all of these are just ":": ["::","0::1", ":axisSize:", etc.]
@@ -325,7 +328,7 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
       spec = { type: 'range', range };
     }
   }
-  else throw new Error(`Unknown index type. Found ${typeof sliceSpec}: ${sliceSpec}`);
+  else throw new Error(`Unknown index type. Found ${typeof indexSpec}: ${indexSpec}`);
 
   const axisIndex = new AxisIndex(spec);
   return { axisIndex, span };
@@ -333,10 +336,10 @@ AxisIndex.prototype.parse = function (sliceSpec, size) {
 
 
 /**
- * @param {GeneralSliceSpec[]} slicesSpec
+ * @param {GeneralIndexSpec[]} indexSpec
  * @returns {AxesIndex}
  */
-AxesIndex.prototype.parse = function (shape, slicesSpec) {
+AxesIndex.prototype.parse = function (shape, indexSpec) {
   const buffers = {
     axisIndexes: /**@type {AxisIndex[]}*/([]),
     apparentShape: /**@type {number[]}*/([]),
@@ -346,9 +349,9 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
   const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
   let axis = 0, j = 0, remainingAxes = shape.length;
   while (remainingAxes > 0) {
-    let generalSpec = slicesSpec[j];
+    let generalSpec = indexSpec[j];
     //@ts-ignore
-    slicesSpec[j] = undefined; // For ellipsis to avoid reading twice
+    indexSpec[j] = undefined; // For ellipsis to avoid reading twice
     j += readDir;
     if (generalSpec == "None" || generalSpec === null) {
       buffers.apparentShape.push(1);
@@ -357,7 +360,7 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
       if (readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
       readDir = -1;
       for (let key in reversedAfter) reversedAfter[key] = buffers[key].length;
-      j = slicesSpec.length - 1;
+      j = indexSpec.length - 1;
       axis = shape.length - 1;
       continue;
     }
@@ -381,5 +384,5 @@ AxesIndex.prototype.parse = function (shape, slicesSpec) {
 }
 
 module.exports = {
-  slice, AxesIndex, AxisIndex, __slices_to_indices,
+  index, AxesIndex, AxisIndex, __slices_to_indices,
 } 

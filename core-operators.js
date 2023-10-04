@@ -138,11 +138,16 @@ const unary_op = {
 };
 
 
-/** @param {indexes.GeneralSliceSpec[]} slicesSpec */
+/** @param {indexes.GeneralIndexSpec[]} slicesSpec */
 
 function assign_operation(tgt, src, slicesSpec, func, dtype) {
   // @ts-ignore
   if (this instanceof NDArray) return assign_operation(this, ...arguments);
+
+  if (tgt['__warnAssignment']) {
+    console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other, ...yourIndex).\n`);
+    delete tgt['__warnAssignment'];
+  }
   const { _binary_operation } = NDArray.prototype;
   if (!(tgt instanceof NDArray)) return _assign_operation_toJS(tgt, src, slicesSpec, func, dtype)
   if (!slicesSpec) {
@@ -169,7 +174,7 @@ function assign_operation(tgt, src, slicesSpec, func, dtype) {
  * @param {any} src
  * @param {any} func
  * @param {any} dtype
- * @param {indexes.GeneralSliceSpec[]} slicesSpec
+ * @param {indexes.GeneralIndexSpec[]} slicesSpec
  */
 function _assign_operation_toJS(tgtJS, src, slicesSpec, func, dtype) {
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);

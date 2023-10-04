@@ -49,6 +49,12 @@ class NDArray {
     this['__kwArgs'] = kwArgs;
     return this;
   }
+  *[Symbol.iterator]() {
+    for (let i = 0; i < this.shape[0]; i++) yield this.index(i);
+  }
+  get length() {
+    return this.shape[0] || 0;
+  }
 }
 
 require('./globals').GLOBALS.NDArray = NDArray;
@@ -152,14 +158,14 @@ NDArray.prototype._new = function (shape, f, dtype) {
 
 
 // ==============================
-//    Slicing
+//    Indexing
 // ==============================
 
 /**
- * @param {import("./core-indexes").GeneralSliceSpec[]} slicesSpec
+ * @param {import("./core-indexes").GeneralIndexSpec[]} slicesSpec
  */
-NDArray.prototype.slice = function (...slicesSpec) {
-  return modules.indexes.slice(this, ...slicesSpec);
+NDArray.prototype.index = function (...slicesSpec) {
+  return modules.indexes.index(this, ...slicesSpec);
 }
 
 // ==============================

@@ -179,7 +179,8 @@ grammar.__makeSemantics = () => {
     Variable(_, $i, __) {
       const i = parseInt($i.sourceString);
       let value = semanticVariables[i];
-      if (Array.isArray(value)) value = np.array(value);
+      const isListOfArrays = Array.isArray(value) && value.length && value[0] instanceof NDArray;
+      if (Array.isArray(value) && !isListOfArrays) value = np.array(value);
       return value;
     },
     int($sign, $value) {
@@ -195,8 +196,8 @@ grammar.__makeSemantics = () => {
         case "True": return true;
         case "False": return false;
         case "None": return null;
-        // case "np.nan": return null;
-        // case "np.ing": return null;
+        case "np.nan": return Number.NaN;
+        case "np.inf": return Number.POSITIVE_INFINITY;
       }
       throw new Error(`Unrecognized constant ${$x.sourceString}`)
     },

@@ -7,7 +7,8 @@
 const np = function (template, ...variables) {
   const usage = 'Usage example: np`np.arange(10)+${5}` or np([0,1,2]).';
   if (typeof template == "number") return template;
-  if (!Array.isArray(template)) throw new Error(`Expected template or array .${usage}`);
+  if (template instanceof np.NDArray) return template;
+  if (!Array.isArray(template)) throw new Error(`Expected template or array. ${usage}`);
   if (!template.length) throw new Error(`Expected argument. ${usage}`);
   if (typeof template[0] == "string") {
     if (variables.length + 1 != template.length) throw new Error(`Wrong input. ${usage}`);
@@ -61,7 +62,7 @@ np.reshape = NDArray.prototype.modules.basic.reshape;
 np.array = NDArray.prototype.modules.basic.array;
 np.asarray = NDArray.prototype.modules.basic.asarray;
 
-np.slice = NDArray.prototype.modules.indexes.slice;
+np.slice = NDArray.prototype.modules.indexes.index;
 
 
 const reduce = NDArray.prototype.modules.reduce;
@@ -83,6 +84,8 @@ const transform = NDArray.prototype.modules.transform;
 np.transpose = transform.transpose;
 np.apply_along_axis = transform.apply_along_axis;
 np.sort = transform.sort;
+np.concatenate = transform.concatenate;
+np.stack = transform.stack;
 
 
 

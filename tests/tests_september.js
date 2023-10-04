@@ -12,8 +12,11 @@ function npTest(template, ...variables) {
   const str = template.join('###').replace(/###/g, () => {
     let value = variables[idx++];
     if (value instanceof np.NDArray) value = value.JS();
+    let isListOfArrays = false;
+    if (Array.isArray(value) && value[0] instanceof np.NDArray) isListOfArrays = true;
+    if (isListOfArrays) value = value.map(np.JS);
     let out = JSON.stringify(value)
-    if (Array.isArray(value)) out = `np.array(${out})`;
+    if (Array.isArray(value) && !isListOfArrays) out = `np.array(${out})`;
     return out;
   });
   const program = `
@@ -63,6 +66,23 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 
 // Unit tests:
+
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=0)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=-1)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=1)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=2)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-1)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-2)`
+
+
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=0)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=-1)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-1)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=1)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=2)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-1)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-2)`
+npTest`np.transpose(np.arange(120).reshape(2,5,4,3))`
 
 npTest`np.transpose(np.arange(120).reshape(2,5,4,3))`
 npTest`np.transpose(np.arange(120).reshape(2,5,4,3), axes=[1,3,2,0])`
