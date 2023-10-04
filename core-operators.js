@@ -138,9 +138,9 @@ const unary_op = {
 };
 
 
-/** @param {indexes.GeneralIndexSpec[]} slicesSpec */
+/** @param {indexes.GeneralIndexSpec[]} indexesSpec */
 
-function assign_operation(tgt, src, slicesSpec, func, dtype) {
+function assign_operation(tgt, src, indexesSpec, func, dtype) {
   // @ts-ignore
   if (this instanceof NDArray) return assign_operation(this, ...arguments);
 
@@ -149,12 +149,12 @@ function assign_operation(tgt, src, slicesSpec, func, dtype) {
     delete tgt['__warnAssignment'];
   }
   const { _binary_operation } = NDArray.prototype;
-  if (!(tgt instanceof NDArray)) return _assign_operation_toJS(tgt, src, slicesSpec, func, dtype)
-  if (!slicesSpec) {
+  if (!(tgt instanceof NDArray)) return _assign_operation_toJS(tgt, src, indexesSpec, func, dtype)
+  if (!indexesSpec) {
     _binary_operation(tgt, src, func, dtype, tgt);
   } else {
     src = asarray(src);
-    let { indices } = indexes.AxesIndex.prototype.parse(tgt.shape, slicesSpec);
+    let { indices } = indexes.AxesIndex.prototype.parse(tgt.shape, indexesSpec);
     let tmpTgt;
     if (func == null) {
       // Small optimization: unlike "+=", "*=", etc., for "=", we don't need to reed the target
@@ -174,14 +174,14 @@ function assign_operation(tgt, src, slicesSpec, func, dtype) {
  * @param {any} src
  * @param {any} func
  * @param {any} dtype
- * @param {indexes.GeneralIndexSpec[]} slicesSpec
+ * @param {indexes.GeneralIndexSpec[]} indexesSpec
  */
-function _assign_operation_toJS(tgtJS, src, slicesSpec, func, dtype) {
+function _assign_operation_toJS(tgtJS, src, indexesSpec, func, dtype) {
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);
   console.warn('Assignment to JS array is experimental and slow.')
   // Parse the whole array
   const cpy = asarray(tgtJS);
-  assign_operation(cpy, src, slicesSpec, func, dtype);
+  assign_operation(cpy, src, indexesSpec, func, dtype);
   // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
   const outJS = NDArray.prototype.modules.jsInterface.toJS(cpy);
   while (tgtJS.length) tgtJS.pop();
@@ -189,13 +189,13 @@ function _assign_operation_toJS(tgtJS, src, slicesSpec, func, dtype) {
   tgtJS.push(...outJS);
 }
 
-/** @typedef {(tgt:ArrayOrConstant, src:ArrayOrConstant, slicesSpec:any)=>void} AssignmentOperator */
+/** @typedef {(tgt:ArrayOrConstant, src:ArrayOrConstant, indexesSpec:any)=>void} AssignmentOperator */
 
 /**@returns {AssignmentOperator} */
 function __make_assignment_operator(dtype, func) {
-  function operator(tgt, src, slicesSpec) {
+  function operator(tgt, src, indexesSpec) {
     if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
-    return assign_operation(tgt, src, slicesSpec, func, dtype);
+    return assign_operation(tgt, src, indexesSpec, func, dtype);
   }
   return operator;
 }

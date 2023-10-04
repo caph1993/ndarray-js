@@ -62,7 +62,6 @@ np.reshape = NDArray.prototype.modules.basic.reshape;
 np.array = NDArray.prototype.modules.basic.array;
 np.asarray = NDArray.prototype.modules.basic.asarray;
 
-np.slice = NDArray.prototype.modules.indexes.index;
 
 
 const reduce = NDArray.prototype.modules.reduce;

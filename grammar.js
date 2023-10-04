@@ -114,13 +114,13 @@ grammar.__makeSemantics = () => {
 
   const semanticVariables = [];
   const semantics = {
-    Instruction_sliceAssignment($tgt, _open, $slicesSpec, _close, $symbol, $src) {
+    Instruction_sliceAssignment($tgt, _open, $indexesSpec, _close, $symbol, $src) {
       const _tgt = $tgt.parse();
       const _src = $src.parse();
       const symbol = $symbol.sourceString;
-      const slicesSpec = $slicesSpec.parse();
+      const indexesSpec = $indexesSpec.parse();
       let tgt = NDArray.prototype.modules.basic.asarray(_tgt);
-      NDArray.prototype.modules.operators.op_assign[symbol](_tgt, _src, slicesSpec);
+      NDArray.prototype.modules.operators.op_assign[symbol](_tgt, _src, indexesSpec);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
         tgt = NDArray.prototype.modules.jsInterface.toJS(tgt);
@@ -151,10 +151,10 @@ grammar.__makeSemantics = () => {
     number: function (arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
       return parseFloat(this.sourceString)
     },
-    Arr_slice($arr, _open, $slicesSpec, _close) {
+    Arr_slice($arr, _open, $indexesSpec, _close) {
       const arr = $arr.parse();
-      const slicesSpec = $slicesSpec.parse();
-      return arr.slice(...slicesSpec);
+      const indexesSpec = $indexesSpec.parse();
+      return arr.index(...indexesSpec);
     },
     SliceTerm_constant($x) {
       return $x.sourceString;

@@ -162,10 +162,10 @@ NDArray.prototype._new = function (shape, f, dtype) {
 // ==============================
 
 /**
- * @param {import("./core-indexes").GeneralIndexSpec[]} slicesSpec
+ * @param {import("./core-indexes").GeneralIndexSpec[]} indexesSpec
  */
-NDArray.prototype.index = function (...slicesSpec) {
-  return modules.indexes.index(this, ...slicesSpec);
+NDArray.prototype.index = function (...indexesSpec) {
+  return modules.indexes.index(this, ...indexesSpec);
 }
 
 // ==============================

@@ -59,7 +59,7 @@ function toJS(arr) {
   //     for (let i = 0; i < arr.shape[0]; i++) {
   //       let l = []
   //       out.push(l);
-  //       q.push([arr.slice(i), l]);
+  //       q.push([arr.index(i), l]);
   //     }
   //   }
   // }
@@ -68,7 +68,7 @@ function toJS(arr) {
     if (shapeArr.length === 0) {
       return flatArr.shift();
     }
-    const innerShape = shapeArr.slice(1);
+    const innerShape = shapeArr.index(1);
     const outerSize = shapeArr[0];
     const innerArray = [];
     for (let i = 0; i < outerSize; i++) {

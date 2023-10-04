@@ -13,7 +13,7 @@ function apply_along_axis(arr, axis, transform, dtype = Number) {
   arr = NDArray.prototype.modules.basic.asarray(arr)
   if (axis == null) return transform(arr.flat);
   const nDims = arr.shape.length;
-  if (axis < 0) axis = nDims - 1;
+  if (axis < 0) axis = nDims + axis;
   if (axis !== nDims - 1) {
     // Transpose to end, apply, and transpose back:
     const tmp = swapAxes(arr, axis, -1);
@@ -93,8 +93,8 @@ function transpose(arr, axes = null) {
 function swapAxes(arr, axisA, axisB) {
   arr = NDArray.prototype.modules.basic.asarray(arr)
   const nDims = arr.shape.length;
-  if (axisA < 0) axisA = nDims - 1;
-  if (axisB < 0) axisB = nDims - 1;
+  if (axisA < 0) axisA = nDims + axisA;
+  if (axisB < 0) axisB = nDims + axisB;
   const perm = Array.from({ length: nDims }, (_, i) => i);
   perm[axisA] = axisB;
   perm[axisB] = axisA;
@@ -113,7 +113,7 @@ function concatenate(arrays, axis = null) {
   }
   if (!arrays.length) throw new Error(`Expected at least two arrays`);
   const nDims = arrays[0].shape.length;
-  if (axis < 0) axis = nDims - 1;
+  if (axis < 0) axis = nDims + axis;
   const shape = [...arrays[0].shape];
   const flat = [];
   shape[axis] = 0;
@@ -124,7 +124,7 @@ function concatenate(arrays, axis = null) {
     flat.push(...arr.flat);
   }
   // TO DO: infer or expect dtype here:
-  const out = new NDArray(flat, [shape[axis], ...shape.filter((_, i) => i != axis)]);
+  const out = new NDArray(flat, shape.map((_, i) => shape[i == 0 ? axis : i == axis ? 0 : i]));
   if (axis == 0) return out;
   else return swapAxes(out, axis, 0);
 }
@@ -135,22 +135,18 @@ function stack(arrays, axis = 0) {
   ({ axis } = Object.assign({ axis }, this));
   if (arrays instanceof NDArray) arrays = [...arrays];
   if (!Array.isArray(arrays)) throw new Error(`Expected list of arrays. Found ${typeof arrays}`);
-  arrays = arrays.map(NDArray.prototype.asarray);
+  arrays = arrays.map(NDArray.prototype.modules.basic.asarray);
   if (!arrays.length) throw new Error(`Expected at least two arrays`);
   const shapeIn = [...arrays[0].shape];
-
-  if (axis < 0) axis = shapeIn.length - 1;
-  const flat = [];
+  if (axis < 0) axis = shapeIn.length + 1 + axis;
+  const shapeBroadcast = [...shapeIn.slice(0, axis), 1, ...shapeIn.slice(axis)];
+  console.log({ shapeBroadcast })
+  const bArrays = [];
   for (let arr of arrays) {
     if (!allEq(arr.shape, shapeIn)) throw new Error(`Inconsistent input shape ${arr.shape} with respect to ${arr.shape}`);
-    arr = axis == 0 ? arr : swapAxes(arr, axis, 0);
-    flat.push(...arr.flat);
+    bArrays.push(arr.reshape(shapeBroadcast));
   }
-  const shape = [arrays.length, ...shapeIn];
-  // TO DO: infer or expect dtype here:
-  const out = new NDArray(flat, [shape[axis], ...shape.filter((_, i) => i != axis)]);
-  if (axis == 0) return out;
-  else return swapAxes(out, axis, 0);
+  return concatenate(bArrays, axis);
 }
 
 

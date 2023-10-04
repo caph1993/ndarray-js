@@ -67,16 +67,16 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 // Unit tests:
 
-npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=0)`
-npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=-1)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=0)`
+npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=-1)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=1)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=2)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-1)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-2)`
 
 
-npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=0)`
-npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(100)`)}, axis=-1)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=0)`
+npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=-1)`
 npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=-1)`
 npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=1)`
 npTest`np.stack(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=2)`
