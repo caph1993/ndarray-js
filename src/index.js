@@ -89,31 +89,31 @@ np.stack = transform.stack;
 
 
 const operators = NDArray.prototype.modules.operators;
-np.add = operators.op["+"];
-np.subtract = operators.op["-"];
-np.multiply = operators.op["*"];
-np.divide = operators.op["/"];
-np.mod = operators.op["%"];
-np.divide_int = operators.op["//"];
-np.pow = operators.op["**"];
-np.bitwise_or = operators.op["|"];
-np.bitwise_and = operators.op["&"];
-np.bitwise_xor = operators.op["^"];
-np.bitwise_shift_left = operators.op["<<"];
-np.bitwise_shift_right = operators.op[">>"];
-np.greater = operators.op[">"];
-np.less = operators.op["<"];
-np.greater_equal = operators.op[">="];
-np.less_equal = operators.op["<="];
-np.equal = operators.op["=="];
-np.not_equal = operators.op["!="];
-np.maximum = operators.op["↑"];
-np.minimum = operators.op["↓"];
-np.logical_or = operators.op["or"];
-np.logical_and = operators.op["and"];
+np.add = operators.op_binary["+"];
+np.subtract = operators.op_binary["-"];
+np.multiply = operators.op_binary["*"];
+np.divide = operators.op_binary["/"];
+np.mod = operators.op_binary["%"];
+np.divide_int = operators.op_binary["//"];
+np.pow = operators.op_binary["**"];
+np.bitwise_or = operators.op_binary["|"];
+np.bitwise_and = operators.op_binary["&"];
+np.bitwise_xor = operators.op_binary["^"];
+np.bitwise_shift_left = operators.op_binary["<<"];
+np.bitwise_shift_right = operators.op_binary[">>"];
+np.greater = operators.op_binary[">"];
+np.less = operators.op_binary["<"];
+np.greater_equal = operators.op_binary[">="];
+np.less_equal = operators.op_binary["<="];
+np.equal = operators.op_binary["=="];
+np.not_equal = operators.op_binary["!="];
+np.maximum = operators.op_binary["↑"];
+np.minimum = operators.op_binary["↓"];
+np.logical_or = operators.op_binary["or"];
+np.logical_and = operators.op_binary["and"];
 
-np.bitwise_not = operators.unary_op["~"];
-np.logical_not = operators.unary_op["not"];
+np.bitwise_not = operators.op_unary["~"];
+np.logical_not = operators.op_unary["not"];
 
 
 

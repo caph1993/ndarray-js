@@ -12,6 +12,8 @@ const { NDArray } = require("./globals").GLOBALS;
 
 /**@typedef {':'|'...'|'None'|null|indexSpec} GeneralIndexSpec */
 
+/**@typedef {null|GeneralIndexSpec[]} Index */
+
 /**
  * @param {NDArray} arr
  * @param {GeneralIndexSpec[]} indexSpec

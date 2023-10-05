@@ -92,15 +92,6 @@ NDArray.prototype.copy = function () {
   return basic.copy(this);
 };
 
-/** @returns {NDArray} */
-NDArray.prototype.asarray = function () {
-  return basic.asarray(this);
-}
-
-/** @returns {NDArray} */
-NDArray.prototype.array = function () {
-  return basic.array(this);
-}
 
 NDArray.prototype.__shape_shifts = function (shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
@@ -215,61 +206,95 @@ NDArray.prototype.std = reduceDecorator(modules.reduce.reducers.std);
 NDArray.prototype._binary_operation = modules.operators.binary_operation;
 
 
-function opDecorator(func) {
-  /**
-   * @param {import("./core-operators").ArrayOrConstant} other
-   * @param {NDArray?} out
-   * @returns {NDArray}
-   */
+/**
+ * @param {import("./core-operators").BinaryOperator} func
+ * @returns {import("./core-operators").SelfBinaryOperator}
+ */
+function binaryOpDecorator(func) {
   return function (other, out = null) {
     ({ out } = Object.assign({ out }, this.__popKwArgs()));
     return func(this, other, out);
   }
 }
 
-NDArray.prototype.add = opDecorator(modules.operators.op["+"]);
-NDArray.prototype.subtract = opDecorator(modules.operators.op["-"]);
-NDArray.prototype.multiply = opDecorator(modules.operators.op["*"]);
-NDArray.prototype.divide = opDecorator(modules.operators.op["/"]);
-NDArray.prototype.mod = opDecorator(modules.operators.op["%"]);
-NDArray.prototype.divide_int = opDecorator(modules.operators.op["//"]);
-NDArray.prototype.pow = opDecorator(modules.operators.op["**"]);
+NDArray.prototype.add = binaryOpDecorator(modules.operators.op_binary["+"]);
+NDArray.prototype.subtract = binaryOpDecorator(modules.operators.op_binary["-"]);
+NDArray.prototype.multiply = binaryOpDecorator(modules.operators.op_binary["*"]);
+NDArray.prototype.divide = binaryOpDecorator(modules.operators.op_binary["/"]);
+NDArray.prototype.mod = binaryOpDecorator(modules.operators.op_binary["%"]);
+NDArray.prototype.divide_int = binaryOpDecorator(modules.operators.op_binary["//"]);
+NDArray.prototype.pow = binaryOpDecorator(modules.operators.op_binary["**"]);
 
-NDArray.prototype.maximum = opDecorator(modules.operators.op["↑"]);
-NDArray.prototype.minimum = opDecorator(modules.operators.op["↓"]);
+NDArray.prototype.maximum = binaryOpDecorator(modules.operators.op_binary["↑"]);
+NDArray.prototype.minimum = binaryOpDecorator(modules.operators.op_binary["↓"]);
 
-NDArray.prototype.bitwise_or = opDecorator(modules.operators.op["|"]);
-NDArray.prototype.bitwise_and = opDecorator(modules.operators.op["&"]);
-NDArray.prototype.bitwise_shift_left = opDecorator(modules.operators.op["<<"]);
-NDArray.prototype.bitwise_shift_right = opDecorator(modules.operators.op[">>"]);
+NDArray.prototype.bitwise_or = binaryOpDecorator(modules.operators.op_binary["|"]);
+NDArray.prototype.bitwise_and = binaryOpDecorator(modules.operators.op_binary["&"]);
+NDArray.prototype.bitwise_xor = binaryOpDecorator(modules.operators.op_binary["^"]);
+NDArray.prototype.bitwise_shift_left = binaryOpDecorator(modules.operators.op_binary["<<"]);
+NDArray.prototype.bitwise_shift_right = binaryOpDecorator(modules.operators.op_binary[">>"]);
 
-NDArray.prototype.logical_or = opDecorator(modules.operators.op["or"]);
-NDArray.prototype.logical_and = opDecorator(modules.operators.op["and"]);
+NDArray.prototype.logical_or = binaryOpDecorator(modules.operators.op_binary["or"]);
+NDArray.prototype.logical_and = binaryOpDecorator(modules.operators.op_binary["and"]);
+NDArray.prototype.logical_xor = binaryOpDecorator(modules.operators.op_binary["xor"]);
 
-NDArray.prototype.greater = opDecorator(modules.operators.op[">"]);
-NDArray.prototype.less = opDecorator(modules.operators.op["<"]);
-NDArray.prototype.greater_equal = opDecorator(modules.operators.op[">="]);
-NDArray.prototype.less_equal = opDecorator(modules.operators.op["<="]);
-NDArray.prototype.equal = opDecorator(modules.operators.op["=="]);
-NDArray.prototype.not_equal = opDecorator(modules.operators.op["!="]);
+NDArray.prototype.greater = binaryOpDecorator(modules.operators.op_binary[">"]);
+NDArray.prototype.less = binaryOpDecorator(modules.operators.op_binary["<"]);
+NDArray.prototype.greater_equal = binaryOpDecorator(modules.operators.op_binary[">="]);
+NDArray.prototype.less_equal = binaryOpDecorator(modules.operators.op_binary["<="]);
+NDArray.prototype.equal = binaryOpDecorator(modules.operators.op_binary["=="]);
+NDArray.prototype.not_equal = binaryOpDecorator(modules.operators.op_binary["!="]);
 
 
+
+/**
+ * @param {import("./core-operators").UnaryOperator} func
+ * @returns {import("./core-operators").SelfUnaryOperator}
+ */
 function unaryOpDecorator(func) {
-  /** @param {NDArray?} out  @returns {NDArray} */
   return function (out = null) {
     ({ out } = Object.assign({ out }, this.__popKwArgs()));
     return func(this, out);
   }
 }
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_not = unaryOpDecorator(modules.operators.op["~"]);
-NDArray.prototype.logical_not = unaryOpDecorator(modules.operators.op["not"]);
-NDArray.prototype.bitwise_xor = unaryOpDecorator(modules.operators.op["^"]);
-NDArray.prototype.logical_xor = unaryOpDecorator(modules.operators.op["xor"]);
+NDArray.prototype.bitwise_not = unaryOpDecorator(modules.operators.op_unary["~"]);
+NDArray.prototype.logical_not = unaryOpDecorator(modules.operators.op_unary["not"]);
 
 
 NDArray.prototype.isclose = modules.operators.isclose;
 NDArray.prototype.allclose = modules.operators.allclose;
+
+
+/**
+ * @param {import("./core-operators").AssignmentOperator} func
+ * @returns {import("./core-operators").SelfAssignmentOperator}
+ */
+function assignOpDecorator(func) {
+  //@ts-ignore
+  return function (...args) { return func(this, ...args); }
+}
+NDArray.prototype.assign = assignOpDecorator(modules.operators.op_assign["="]);
+NDArray.prototype.add_assign = assignOpDecorator(modules.operators.op_assign["+="]);
+NDArray.prototype.subtract_assign = assignOpDecorator(modules.operators.op_assign["-="]);
+NDArray.prototype.multiply_assign = assignOpDecorator(modules.operators.op_assign["*="]);
+NDArray.prototype.divide_assign = assignOpDecorator(modules.operators.op_assign["/="]);
+NDArray.prototype.mod_assign = assignOpDecorator(modules.operators.op_assign["%="]);
+NDArray.prototype.divide_int_assign = assignOpDecorator(modules.operators.op_assign["//="]);
+NDArray.prototype.pow_assign = assignOpDecorator(modules.operators.op_assign["**="]);
+
+NDArray.prototype.maximum_assign = assignOpDecorator(modules.operators.op_assign["↑="]);
+NDArray.prototype.minimum_assign = assignOpDecorator(modules.operators.op_assign["↓="]);
+
+NDArray.prototype.bitwise_or_assign = assignOpDecorator(modules.operators.op_assign["|="]);
+NDArray.prototype.bitwise_and_assign = assignOpDecorator(modules.operators.op_assign["&="]);
+NDArray.prototype.bitwise_shift_left_assign = assignOpDecorator(modules.operators.op_assign["<<="]);
+NDArray.prototype.bitwise_shift_right_assign = assignOpDecorator(modules.operators.op_assign[">>="]);
+
+NDArray.prototype.logical_or_assign = assignOpDecorator(modules.operators.op_assign["or="]);
+NDArray.prototype.logical_and_assign = assignOpDecorator(modules.operators.op_assign["and="]);
+
+
 
 // ==============================
 //    array instantiation and reshaping
@@ -309,6 +334,62 @@ NDArray.prototype.sort = function (axis = -1) {
 
 
 //=============================
+
+
+
+
+
+// /** @typedef {'+'|'-'|'*'} BinaryOperatorSymbol */
+// /** @typedef {'~'|'!'} UnaryOperatorSymbol */
+// /** @typedef {'='|'+='|'*='} AssignmentOperatorSymbol */
+
+// /**
+//  * @callback BinaryOp
+//  * @param  {BinaryOperatorSymbol} symbol
+//  * @param  {NDArray} other
+//  * @param  {NDArray?} out
+//  * @returns {NDArray}
+//  */
+// /**
+//  * @callback AssignmentOp
+//  * @param  {AssignmentOperatorSymbol} symbol
+//  * @param  {NDArray} other
+//  * @param  {...import("./core-indexes").GeneralIndexSpec} indexSpec
+//  * @returns {NDArray}
+//  */
+// /**
+//  * @callback UnaryOp
+//  * @param  {UnaryOperatorSymbol} symbol
+//  * @returns {NDArray}
+//  */
+
+// // /**@type {BinaryOp|AssignmentOp}*/
+
+// /**
+//  * @overload
+//  * @param  {BinaryOperatorSymbol} symbol
+//  * @param  {NDArray} other
+//  * @param  {NDArray?} out
+//  * @returns {NDArray}
+// */
+// /**
+//  * @overload
+//  * @param  {AssignmentOperatorSymbol} symbol
+//  * @param  {NDArray} other
+//  * @param  {...import("./core-indexes").GeneralIndexSpec} indexSpec
+//  * @returns {NDArray}
+// */
+// /**
+//  * @param  {UnaryOperatorSymbol} symbol
+//  * @returns {NDArray}
+// */
+// NDArray.prototype.op = function (...arguments) {
+
+//   return this;
+// }
+
+
+
 
 
 module.exports = NDArray;

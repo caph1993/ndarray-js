@@ -233,14 +233,14 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const { op } = NDArray.prototype.modules.operators;
+    const { op_binary: op } = NDArray.prototype.modules.operators;
     return op[symbol](A, B);
   }
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { op, unary_op } = NDArray.prototype.modules.operators;
+    const { op_binary: op, unary_op } = NDArray.prototype.modules.operators;
     switch (symbol) {
       case "+": return B;
       case "-": return op["*"](-1, B);

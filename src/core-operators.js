@@ -12,6 +12,8 @@ const elementwise = require('./core-elementwise');
 const asarray = NDArray.prototype.modules.basic.asarray;
 const ravel = NDArray.prototype.modules.basic.ravel;
 
+
+
 /**
  * 
  * @param {ArrayOrConstant} A 
@@ -64,7 +66,8 @@ function _broadcast_shapes(shapeA, shapeB) {
   return [shape, shapeA, shapeB];
 }
 
-/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:NDArray)=>NDArray} BinaryOperator */
+/** @typedef {(A:ArrayOrConstant, B:ArrayOrConstant, out?:NDArray|null)=>NDArray} BinaryOperator */
+/** @typedef {(other:ArrayOrConstant, out:NDArray|null)=>NDArray} SelfBinaryOperator */
 
 function __make_operator(dtype, func) {
   function operator(A, B, out = null) {
@@ -89,7 +92,7 @@ function __make_operator_special(funcNum, funcBool) {
   return /**@type {BinaryOperator}*/(operator);
 }
 
-const op = {
+const op_binary = {
   "+": __make_operator(Number, (a, b) => a + b),
   "-": __make_operator(Number, (a, b) => a - b),
   "*": __make_operator(Number, (a, b) => a * b),
@@ -119,19 +122,20 @@ const op = {
   // "isclose": ,
 }
 
-op["↑"] = op["max"];
-op["↓"] = op["min"];
-op["≤"] = op["leq"];
-op["≥"] = op["geq"];
-op["≠"] = op["neq"];
-op["↑="] = op["max="];
-op["↓="] = op["min="];
+op_binary["↑"] = op_binary["max"];
+op_binary["↓"] = op_binary["min"];
+op_binary["≤"] = op_binary["leq"];
+op_binary["≥"] = op_binary["geq"];
+op_binary["≠"] = op_binary["neq"];
+op_binary["↑="] = op_binary["max="];
+op_binary["↓="] = op_binary["min="];
 // op["≈≈"] = op[MyArray.prototype.isclose,
 
 
-/** @typedef {(A:ArrayOrConstant, out?:NDArray)=>NDArray} UnaryOperator */
-/**@type {Object.<string, UnaryOperator>} */
-const unary_op = {
+/** @typedef {(A:ArrayOrConstant, out?:NDArray|null)=>NDArray} UnaryOperator */
+/** @typedef {(out?:NDArray|null)=>NDArray} SelfUnaryOperator */
+
+const op_unary = {
   // Unary operators:
   "~": elementwise.bitwise_not,
   "not": elementwise.logical_not,
@@ -189,7 +193,11 @@ function _assign_operation_toJS(tgtJS, src, indexesSpec, func, dtype) {
   tgtJS.push(...outJS);
 }
 
-/** @typedef {(tgt:ArrayOrConstant, src:ArrayOrConstant, indexesSpec:any)=>void} AssignmentOperator */
+
+
+/** @typedef {{(tgt:NDArray, src:ArrayOrConstant):NDArray; (tgt:NDArray, where:import("./core-indexes").Index, src:ArrayOrConstant):NDArray; }} AssignmentOperator */
+/** @typedef {{(other:ArrayOrConstant):NDArray; (where:import("./core-indexes").Index, other:ArrayOrConstant):NDArray; }} SelfAssignmentOperator */
+
 
 /**@returns {AssignmentOperator} */
 function __make_assignment_operator(dtype, func) {
@@ -200,7 +208,6 @@ function __make_assignment_operator(dtype, func) {
   return operator;
 }
 
-/**@type {Object.<string, AssignmentOperator>} */
 const op_assign = {
   "=": __make_assignment_operator(Number, (a, b) => b),
   "+=": __make_assignment_operator(Number, (a, b) => a + b),
@@ -221,8 +228,6 @@ const op_assign = {
   "or=": __make_assignment_operator(Boolean, (a, b) => a || b),
   "and=": __make_assignment_operator(Boolean, (a, b) => a && b),
 };
-
-
 
 
 // ====================================
@@ -258,7 +263,7 @@ function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 
 
 module.exports = {
-  op, op_assign, unary_op,
+  op_binary, op_assign, op_unary,
   binary_operation, assign_operation,
   isclose, allclose,
 } 
