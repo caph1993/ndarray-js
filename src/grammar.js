@@ -114,13 +114,13 @@ grammar.__makeSemantics = () => {
 
   const semanticVariables = [];
   const semantics = {
-    Instruction_sliceAssignment($tgt, _open, $indexesSpec, _close, $symbol, $src) {
+    Instruction_sliceAssignment($tgt, _open, $where, _close, $symbol, $src) {
       const _tgt = $tgt.parse();
       const _src = $src.parse();
       const symbol = $symbol.sourceString;
-      const indexesSpec = $indexesSpec.parse();
+      const where = $where.parse();
       let tgt = NDArray.prototype.modules.basic.asarray(_tgt);
-      NDArray.prototype.modules.operators.op_assign[symbol](_tgt, _src, indexesSpec);
+      NDArray.prototype.modules.operators.op_assign[symbol](_tgt, where, _src);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
         tgt = NDArray.prototype.modules.jsInterface.toJS(tgt);
@@ -151,10 +151,10 @@ grammar.__makeSemantics = () => {
     number: function (arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
       return parseFloat(this.sourceString)
     },
-    Arr_slice($arr, _open, $indexesSpec, _close) {
+    Arr_slice($arr, _open, $where, _close) {
       const arr = $arr.parse();
-      const indexesSpec = $indexesSpec.parse();
-      return arr.index(...indexesSpec);
+      const where = $where.parse();
+      return arr.index(...where);
     },
     SliceTerm_constant($x) {
       return $x.sourceString;
@@ -207,7 +207,11 @@ grammar.__makeSemantics = () => {
     CallArgs(_open, $args, _comma, $kwArgs, _trailing, _close) {
       const args = $args.parse() || [];
       let entries = $kwArgs.parse() || [];
-      let kwArgs = Object.fromEntries(entries);
+      let kwArgs = Object.fromEntries(entries.map(([k, v]) => {
+        // The following is needed because minus integer gets parsed as array.
+        if (v instanceof NDArray) v = NDArray.prototype.__number_collapse(v);
+        return [k, v];
+      }));
       return { args, kwArgs };
     },
     KwArg($key, _equals, $value) {
@@ -236,16 +240,17 @@ grammar.__makeSemantics = () => {
     const { op_binary: op } = NDArray.prototype.modules.operators;
     return op[symbol](A, B);
   }
+
   function UnaryOperation(_, $symbol, $B) {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { op_binary: op, unary_op } = NDArray.prototype.modules.operators;
+    const { op_unary } = NDArray.prototype.modules.operators;
     switch (symbol) {
-      case "+": return B;
-      case "-": return op["*"](-1, B);
-      case "~": return unary_op["~"](B);
-      case "!": return unary_op["not"](B);
+      case "+": return op_unary["+"](B);
+      case "-": return op_unary["-"](B);
+      case "~": return op_unary["~"](B);
+      case "!": return op_unary["not"](B);
     }
     throw new Error(`Programming Error: ${symbol}`);
   }

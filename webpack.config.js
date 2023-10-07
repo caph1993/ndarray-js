@@ -1,8 +1,8 @@
 //@ts-check
 const path = require('path');
 // const CopyWebpackPlugin = require('copy-webpack-plugin');const fs = require('fs');
-const webpack = require('webpack');
 const LicensePlugin = require('webpack-license-plugin').default;
+const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 
 const fs = require('fs');
@@ -18,24 +18,12 @@ module.exports = {
     path: path.resolve(__dirname, 'dist'),
   },
   plugins: [
-    // new webpack.BannerPlugin({ banner: licenseText, raw: true }),
     new LicensePlugin(),
+    // new webpack.BannerPlugin({ banner: licenseText, raw: true }),
   ],
+  devtool: 'source-map',
+  optimization: {
+    minimizer: [new UglifyJsPlugin({ sourceMap: true })],
+  },
   mode: "production",
-  // devServer: {
-  //   static: [
-  //     path.resolve(__dirname, 'dist'),
-  //     path.resolve(__dirname),
-  //   ],
-  // },
-  // plugins: [
-  //   new CopyWebpackPlugin({
-  //     patterns: [
-  //       { from: 'src/index.html', to: 'index.html' },
-  //       // { from: 'put.js', to: 'put.js' },
-  //       // { from: 'putTools.js', to: 'putTools.js' },
-  //       // { from: 'cpTools.js', to: 'cpTools.js' },
-  //     ],
-  //   }),
-  // ],
 };

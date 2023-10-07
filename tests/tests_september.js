@@ -67,6 +67,8 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 // Unit tests:
 
+
+
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=0)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=-1)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(120).reshape(6,4,5)`)}, axis=1)`
@@ -109,25 +111,6 @@ npTest`np.sin(np.linspace(0,10,1000)).sort()`
 
 
 
-
-npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )`
-npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ]`
-npTest`np.ravel(np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ])`
-npTest`np.ravel(np.reshape( np.arange(120), ${[2, 3, 4, 5]} )[ :, 0, ${[1, 2]}, : ])`
-npTest`np.linspace(200, -45.3, 100)`
-
-var a = npTest`np.array(([1,2], [3,6], [9, 10]))`
-npTest`${a}.sum(axis=0)`
-npTest`${a}.sum(axis=1)`
-
-npTest`np.ones(${[10, 2]})`
-npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True)`
-npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True) + np.arange(2)`
-
-npTest`np.arange(10000).reshape(100,2,50)`
-npTest`np.arange(10000).reshape(100,10,10,1)`
-npTest`np.arange(10000).reshape(100,2,50,1)`
-
 npTest`np.arange(120).reshape(2,3,4,5)[1][1]`
 
 
@@ -151,6 +134,27 @@ npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1,3]`
 npTest`np.arange(120).reshape(2,3,4,5)[0, np.arange(12).reshape((3,4))<5]`
 npTest`np.arange(120).reshape(2,3,4,5)[0,2,1,3]`
 npTest`np.arange(120).reshape(2,3,4,5)[0][:,:][2][:][1,3]`
+
+
+
+npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )`
+npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ]`
+npTest`np.ravel(np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ])`
+npTest`np.ravel(np.reshape( np.arange(120), ${[2, 3, 4, 5]} )[ :, 0, ${[1, 2]}, : ])`
+npTest`np.linspace(200, -45.3, 100)`
+
+var a = npTest`np.array(([1,2], [3,6], [9, 10]))`
+npTest`${a}.sum(axis=0)`
+npTest`${a}.sum(axis=1)`
+
+npTest`np.ones(${[10, 2]})`
+npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True)`
+npTest`np.sum(np.ones(${[10, 2]}), axis=0, keepdims=True) + np.arange(2)`
+
+npTest`np.arange(10000).reshape(100,2,50)`
+npTest`np.arange(10000).reshape(100,10,10,1)`
+npTest`np.arange(10000).reshape(100,2,50,1)`
+
 
 
 npTest`np.linspace(0, 1, 10)`

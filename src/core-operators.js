@@ -5,6 +5,8 @@
 const { NDArray } = require("./globals").GLOBALS;
 
 /** @typedef {NDArray|number|boolean} ArrayOrConstant */
+/** @typedef {import("./core-indexes").Where} Index */
+
 
 const indexes = require('./core-indexes');
 const elementwise = require('./core-elementwise');
@@ -127,9 +129,6 @@ op_binary["↓"] = op_binary["min"];
 op_binary["≤"] = op_binary["leq"];
 op_binary["≥"] = op_binary["geq"];
 op_binary["≠"] = op_binary["neq"];
-op_binary["↑="] = op_binary["max="];
-op_binary["↓="] = op_binary["min="];
-// op["≈≈"] = op[MyArray.prototype.isclose,
 
 
 /** @typedef {(A:ArrayOrConstant, out?:NDArray|null)=>NDArray} UnaryOperator */
@@ -139,26 +138,29 @@ const op_unary = {
   // Unary operators:
   "~": elementwise.bitwise_not,
   "not": elementwise.logical_not,
+  "+": elementwise.__make_elementwise(x => x),
+  "-": elementwise.__make_elementwise(x => -x, Number),
 };
 
 
-/** @param {indexes.GeneralIndexSpec[]} indexesSpec */
-
-function assign_operation(tgt, src, indexesSpec, func, dtype) {
-  // @ts-ignore
-  if (this instanceof NDArray) return assign_operation(this, ...arguments);
+/**
+ * @param {NDArray} tgt
+ * @param {ArrayOrConstant} src
+ * @param {Index} where
+ * */
+function assign_operation(tgt, src, where, func, dtype) {
 
   if (tgt['__warnAssignment']) {
-    console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other, ...yourIndex).\n`);
+    console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other) or source.op(['::3', -1, '...', [5,4]], '*=', other).\n`);
     delete tgt['__warnAssignment'];
   }
   const { _binary_operation } = NDArray.prototype;
-  if (!(tgt instanceof NDArray)) return _assign_operation_toJS(tgt, src, indexesSpec, func, dtype)
-  if (!indexesSpec) {
+  if (!(tgt instanceof NDArray)) return _assign_operation_toJS(/**@type {*}*/(tgt), src, where, func, dtype)
+  if (!where) {
     _binary_operation(tgt, src, func, dtype, tgt);
   } else {
     src = asarray(src);
-    let { indices } = indexes.AxesIndex.prototype.parse(tgt.shape, indexesSpec);
+    let { indices } = indexes.AxesIndex.prototype.parse(tgt.shape, where);
     let tmpTgt;
     if (func == null) {
       // Small optimization: unlike "+=", "*=", etc., for "=", we don't need to reed the target
@@ -178,14 +180,14 @@ function assign_operation(tgt, src, indexesSpec, func, dtype) {
  * @param {any} src
  * @param {any} func
  * @param {any} dtype
- * @param {indexes.GeneralIndexSpec[]} indexesSpec
+ * @param {Index} where
  */
-function _assign_operation_toJS(tgtJS, src, indexesSpec, func, dtype) {
+function _assign_operation_toJS(tgtJS, src, where, func, dtype) {
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);
   console.warn('Assignment to JS array is experimental and slow.')
   // Parse the whole array
   const cpy = asarray(tgtJS);
-  assign_operation(cpy, src, indexesSpec, func, dtype);
+  assign_operation(cpy, src, where, func, dtype);
   // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
   const outJS = NDArray.prototype.modules.jsInterface.toJS(cpy);
   while (tgtJS.length) tgtJS.pop();
@@ -194,16 +196,20 @@ function _assign_operation_toJS(tgtJS, src, indexesSpec, func, dtype) {
 }
 
 
-
-/** @typedef {{(tgt:NDArray, src:ArrayOrConstant):NDArray; (tgt:NDArray, where:import("./core-indexes").Index, src:ArrayOrConstant):NDArray; }} AssignmentOperator */
-/** @typedef {{(other:ArrayOrConstant):NDArray; (where:import("./core-indexes").Index, other:ArrayOrConstant):NDArray; }} SelfAssignmentOperator */
+/** @typedef {{(tgt:NDArray, src:ArrayOrConstant):NDArray; (tgt:NDArray, where:Index, src:ArrayOrConstant):NDArray; }} AssignmentOperator */
+/** @typedef {{(other:ArrayOrConstant):NDArray; (where:Index, other:ArrayOrConstant):NDArray; }} SelfAssignmentOperator */
 
 
 /**@returns {AssignmentOperator} */
 function __make_assignment_operator(dtype, func) {
-  function operator(tgt, src, indexesSpec) {
+  function operator(...arguments) {
     if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
-    return assign_operation(tgt, src, indexesSpec, func, dtype);
+    if (arguments.length < 2) throw new Error(`Not enough arguments for assignment operator`);
+    if (arguments.length > 3) throw new Error(`Too many arguments for assignment operator`);
+    let tgt = arguments[0];
+    let src = arguments[arguments.length == 3 ? 2 : 1];
+    let where = arguments.length == 2 ? arguments[1] : null;
+    return assign_operation(tgt, src, where, func, dtype);
   }
   return operator;
 }
@@ -228,6 +234,11 @@ const op_assign = {
   "or=": __make_assignment_operator(Boolean, (a, b) => a || b),
   "and=": __make_assignment_operator(Boolean, (a, b) => a && b),
 };
+
+
+op_assign["↑="] = op_assign["max="];
+op_assign["↓="] = op_assign["min="];
+// op["≈≈"] = op[MyArray.prototype.isclose,
 
 
 // ====================================

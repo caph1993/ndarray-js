@@ -12,20 +12,20 @@ const { NDArray } = require("./globals").GLOBALS;
 
 /**@typedef {':'|'...'|'None'|null|indexSpec} GeneralIndexSpec */
 
-/**@typedef {null|GeneralIndexSpec[]} Index */
+/**@typedef {null|GeneralIndexSpec[]} Where */
 
 /**
  * @param {NDArray} arr
- * @param {GeneralIndexSpec[]} indexSpec
+ * @param {Where} where
  */
-function index(arr, ...indexSpec) {
+function index(arr, where) {
   // This can result either in a value, a view, a copy.
   // The index is simple if there are only ranges, numbers, ":" and at most one "..."
   // If index is simple, don't call ".indices" and make view
   // If index is advanced, get indices and make copy
   let { copy } = Object.assign({ copy: false }, arr.__popKwArgs());
   if (!(arr instanceof NDArray)) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
-  const axesIndex = AxesIndex.prototype.parse(arr.shape, indexSpec);
+  const axesIndex = AxesIndex.prototype.parse(arr.shape, where);
   if (axesIndex.isConstant) {
     let [index] = axesIndex.indices;
     return arr.flat[index];
@@ -275,7 +275,7 @@ AxisIndex.prototype.parse_range_spec = function (rangeString) {
  * We are reading `indexSpec` and `shape` in parallel, in the reading direction readDir.
  * With respect to `shape` we are at the given `axis`.
  * With respect to `indexSpec`, we found `indexSpec`, which we should process.
- * @param {indexSpec} indexSpec
+ * @param {indexSpec|undefined} indexSpec
  */
 AxisIndex.prototype.parse = function (indexSpec, size) {
   /**
@@ -338,10 +338,13 @@ AxisIndex.prototype.parse = function (indexSpec, size) {
 
 
 /**
- * @param {GeneralIndexSpec[]} indexSpec
+ * @param {Where} where
  * @returns {AxesIndex}
  */
-AxesIndex.prototype.parse = function (shape, indexSpec) {
+AxesIndex.prototype.parse = function (shape, where) {
+  /**@type {(GeneralIndexSpec|undefined)[]}*/
+  const _where = where == null ? [] : where;
+
   const buffers = {
     axisIndexes: /**@type {AxisIndex[]}*/([]),
     apparentShape: /**@type {number[]}*/([]),
@@ -351,22 +354,21 @@ AxesIndex.prototype.parse = function (shape, indexSpec) {
   const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
   let axis = 0, j = 0, remainingAxes = shape.length;
   while (remainingAxes > 0) {
-    let generalSpec = indexSpec[j];
-    //@ts-ignore
-    indexSpec[j] = undefined; // For ellipsis to avoid reading twice
+    let axisWhere = _where[j];
+    _where[j] = undefined; // For ellipsis to avoid reading twice in opposite reading directions
     j += readDir;
-    if (generalSpec == "None" || generalSpec === null) {
+    if (axisWhere == "None" || axisWhere === null) {
       buffers.apparentShape.push(1);
       continue;
-    } else if (generalSpec == "...") {
+    } else if (axisWhere == "...") {
       if (readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
       readDir = -1;
       for (let key in reversedAfter) reversedAfter[key] = buffers[key].length;
-      j = indexSpec.length - 1;
+      j = _where.length - 1;
       axis = shape.length - 1;
       continue;
     }
-    const { axisIndex, span } = AxisIndex.prototype.parse(generalSpec, shape[axis]);
+    const { axisIndex, span } = AxisIndex.prototype.parse(axisWhere, shape[axis]);
     // Advance the axis cursor span axes in readDir and compute the total size of consumed axes
     remainingAxes -= span;
     let refSize = 1;
@@ -382,7 +384,8 @@ AxesIndex.prototype.parse = function (shape, indexSpec) {
   if (readDir == -1) { // reverse the right to left elements
     for (let key in buffers) buffers[key].splice(0, reversedAfter[key]).concat(buffers[key].reverse());
   }
-  return new AxesIndex(buffers.apparentShape, buffers.internalShape, buffers.axisIndexes);
+  const axesIndex = new AxesIndex(buffers.apparentShape, buffers.internalShape, buffers.axisIndexes)
+  return axesIndex;
 }
 
 module.exports = {

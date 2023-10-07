@@ -153,10 +153,10 @@ NDArray.prototype._new = function (shape, f, dtype) {
 // ==============================
 
 /**
- * @param {import("./core-indexes").GeneralIndexSpec[]} indexesSpec
+ * @param {import("./core-indexes").GeneralIndexSpec[]} where
  */
-NDArray.prototype.index = function (...indexesSpec) {
-  return modules.indexes.index(this, ...indexesSpec);
+NDArray.prototype.index = function (...where) {
+  return modules.indexes.index(this, where);
 }
 
 // ==============================
@@ -387,6 +387,46 @@ NDArray.prototype.sort = function (axis = -1) {
 
 //   return this;
 // }
+
+
+
+
+/** @typedef {"+" | "-" | "*" | "/" | "%" | "//" | "**" | "<" | ">" | ">=" | "<=" | "==" | "!=" | " | " | "&" | "^" | "<<" | ">>" | "or" | "and" | "xor" | "max" | "min"} BinaryOpSymbol */
+/** @typedef {"=" | "+=" | "-=" | "*=" | "/=" | "%=" | "//=" | "**=" | "|=" | "&=" | "^=" | "<<=" | ">>=" | "max=" | "min=" | "or=" | "and="} AssignmentOpSymbol */
+/** @typedef {"~" | "not" | "-"} UnaryOpSymbol */
+/** @typedef {import("./core-indexes").Where} Where */
+
+/**
+ * @type {{():NDArray; (where:Where):ArrayOrConstant; (where:Where, op:AssignmentOpSymbol, B:ArrayOrConstant):NDArray; (op:AssignmentOpSymbol, B:ArrayOrConstant):NDArray; ( op:BinaryOpSymbol, B:ArrayOrConstant):NDArray; (UnaryOpSymbol):NDArray; }}  */
+NDArray.prototype.op = function (...arguments) {
+  if (!arguments.length) return this;
+  if (typeof arguments[0] == "string") {
+    const symbol = arguments[0];
+    if (arguments.length == 1) {
+      let func = modules.operators.op_unary[symbol];
+      if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.operators.op_unary)]}`);
+      return func(this, symbol);
+    }
+    if (arguments.length > 2) throw new Error(`Too many arguments provided: ${[...arguments]}`);
+    const other = arguments[1];
+    let func = modules.operators.op_binary[symbol];
+    if (func) return func(this, other);
+    func = modules.operators.op_assign[symbol];
+    if (func) return func(this, other);
+    if (symbol.includes(':')) throw new Error(`Expected index or operator symbol. Found "${symbol}". Did you mean ${[symbol]}?`);
+    throw new Error(`Expected index or operator symbol. Found "${symbol}"`);
+  }
+  const where = arguments[0];
+  if (where instanceof NDArray) throw new Error(`Expected operator or index. Found numpy array`);
+  //@ts-ignore
+  if (arguments.length == 1) return this.index(where);
+  const symbol = arguments[1];
+  let func = modules.operators.op_assign[symbol];
+  if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.operators.op_unary)]}`);
+  if (arguments.length > 2) throw new Error(`Too many arguments provided: ${[...arguments]}`);
+  const other = arguments[2];
+  return func(this, where, other);
+}
 
 
 

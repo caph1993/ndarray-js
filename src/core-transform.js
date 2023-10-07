@@ -59,8 +59,12 @@ function transpose(arr, axes = null) {
   if (axes == null) return transpose(arr, Array.from({ length: nDims }, (_, i) => i).reverse());
   if (axes.length !== nDims) throw new Error(`Axes must have length ${nDims}. Found ${axes.length}`);
   let inv = Array.from({ length: nDims }, () => -1);
-  for (let i = 0; i < nDims; i++) inv[axes[i]] = i;
-  for (let i = 0; i < nDims; i++) if (inv[i] == -1) throw new Error(`Axes must contain all dimensions. Missing ${i}.`);
+
+  for (let i = 0; i < nDims; i++) {
+    if (axes[i] < 0 || axes[i] >= nDims) throw new Error(`Expected axis in [0..${nDims}). Found ${axes[i]}`)
+    inv[axes[i]] = i;
+  }
+  for (let i = 0; i < nDims; i++) if (inv[i] == -1) throw new Error(`Axes must contain all dimensions. [${axes.join(", ")}] is missing ${i}.`);
   const srcShifts = NDArray.prototype.__shape_shifts(arr.shape);
   let shape = axes.map((j) => arr.shape[j]);
   let shifts = axes.map((j) => srcShifts[j]);
