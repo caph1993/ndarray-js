@@ -1,20 +1,13 @@
 //@ts-check
+import * as indexes from './core-indexes';
+import * as elementwise from './core-elementwise';
+import { number_collapse, asarray, NDArray } from './casting';
+type NDArray = import("./core").default;
 
-/** @typedef {import("./core")} NDArray*/
+type ArrayOrConstant = NDArray | number | boolean;
+type Index = indexes.Where;
 
-const { NDArray } = require("./globals").GLOBALS;
-
-/** @typedef {NDArray|number|boolean} ArrayOrConstant */
-/** @typedef {import("./core-indexes").Where} Index */
-
-
-const indexes = require('./core-indexes');
-const elementwise = require('./core-elementwise');
-
-const asarray = NDArray.prototype.modules.basic.asarray;
-const ravel = NDArray.prototype.modules.basic.ravel;
-
-
+const shape_shifts = indexes.shape_shifts;
 
 /**
  * 
@@ -25,10 +18,9 @@ const ravel = NDArray.prototype.modules.basic.ravel;
  * @param {NDArray?} out
  * @returns {ArrayOrConstant}
  */
-function binary_operation(A, B, func, dtype, out = null) {
+function binary_operation(A: ArrayOrConstant, B: ArrayOrConstant, func: any, dtype: any, out: NDArray | null = null): ArrayOrConstant {
   if (this instanceof NDArray) return func.bind(NDArray.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
-  const { __shape_shifts, __number_collapse } = NDArray.prototype;
   A = asarray(A);
   B = asarray(B);
   const [shape, shapeA, shapeB] = _broadcast_shapes(A.shape, B.shape);
@@ -36,8 +28,8 @@ function binary_operation(A, B, func, dtype, out = null) {
   else if (!(out instanceof NDArray)) throw new Error(`Out must be of type ${NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
   const flatOut = [];
-  const shiftsA = __shape_shifts(shapeA);
-  const shiftsB = __shape_shifts(shapeB);
+  const shiftsA = shape_shifts(shapeA);
+  const shiftsB = shape_shifts(shapeB);
   const flatA = A.flat;
   const flatB = B.flat;
   for (let i = 0; i < out.size; i++) {
@@ -50,7 +42,7 @@ function binary_operation(A, B, func, dtype, out = null) {
     flatOut.push(func(flatA[idxA], flatB[idxB]));
   };
   out.flat = flatOut;
-  return __number_collapse(out);
+  return number_collapse(out);
 }
 
 function _broadcast_shapes(shapeA, shapeB) {
@@ -81,7 +73,7 @@ function __make_operator(dtype, func) {
 
 function __make_operator_special(funcNum, funcBool) {
   /** @param {NDArray?} out */
-  function operator(A, B, out = null) {
+  function operator(A, B, out: NDArray | null = null) {
     if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
     A = asarray(A);
     B = asarray(B);
@@ -148,7 +140,7 @@ const op_unary = {
  * @param {ArrayOrConstant} src
  * @param {Index} where
  * */
-function assign_operation(tgt, src, where, func, dtype) {
+function assign_operation(tgt: NDArray, src: ArrayOrConstant, where: Index, func, dtype) {
 
   if (tgt['__warnAssignment']) {
     console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other) or source.op(['::3', -1, '...', [5,4]], '*=', other).\n`);
@@ -182,7 +174,7 @@ function assign_operation(tgt, src, where, func, dtype) {
  * @param {any} dtype
  * @param {Index} where
  */
-function _assign_operation_toJS(tgtJS, src, where, func, dtype) {
+function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, func: any, dtype: any) {
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);
   console.warn('Assignment to JS array is experimental and slow.')
   // Parse the whole array
@@ -201,7 +193,7 @@ function _assign_operation_toJS(tgtJS, src, where, func, dtype) {
 
 
 /**@returns {AssignmentOperator} */
-function __make_assignment_operator(dtype, func) {
+function __make_assignment_operator(dtype, func): AssignmentOperator {
   function operator(...arguments) {
     if (this instanceof NDArray) return operator.bind(NDArray.prototype)(this, ...arguments);
     if (arguments.length < 2) throw new Error(`Not enough arguments for assignment operator`);
@@ -273,7 +265,7 @@ function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 }
 
 
-module.exports = {
+export default {
   op_binary, op_assign, op_unary,
   binary_operation, assign_operation,
   isclose, allclose,

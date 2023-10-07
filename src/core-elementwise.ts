@@ -31,7 +31,7 @@ function logical_not(A) {
   return elementwise(A, x => !x, Boolean);
 };
 
-module.exports = {
+export default {
   elementwise,
   bitwise_not,
   logical_not,

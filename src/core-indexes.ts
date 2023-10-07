@@ -1,26 +1,19 @@
 //@ts-check
 
-// /** @typedef {import("./core")} NDArray*/
+// /type NDArray = {import("./core")};
 
-/** @typedef {import("./core")} NDArray*/
+import { parse_shape, asarray, as_number, NDArray } from './casting';
+type NDArray = import("./core").default;
 
-const { NDArray } = require("./globals").GLOBALS;
+
+// type RangeSpec = {{isRange:boolean, start:null|number, stop:null|number, step:null|number}};
+type RangeSpec = string;
+type indexSpec = ':' | number | RangeSpec | NDArray | number[];
+type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
+export type Where = null | GeneralIndexSpec[];
 
 
-// /**@typedef {{isRange:boolean, start:null|number, stop:null|number, step:null|number}} RangeSpec */
-/**@typedef {string} RangeSpec */
-
-/**@typedef {':'|number|RangeSpec|NDArray|number[]} indexSpec */
-
-/**@typedef {':'|'...'|'None'|null|indexSpec} GeneralIndexSpec */
-
-/**@typedef {null|GeneralIndexSpec[]} Where */
-
-/**
- * @param {NDArray} arr
- * @param {Where} where
- */
-function index(arr, where) {
+function index(arr: NDArray, where: Where) {
   // This can result either in a value, a view, a copy.
   // The index is simple if there are only ranges, numbers, ":" and at most one "..."
   // If index is simple, don't call ".indices" and make view
@@ -47,17 +40,22 @@ function index(arr, where) {
 }
 
 
-// /** @typedef {[number,number,number]} JSDOC_unsupported_tuple_of_3_numbers*/
-/** @typedef {number[]} JSDOC_unsupported_tuple_of_3_numbers*/
+type SimpleIndexes = null | { size: number, ranges: { refSize: number, range: null | number | [number, number, number] }[], indices: null | number[] };
 
-/** @typedef {{refSize:number, range:null|number|JSDOC_unsupported_tuple_of_3_numbers}} SimpleIndexes__range */
-/** @typedef {null|{size:number, ranges:SimpleIndexes__range[], indices:null|number[]}} SimpleIndexes */
 
 class AxesIndex {
+  shape: any;
+  internalShape: any;
+  axisIndexes: AxisIndex[];
+  private _indices: null | number[];
+  private _size: null | number;
+  isSimple: boolean;
+  isConstant: boolean;
+  parse: (shape: number[], where: Where) => AxesIndex;
   /**
    * @param {AxisIndex[]} axisIndexes
    */
-  constructor(apparentShape, internalShape, axisIndexes) {
+  constructor(apparentShape, internalShape, axisIndexes: AxisIndex[]) {
     this.shape = apparentShape;
     this.internalShape = internalShape;
     this.axisIndexes = axisIndexes;
@@ -81,13 +79,8 @@ class AxesIndex {
 }
 
 
-/**
- * 
- * @param {AxesIndex|null} first 
- * @param {AxesIndex} second 
- * @returns {AxesIndex}
- */
-function __compose_simpleIndexes(first, second) {
+
+function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): AxesIndex {
   if (first == null) return second;
   const axisIndexes = [];
   // console.log({ first, second })
@@ -97,7 +90,7 @@ function __compose_simpleIndexes(first, second) {
     let { spec: specB } = second.axisIndexes[j];
     if (specA.type == "array") throw new Error(`Expected simple index. Found advanced: ${specA.type}`);
     if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
-    let /**@type {AxisIndexSpec} */ spec;
+    let /**@type {AxisIndexSpec} */ spec: AxisIndexSpec;
     if (specA.type == "number") spec = specA
     else {
       j++;
@@ -129,6 +122,14 @@ function __compose_simpleIndexes(first, second) {
   return new AxesIndex(apparentShape, internalShape, axisIndexes);
 }
 
+export function shape_shifts(shape) {
+  // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
+  const shifts = Array.from({ length: shape.length }, (_) => 0);
+  shifts[shape.length - 1] = 1;
+  for (let i = shape.length - 2; i >= 0; i--) shifts[i] = shifts[i + 1] * shape[i + 1];
+  return shifts;
+}
+
 
 /**
  * Computes the indices wr to shape of the cartesian products of the slices.
@@ -138,10 +139,9 @@ function __compose_simpleIndexes(first, second) {
  * @param {number[][]} slices 
  * @returns {number[]}
  */
-function __slices_to_indices(shape, slices) {
-  const { __shape_shifts } = NDArray.prototype;
+function __slices_to_indices(shape: number[], slices: number[][]): number[] {
   for (let slice of slices) if (slice.length == 0) return [];
-  const shifts = __shape_shifts(shape);
+  const shifts = shape_shifts(shape);
   const iShifts = slices.map((indices, axis) => {
     // out[i] = How much does the cursor increase if we change from [...,indices[i],...] to [...,indices[(i+1)%n],...]
     let out = [], n = indices.length;
@@ -172,7 +172,7 @@ function __slices_to_indices(shape, slices) {
 //     Slicing
 // =========================================
 
-module.exports.__parse_sliceRange = function __parse_sliceRange(axis_size, { start, stop, step }) {
+export function __parse_sliceRange(axis_size, { start, stop, step }) {
   if (start == null) start = 0;
   else if (start < 0) start = axis_size + start;
   if (stop == null) stop = axis_size;
@@ -194,14 +194,22 @@ module.exports.__parse_sliceRange = function __parse_sliceRange(axis_size, { sta
 }
 
 
-/**@typedef {{type:':', size:number}|{type:'number', index:number}|{type:'range', range:{start:number, step:number, nSteps:number}}|{type:'array', indices:number[]}} AxisIndexSpec */
+type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] };
 
 class AxisIndex {
+  spec: AxisIndexSpec;
+  private _indices: null;
+  isSimple: boolean;
+  isConstant: boolean;
+  parse: (indexSpec: indexSpec | undefined, size: number) => { axisIndex: AxisIndex; span: number; };
+  parse_range: (size: number, start?: number, stop?: number, step?: number) => { start: number; step: number; nSteps: number; };
+  parse_range_spec: (rangeString: string) => { start: number; stop: number; step: number; };
+
   /**
    * Invariant: Immutable
    * @param {AxisIndexSpec} spec
    */
-  constructor(spec) {
+  constructor(spec: AxisIndexSpec) {
     this.spec = spec;
     this._indices = null;
     this.isSimple = (this.spec.type != "array");
@@ -228,20 +236,13 @@ class AxisIndex {
   }
 }
 
-/**
- * 
- * @param {number} size
- * @param {number|null} start
- * @param {number|null} stop
- * @param {number|null} step
- * @returns {{start:number, step:number, nSteps:number}}
- */
-AxisIndex.prototype.parse_range = function (size, start = null, stop = null, step = null) {
+
+AxisIndex.prototype.parse_range = function (size: number, start: number | null = null, stop: number | null = null, step: number | null = null) {
   if (step == null) step = 1;
   else if (step == 0) throw new Error(`Index specification error. Step must be different from zero.`);
   /**
    *  @param {number|null} i @param {number} ifNull @param {number} min @param {number} max */
-  const parse = (i, ifNull, min, max) => {
+  const parse = (i: number | null, ifNull: number, min: number, max: number) => {
     if (i == null) return ifNull;
     if (i < 0) i = Math.max(0, size - i);
     return Math.min(max, Math.max(min, i));
@@ -259,7 +260,7 @@ AxisIndex.prototype.parse_range = function (size, start = null, stop = null, ste
  * @param {string} rangeString
  * @returns {{start:(number|null), stop:(number|null), step:(number|null)}}
  */
-AxisIndex.prototype.parse_range_spec = function (rangeString) {
+AxisIndex.prototype.parse_range_spec = function (rangeString: string): { start: (number | null); stop: (number | null); step: (number | null); } {
   const numbers = rangeString.split(':').map(s => {
     s = s.trim();
     if (s == "") return null;
@@ -282,7 +283,7 @@ AxisIndex.prototype.parse_range_spec = function (rangeString) {
  * With respect to `indexSpec`, we found `indexSpec`, which we should process.
  * @param {indexSpec|undefined} indexSpec
  */
-AxisIndex.prototype.parse = function (indexSpec, size) {
+AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
   /**
    * 
    * span (virtual shape) matches shape unless there are boolean masks spanning
@@ -293,7 +294,7 @@ AxisIndex.prototype.parse = function (indexSpec, size) {
    * The boolean mask is then converted to indices in the flattened merged axis.
    */
   /**@type {AxisIndexSpec} */
-  let spec;
+  let spec: AxisIndexSpec;
   let span = 1;
 
   if (indexSpec == ':' || indexSpec === undefined) {
@@ -306,7 +307,7 @@ AxisIndex.prototype.parse = function (indexSpec, size) {
     spec = { type: 'number', index };
   }
   else if (indexSpec instanceof NDArray || Array.isArray(indexSpec)) {
-    let arr = NDArray.prototype.modules.basic.asarray(indexSpec);
+    let arr = asarray(indexSpec);
     let indices;
     if (arr.dtype == Number) {
       // Array of indices
@@ -346,9 +347,9 @@ AxisIndex.prototype.parse = function (indexSpec, size) {
  * @param {Where} where
  * @returns {AxesIndex}
  */
-AxesIndex.prototype.parse = function (shape, where) {
+AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
   /**@type {Array<GeneralIndexSpec|undefined>}*/
-  const _where = where == null ? [] : where;
+  const _where: Array<GeneralIndexSpec | undefined> = where == null ? [] : where;
 
   const buffers = {
     axisIndexes: /**@type {AxisIndex[]}*/([]),
@@ -393,6 +394,6 @@ AxesIndex.prototype.parse = function (shape, where) {
   return axesIndex;
 }
 
-module.exports = {
+export default {
   index, AxesIndex, AxisIndex, __slices_to_indices,
 } 

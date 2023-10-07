@@ -156,7 +156,7 @@ function stack(arrays, axis = 0) {
 
 
 
-module.exports = {
+export default {
   apply_along_axis, sort, transpose,
   concatenate, stack,
 } 

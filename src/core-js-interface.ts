@@ -1,17 +1,16 @@
 //@ts-check
 
-/** @typedef {import("./core")} NDArray*/
+import { number_collapse, NDArray } from './casting';
+type NDArrayClass = import("./core").default;
 
-const { NDArray } = require("./globals").GLOBALS;
 
-
-function fromJS(arr) {
+export function fromJS(arr) {
   if (arr instanceof NDArray) return arr;
   if (typeof arr === "number") return new NDArray([arr], [], Number);
   if (typeof arr === "boolean") return new NDArray([arr ? 1 : 0], [], Boolean);
   if (arr === NDArray.prototype) throw new Error(`Programming error`);
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
-  const shape = [];
+  const shape: number[] = [];
   let root = arr;
   while (Array.isArray(root)) {
     shape.push(root.length);
@@ -19,7 +18,7 @@ function fromJS(arr) {
     if (shape.length > 256) throw new Error(`Circular reference or excessive array depth`);
   }
   let dtype = typeof root === "boolean" ? Boolean : Number;
-  const flat = [];
+  const flat: number[] = [];
   const pushToFlat = (arr, axis) => {
     // Check consistency
     if (axis == shape.length - 1) {
@@ -41,12 +40,12 @@ function fromJS(arr) {
   return new NDArray(flat, shape, dtype)
 }
 
-function toJS(arr) {
+export function toJS(arr) {
   if (this instanceof NDArray) return toJS;
   if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
   if (Array.isArray(arr)) return arr.map(toJS);
   if (!(arr instanceof NDArray)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
-  arr = NDArray.prototype.__number_collapse(arr);
+  arr = number_collapse(arr);
   if (!(arr instanceof NDArray)) return arr;
 
   // let out = [], top;
@@ -70,7 +69,7 @@ function toJS(arr) {
     }
     const innerShape = shapeArr.slice(1);
     const outerSize = shapeArr[0];
-    const innerArray = [];
+    const innerArray: number[] = [];
     for (let i = 0; i < outerSize; i++) {
       innerArray.push(recursiveReshape(flatArr, innerShape));
     }
@@ -84,6 +83,3 @@ function toJS(arr) {
 
 
 
-module.exports = {
-  fromJS, toJS
-} 

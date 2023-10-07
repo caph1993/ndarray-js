@@ -88,6 +88,6 @@ function humanReadable(arr) {
 }
 
 
-module.exports = {
+export default {
   humanReadable
 } 

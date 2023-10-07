@@ -85,6 +85,6 @@ reducers.std = function (arr, axis = null, keepdims = false) {
   return op["**"](variance, 0.5);
 };
 
-module.exports = {
+export default {
   reduce, reducers,
 } 

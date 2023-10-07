@@ -80,7 +80,7 @@ function allClose(A, B, rtol = 1.e-5, atol = 1.e-8, nan_equal = false,) {
   return true;
 }
 
-module.exports = {
+export default {
   ravel,
   allEq,
   allClose,

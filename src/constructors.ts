@@ -40,7 +40,7 @@ function geomspace(start, stop, num = 50, endpoint = true) {
   return np.exp(linspace(start, stop, num, endpoint));
 }
 
-module.exports = {
+export default {
   empty,
   zeros,
   ones,

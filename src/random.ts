@@ -76,7 +76,7 @@ function shuffle(arr) {
   arr.assign(shuffled(arr));
 }
 
-module.exports = {
+export default {
   random, uniform, exponential,
   randn, normal, shuffle,
 }

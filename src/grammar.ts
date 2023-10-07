@@ -1,14 +1,14 @@
 //@ts-check
 /** @typedef {import("./core")} NDArray*/
 
-const { NDArray, np } = require("./globals").GLOBALS;
+import GLOBALS from "./globals";
+const { NDArray, np } = GLOBALS;
 
-/** @type {*} */
-var ohm = {};
-// var ohm = require('ohm-js');
+import * as ohm from 'ohm-js';
 
 
-const grammar = {}
+
+const grammar = {};
 grammar.grammar = String.raw`
 ArrayGrammar {
   Instruction
@@ -302,4 +302,4 @@ grammar.parse = function (template, ...variables) {
 }
 
 
-module.exports = grammar;
+export default grammar;
