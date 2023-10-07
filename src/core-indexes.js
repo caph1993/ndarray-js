@@ -1,5 +1,7 @@
 //@ts-check
 
+// /** @typedef {import("./core")} NDArray*/
+
 /** @typedef {import("./core")} NDArray*/
 
 const { NDArray } = require("./globals").GLOBALS;
@@ -45,8 +47,11 @@ function index(arr, where) {
 }
 
 
+// /** @typedef {[number,number,number]} JSDOC_unsupported_tuple_of_3_numbers*/
+/** @typedef {number[]} JSDOC_unsupported_tuple_of_3_numbers*/
 
-/** @typedef {null|{size:Number, ranges:{refSize:number, range:number|[number,number,number]|null}[], indices:null|number[]}} SimpleIndexes */
+/** @typedef {{refSize:number, range:null|number|JSDOC_unsupported_tuple_of_3_numbers}} SimpleIndexes__range */
+/** @typedef {null|{size:number, ranges:SimpleIndexes__range[], indices:null|number[]}} SimpleIndexes */
 
 class AxesIndex {
   /**
@@ -252,7 +257,7 @@ AxisIndex.prototype.parse_range = function (size, start = null, stop = null, ste
 /**
  * 
  * @param {string} rangeString
- * @returns {{start:number|null,stop:number|null,step:number|null}}
+ * @returns {{start:(number|null), stop:(number|null), step:(number|null)}}
  */
 AxisIndex.prototype.parse_range_spec = function (rangeString) {
   const numbers = rangeString.split(':').map(s => {
@@ -342,7 +347,7 @@ AxisIndex.prototype.parse = function (indexSpec, size) {
  * @returns {AxesIndex}
  */
 AxesIndex.prototype.parse = function (shape, where) {
-  /**@type {(GeneralIndexSpec|undefined)[]}*/
+  /**@type {Array<GeneralIndexSpec|undefined>}*/
   const _where = where == null ? [] : where;
 
   const buffers = {
@@ -350,7 +355,7 @@ AxesIndex.prototype.parse = function (shape, where) {
     apparentShape: /**@type {number[]}*/([]),
     internalShape: /**@type {number[]}*/([]),
   }
-  let /**@type {1|-1}*/ readDir = 1;
+  let readDir = 1;
   const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
   let axis = 0, j = 0, remainingAxes = shape.length;
   while (remainingAxes > 0) {

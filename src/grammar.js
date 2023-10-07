@@ -3,7 +3,9 @@
 
 const { NDArray, np } = require("./globals").GLOBALS;
 
-var ohm = require('ohm-js');
+/** @type {*} */
+var ohm = {};
+// var ohm = require('ohm-js');
 
 
 const grammar = {}
