@@ -26,7 +26,7 @@ const np = function (template, ...variables) {
 // ==============================
 require('./globals').GLOBALS.np = np;
 
-const NDArray = require('./core');
+import * as NDArray from "./core";
 np.NDArray = NDArray;
 
 
