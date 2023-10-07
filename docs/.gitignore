@@ -1,0 +1,10 @@
+conf.py
+index.rst
+_static
+_templates
+_build
+out
+make.bat
+Makefile
+
+.mypy_cache

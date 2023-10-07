@@ -1,7 +1,7 @@
 //@ts-check
 const { np } = require("./globals").GLOBALS;
 
-/** @typedef {typeof np.NDArray} NDArray*/
+/** @typedef {import("./core")} NDArray*/
 
 
 function empty(shape, /**@type {import('./core').DType} */dtype = Number) {

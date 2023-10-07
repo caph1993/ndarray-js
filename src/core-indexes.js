@@ -229,7 +229,7 @@ class AxisIndex {
  * @param {number|null} start
  * @param {number|null} stop
  * @param {number|null} step
- * @returns
+ * @returns {{start:number, step:number, nSteps:number}}
  */
 AxisIndex.prototype.parse_range = function (size, start = null, stop = null, step = null) {
   if (step == null) step = 1;
