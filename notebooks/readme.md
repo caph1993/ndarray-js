@@ -64,7 +64,6 @@ TO DO:
 
 - group_by function
 
-- all core functions should assume that the first input is already an array
 
 - np.d3_snippets: examples
 

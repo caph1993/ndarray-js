@@ -1,6 +1,6 @@
 //@ts-check
 import { spawnSync } from 'child_process'; // For testing
-import np from '../src';
+import { np } from '../src';
 import { allClose } from '../src/utils-js';
 
 console.log('Start')
