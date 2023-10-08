@@ -13,7 +13,7 @@ ArrayGrammar {
    = "#" digit+ "#"
   
   AssignSymbol
-  ="="|"+="|"-="|"/="|"%="|"&="|"|="|"^="|"@="
+  ="="|"+="|"-="|"*="|"/="|"%="|"&="|"|="|"^="|"@="|"**="|"<<="|">>="|"//="|"or="|"and="|"xor="|"max="|"min="
   
   /* Declaration in precedence order (weakest first) */
   ArithmeticLogicExp = Precedence11

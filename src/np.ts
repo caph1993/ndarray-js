@@ -101,8 +101,12 @@ np.logical_and = operators.op_binary["and"];
 np.bitwise_not = operators.op_unary["~"];
 np.logical_not = operators.op_unary["not"];
 
+np.allclose = operators.allclose;
+np.isclose = operators.isclose;
+
 
 const ew = NDArray.prototype.modules.elementwise;
+
 np.sign = ew.ops.sign;
 np.sqrt = ew.ops.sqrt;
 np.square = ew.ops.square;

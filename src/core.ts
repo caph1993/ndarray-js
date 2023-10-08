@@ -364,7 +364,7 @@ NDArray.prototype.op = function (...args): NDArray {
   const symbol = args[1];
   let func = modules.operators.op_assign[symbol];
   if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.operators.op_unary)]}`);
-  if (args.length > 2) throw new Error(`Too many arguments provided: ${[...args]}`);
+  if (args.length > 3) throw new Error(`Too many arguments provided: ${[...args]}`);
   const other = args[2];
   return func(this, where, other);
 }

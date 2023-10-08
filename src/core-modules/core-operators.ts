@@ -180,7 +180,7 @@ export function __make_assignment_operator(dtype, func): AssignmentOperator {
     if (args.length > 3) throw new Error(`Too many arguments for assignment operator`);
     let tgt = args[0];
     let src = args[args.length == 3 ? 2 : 1];
-    let where = args.length == 2 ? args[1] : null;
+    let where = args.length == 3 ? args[1] : null;
     return assign_operation(tgt, src, where, func, dtype);
   }
   return operator;
@@ -210,7 +210,6 @@ export const op_assign = {
 
 op_assign["↑="] = op_assign["max="];
 op_assign["↓="] = op_assign["min="];
-// op["≈≈"] = op[MyArray.prototype.isclose,
 
 
 // ====================================
@@ -244,3 +243,5 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   return true;
 }
 
+
+//op_binary["≈≈"] = op[MyArray.prototype.isclose,
