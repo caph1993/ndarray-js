@@ -14,6 +14,7 @@ var x_abs = x.copy();
 np`${x_abs}[${x_abs} < 0] *= -1`
 console.log(x_abs.shape, x_abs.min()); // [ 51 ] 0
 console.log(np.allclose(x_abs, np.abs(x))); // true
+console.log(np`${x_abs}[1:-20:15].round(3)`.JS()); // [ 9.6, 3.6, 2.4 ]
 ```
 
 Find more details and usage patterns in the [documentation](https://caph1993.github.io/numpy-js/).
