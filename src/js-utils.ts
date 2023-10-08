@@ -1,6 +1,6 @@
 //@ts-check
 
-function binary_operation(A, B, func) {
+export function binary_operation(A, B, func) {
   // Pointwise check for equality for arbitrary js arrays (without broadcasting)
   const C = [];
   const q = [[A, B, C, 0]];
@@ -26,7 +26,7 @@ function binary_operation(A, B, func) {
   }
 };
 
-function ravel(A) {
+export function ravel(A) {
   // Flatten js array
   const q = [[A, 0]], flat = [];
   let seen;
@@ -48,7 +48,7 @@ function ravel(A) {
   return flat;
 };
 
-function allEq(A, B, nan_equal = false) {
+export function allEq(A, B, nan_equal = false) {
   const different = new Error('');
   const func = (a, b) => {
     if (a !== b && !(nan_equal && Number.isNaN(a) && Number.isNaN(b))) throw different;
@@ -62,7 +62,7 @@ function allEq(A, B, nan_equal = false) {
   return true;
 };
 
-function allClose(A, B, rtol = 1.e-5, atol = 1.e-8, nan_equal = false,) {
+export function allClose(A, B, rtol = 1.e-5, atol = 1.e-8, nan_equal = false,) {
   const func = (a, b) => { //copied from isclose
     if (Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b) <= atol + rtol * Math.abs(b);
     return (a === b) || (nan_equal && Number.isNaN(a) && Number.isNaN(b));
@@ -78,11 +78,4 @@ function allClose(A, B, rtol = 1.e-5, atol = 1.e-8, nan_equal = false,) {
     else throw err;
   }
   return true;
-}
-
-export default {
-  ravel,
-  allEq,
-  allClose,
-  binary_operation,
 }

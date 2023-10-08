@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack --config webpack.config.js",
-    "test": "cd tests && node --trace-uncaught tests_september.js"
+    "test": "cd tests && node --trace-uncaught tests_september.js",
+    "build-docs": "api-documenter src/index.ts",
+    "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
   },
   "keywords": [],
   "author": "Carlos Pinzón",
@@ -14,13 +16,16 @@
     "ohm-js": "^17.1.0"
   },
   "devDependencies": {
+    "@microsoft/api-documenter": "^7.23.9",
+    "@microsoft/tsdoc": "^0.14.2",
+    "d3": "^6.0.0",
+    "eslint-plugin-tsdoc": "^0.2.17",
+    "jsdom": "^22.1.0",
+    "ts-loader": "^9.5.0",
+    "typescript": "^5.2.2",
+    "uglifyjs-webpack-plugin": "^2.2.0",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4",
-    "uglifyjs-webpack-plugin": "^2.2.0",
-    "webpack-license-plugin": "^4.3.0",
-    "typescript": "^5.2.2",
-    "ts-loader": "^9.5.0",
-    "d3": "^6.0.0",
-    "jsdom": "^22.1.0"
+    "webpack-license-plugin": "^4.3.0"
   }
 }

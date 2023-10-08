@@ -1,49 +1,47 @@
 //@ts-check
-
-// /type NDArray = {import("./core")};
-
-import { parse_shape, asarray, as_number, NDArray } from './casting';
-type NDArray = import("./core").default;
+import { isarray, asarray, new_NDArray, shape_shifts } from './core-basic';
+type NDArray = import("../core").default;
 
 
 // type RangeSpec = {{isRange:boolean, start:null|number, stop:null|number, step:null|number}};
 type RangeSpec = string;
 type indexSpec = ':' | number | RangeSpec | NDArray | number[];
-type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
+export type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
 export type Where = null | GeneralIndexSpec[];
 
 
-function index(arr: NDArray, where: Where) {
+
+export function index(arr: NDArray, where: Where) {
   // This can result either in a value, a view, a copy.
   // The index is simple if there are only ranges, numbers, ":" and at most one "..."
   // If index is simple, don't call ".indices" and make view
   // If index is advanced, get indices and make copy
   let { copy } = Object.assign({ copy: false }, arr.__popKwArgs());
-  if (!(arr instanceof NDArray)) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
+  if (!(isarray(arr))) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
   const axesIndex = AxesIndex.prototype.parse(arr.shape, where);
   if (axesIndex.isConstant) {
     let [index] = axesIndex.indices;
     return arr.flat[index];
   } else if (axesIndex.isSimple) {
     const composition = __compose_simpleIndexes(arr._simpleIndexes, axesIndex);
-    const out = new NDArray(arr._flat, axesIndex.shape, arr.dtype);
+    const out = new_NDArray(arr._flat, axesIndex.shape, arr.dtype);
     out._simpleIndexes = composition;
     if (arr['__warnAssignments']) out['__warnAssignments'] = true;
     return copy ? out.copy() : out;
   } else {
     const src_flat = arr.flat;
     const flat = axesIndex.indices.map(i => src_flat[i]);
-    const out = new NDArray(flat, axesIndex.shape, arr.dtype);
+    const out = new_NDArray(flat, axesIndex.shape, arr.dtype);
     if (!copy) out['__warnAssignments'] = true;
     return out;
   }
 }
 
 
-type SimpleIndexes = null | { size: number, ranges: { refSize: number, range: null | number | [number, number, number] }[], indices: null | number[] };
+// type SimpleIndexes = null | { size: number, ranges: { refSize: number, range: null | number | [number, number, number] }[], indices: null | number[] };
 
 
-class AxesIndex {
+export class AxesIndex {
   shape: any;
   internalShape: any;
   axisIndexes: AxisIndex[];
@@ -122,14 +120,6 @@ function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): Ax
   return new AxesIndex(apparentShape, internalShape, axisIndexes);
 }
 
-export function shape_shifts(shape) {
-  // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
-  const shifts = Array.from({ length: shape.length }, (_) => 0);
-  shifts[shape.length - 1] = 1;
-  for (let i = shape.length - 2; i >= 0; i--) shifts[i] = shifts[i + 1] * shape[i + 1];
-  return shifts;
-}
-
 
 /**
  * Computes the indices wr to shape of the cartesian products of the slices.
@@ -194,9 +184,9 @@ export function __parse_sliceRange(axis_size, { start, stop, step }) {
 }
 
 
-type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] };
+export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] };
 
-class AxisIndex {
+export class AxisIndex {
   spec: AxisIndexSpec;
   private _indices: null;
   isSimple: boolean;
@@ -306,7 +296,7 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
     if (index < 0 || index >= size) throw new Error(`Index ${index} out of bounds [0..${size})`);
     spec = { type: 'number', index };
   }
-  else if (indexSpec instanceof NDArray || Array.isArray(indexSpec)) {
+  else if (isarray(indexSpec) || Array.isArray(indexSpec)) {
     let arr = asarray(indexSpec);
     let indices;
     if (arr.dtype == Number) {
@@ -393,7 +383,3 @@ AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
   const axesIndex = new AxesIndex(buffers.apparentShape, buffers.internalShape, buffers.axisIndexes)
   return axesIndex;
 }
-
-export default {
-  index, AxesIndex, AxisIndex, __slices_to_indices,
-} 

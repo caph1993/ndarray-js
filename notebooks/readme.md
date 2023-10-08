@@ -49,6 +49,7 @@ TO DO:
 - purposeful readme, with plots and good examples
 
 
+
 - Export map.js as well
 - Add license to webpack
 
@@ -63,6 +64,7 @@ TO DO:
 
 - group_by function
 
+- all core functions should assume that the first input is already an array
 
 - np.d3_snippets: examples
 

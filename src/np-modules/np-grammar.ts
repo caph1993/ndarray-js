@@ -1,15 +1,9 @@
 //@ts-check
-/** @typedef {import("./core")} NDArray*/
-
-import GLOBALS from "./globals";
-const { NDArray, np } = GLOBALS;
-
+import { np, nd_modules } from "./-np-globals";
 import * as ohm from 'ohm-js';
 
 
-
-const grammar = {};
-grammar.grammar = String.raw`
+export const grammar = String.raw`
 ArrayGrammar {
   Instruction
   = Variable "[" Slice "]" AssignSymbol ArithmeticLogicExp -- sliceAssignment
@@ -108,24 +102,23 @@ ArrayGrammar {
 }
 `;
 
-grammar.ohmGrammar = ohm.grammar(grammar.grammar);
+export const ohmGrammar = ohm.grammar(grammar);
 
 
-grammar.__makeSemantics = () => {
+export const __makeSemantics = () => {
 
-
-  const semanticVariables = [];
+  const semanticVariables: any[] = [];
   const semantics = {
     Instruction_sliceAssignment($tgt, _open, $where, _close, $symbol, $src) {
       const _tgt = $tgt.parse();
       const _src = $src.parse();
       const symbol = $symbol.sourceString;
       const where = $where.parse();
-      let tgt = NDArray.prototype.modules.basic.asarray(_tgt);
-      NDArray.prototype.modules.operators.op_assign[symbol](_tgt, where, _src);
+      let tgt = nd_modules.basic.asarray(_tgt);
+      nd_modules.operators.op_assign[symbol](_tgt, where, _src);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-        tgt = NDArray.prototype.modules.jsInterface.toJS(tgt);
+        tgt = nd_modules.jsInterface.toJS(tgt);
         while (_tgt.length) _tgt.pop();
         // @ts-ignore
         _tgt.push(..._tgt);
@@ -137,7 +130,7 @@ grammar.__makeSemantics = () => {
       if (typeof arr === "number") return arr;
       if (typeof arr === "boolean") return arr;
       if (Array.isArray(arr)) return arr;
-      if (arr instanceof NDArray) arr = NDArray.prototype.__number_collapse(arr);
+      if (nd_modules.basic.isarray(arr)) arr = nd_modules.basic.number_collapse(arr);
       return arr;
     },
     Precedence11: BinaryOperation,
@@ -181,8 +174,8 @@ grammar.__makeSemantics = () => {
     Variable(_, $i, __) {
       const i = parseInt($i.sourceString);
       let value = semanticVariables[i];
-      const isListOfArrays = Array.isArray(value) && value.length && value[0] instanceof NDArray;
-      if (Array.isArray(value) && !isListOfArrays) value = np.array(value);
+      const isListOfArrays = Array.isArray(value) && value.length && nd_modules.basic.isarray(value[0]);
+      if (Array.isArray(value) && !isListOfArrays) value = nd_modules.basic.array(value);
       return value;
     },
     int($sign, $value) {
@@ -211,7 +204,7 @@ grammar.__makeSemantics = () => {
       let entries = $kwArgs.parse() || [];
       let kwArgs = Object.fromEntries(entries.map(([k, v]) => {
         // The following is needed because minus integer gets parsed as array.
-        if (v instanceof NDArray) v = NDArray.prototype.__number_collapse(v);
+        if (nd_modules.basic.isarray(v)) v = nd_modules.basic.number_collapse(v);
         return [k, v];
       }));
       return { args, kwArgs };
@@ -227,8 +220,8 @@ grammar.__makeSemantics = () => {
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
-      const { toJS } = NDArray.prototype.modules.jsInterface;
-      for (let i in list) if (list[i] instanceof NDArray) list[i] = toJS(list[i]);
+      const { toJS } = nd_modules.jsInterface;
+      for (let i in list) if (nd_modules.basic.isarray(list[i])) list[i] = toJS(list[i]);
       return list;
     },
     _terminal() { return null; },
@@ -239,7 +232,7 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const { op_binary: op } = NDArray.prototype.modules.operators;
+    const { op_binary: op } = nd_modules.operators;
     return op[symbol](A, B);
   }
 
@@ -247,7 +240,7 @@ grammar.__makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { op_unary } = NDArray.prototype.modules.operators;
+    const { op_unary } = nd_modules.operators;
     switch (symbol) {
       case "+": return op_unary["+"](B);
       case "-": return op_unary["-"](B);
@@ -256,8 +249,6 @@ grammar.__makeSemantics = () => {
     }
     throw new Error(`Programming Error: ${symbol}`);
   }
-
-  const { ohmGrammar } = grammar;
 
   const ohmSemantics = ohmGrammar.createSemantics();
   ohmSemantics.addOperation('parse', semantics);
@@ -280,26 +271,23 @@ grammar.__makeSemantics = () => {
 }
 
 
-grammar.__parser_pool = [grammar.__makeSemantics()];
+export const __parser_pool = [__makeSemantics()];
 
 /**
  * @param {TemplateStringsArray} template
  * @param {any[]} variables
  */
-grammar.parse = function (template, ...variables) {
+export const parse = function (template, ...variables) {
   // Thread control, because the parser depends on semanticVariables,
   // but we don't want to waste CPU time recreating the parser on each call
   // No cleaning is done (we assume that the number of threads is negligible compared to the memory size)
-  const { __parser_pool: pool } = grammar;
+  const pool = __parser_pool;
   for (let i = 0; i < pool.length; i++) {
     const parser = pool[i];
     if (parser.busy++ == 0) {
       try { return parser.parse(template, ...variables); }
       finally { parser.busy = 0; }
     }
-    if (i == pool.length) pool.push(grammar.__makeSemantics());
+    if (i == pool.length) pool.push(__makeSemantics());
   }
 }
-
-
-export default grammar;

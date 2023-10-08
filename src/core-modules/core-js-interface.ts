@@ -1,14 +1,13 @@
 //@ts-check
 
-import { number_collapse, NDArray } from './casting';
-type NDArrayClass = import("./core").default;
+import { isarray, number_collapse, new_NDArray, _NDArray } from './core-basic';
 
 
 export function fromJS(arr) {
-  if (arr instanceof NDArray) return arr;
-  if (typeof arr === "number") return new NDArray([arr], [], Number);
-  if (typeof arr === "boolean") return new NDArray([arr ? 1 : 0], [], Boolean);
-  if (arr === NDArray.prototype) throw new Error(`Programming error`);
+  if (isarray(arr)) return arr;
+  if (typeof arr === "number") return new_NDArray([arr], [], Number);
+  if (typeof arr === "boolean") return new_NDArray([arr ? 1 : 0], [], Boolean);
+  if (arr === _NDArray.prototype) throw new Error(`Programming error`);
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
   const shape: number[] = [];
   let root = arr;
@@ -37,16 +36,16 @@ export function fromJS(arr) {
     }
   }
   pushToFlat(arr, 0);
-  return new NDArray(flat, shape, dtype)
+  return new_NDArray(flat, shape, dtype)
 }
 
 export function toJS(arr) {
-  if (this instanceof NDArray) return toJS;
+  if (isarray(this)) return toJS;
   if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
   if (Array.isArray(arr)) return arr.map(toJS);
-  if (!(arr instanceof NDArray)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
+  if (!(isarray(arr))) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
   arr = number_collapse(arr);
-  if (!(arr instanceof NDArray)) return arr;
+  if (!(isarray(arr))) return arr;
 
   // let out = [], top;
   // let q = /**@type {[MyArray, any][]}*/([[arr, out]])

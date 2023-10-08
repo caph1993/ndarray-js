@@ -1,12 +1,11 @@
 //@ts-check
 
+import { round } from './core-elementwise';
+import { toJS } from './core-js-interface';
+type NDArray = import("../core").default;
 
-/** @typedef {import("./core")} NDArray*/
 
-const { NDArray } = require("./globals").GLOBALS;
-
-
-function humanReadable(arr) {
+export function humanReadable(arr: NDArray) {
   if (arr.shape.length == 0) return arr.flat[0].toString();
   let budgets = arr.shape.map(_ => 1);
   let lBudget = 30;
@@ -34,8 +33,8 @@ function humanReadable(arr) {
   while (rLimit > 0 && arr.shape[rLimit] == 1) {
     rLimit--;
   }
-  if (arr.dtype == Number) arr = NDArray.prototype.modules.elementwise.round(arr, 2);
-  let list = NDArray.prototype.modules.jsInterface.toJS(arr);
+  if (arr.dtype == Number) arr = round(arr, 2);
+  let list = toJS(arr);
 
   function str(list, indent = 0, depth = 0) {
     if (list == '...' || depth >= arr.shape.length) return list;
@@ -86,8 +85,3 @@ function humanReadable(arr) {
   return out;
 
 }
-
-
-export default {
-  humanReadable
-} 

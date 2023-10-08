@@ -20,7 +20,7 @@
 
 
 type NDArrayPrototype = typeof import("./core").default;
-type npPrototype = typeof import("./index.d").default;
+type npPrototype = typeof import("./np").default;
 
 //@ts-ignore
 const _np: npPrototype = null;

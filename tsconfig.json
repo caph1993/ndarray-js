@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["ES2019", "DOM"],
+    "downlevelIteration"  : true,
   },
   "include": [
     "./src/index.ts"

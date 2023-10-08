@@ -1,16 +1,13 @@
 //@ts-check
 
-/** @typedef {import("./core")} NDArray*/
+import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts, reshape } from './core-basic';
+import { fromJS } from './core-js-interface';
+import { allEq } from '../js-utils';
+import { DType } from '../core';
+type NDArray = import("./core-basic").NDArray;
 
-const { NDArray } = require("./globals").GLOBALS;
-const { allEq } = require("./js-utils");
-
-/**
- * @param {NDArray} arr
- * @param {number} axis
- */
-function apply_along_axis(arr, axis, transform, dtype = Number) {
-  arr = NDArray.prototype.modules.basic.asarray(arr)
+export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: DType = Number) {
+  arr = asarray(arr);
   if (axis == null) return transform(arr.flat);
   const nDims = arr.shape.length;
   if (axis < 0) axis = nDims + axis;
@@ -22,7 +19,7 @@ function apply_along_axis(arr, axis, transform, dtype = Number) {
   }
 
   let m = arr.shape[axis];
-  let shift = NDArray.prototype.__shape_shifts(arr.shape)[axis];
+  let shift = shape_shifts(arr.shape)[axis];
   const groups = Array.from({ length: m }, (_) =>/**@type {number[]}*/([]));
   arr.flat.forEach((value, i) => groups[(Math.floor(i / shift)) % m].push(value));
   // Transpose it:
@@ -34,16 +31,14 @@ function apply_along_axis(arr, axis, transform, dtype = Number) {
     groupsT.push(newRow);
   }
   const data = groupsT.map(transform);
-  const tmp = NDArray.prototype.fromJS(data);
+  const tmp = fromJS(data);
   const shape = [...arr.shape.slice(0, axis), ...tmp.shape.slice(1), ...arr.shape.slice(axis + 1),];
-  const out = new NDArray(tmp.flat, shape, dtype)
-  return NDArray.prototype.__number_collapse(out);
+  const out = new_NDArray(tmp.flat, shape, dtype)
+  return number_collapse(out);
 }
 
-/**
- * @param {NDArray} A
- */
-function sort(A, axis = -1) {
+
+export function sort(A: NDArray, axis = -1) {
   ({ axis } = Object.assign({ axis }, this));
   return apply_along_axis(A, axis, (arr) => {
     const cpy = [...arr];
@@ -52,8 +47,7 @@ function sort(A, axis = -1) {
   }, A.dtype);
 }
 
-/** @param {NDArray} arr @param {null|number[]} axes */
-function transpose(arr, axes = null) {
+export function transpose(arr: NDArray, axes: null | number[] = null) {
   ({ axes } = Object.assign({ axes }, this));
   let nDims = arr.shape.length;
   if (axes == null) return transpose(arr, Array.from({ length: nDims }, (_, i) => i).reverse());
@@ -65,7 +59,7 @@ function transpose(arr, axes = null) {
     inv[axes[i]] = i;
   }
   for (let i = 0; i < nDims; i++) if (inv[i] == -1) throw new Error(`Axes must contain all dimensions. [${axes.join(", ")}] is missing ${i}.`);
-  const srcShifts = NDArray.prototype.__shape_shifts(arr.shape);
+  const srcShifts = shape_shifts(arr.shape);
   let shape = axes.map((j) => arr.shape[j]);
   let shifts = axes.map((j) => srcShifts[j]);
   // Copied from slice:
@@ -89,13 +83,12 @@ function transpose(arr, axes = null) {
   }
   // Now, just copy the data:
   const src = arr.flat;
-  return new NDArray(indices.map((i) => src[i]), shape, arr.dtype);
+  return new_NDArray(indices.map((i) => src[i]), shape, arr.dtype);
 }
 
 
-/** @param {NDArray} arr @param {number} axisA @param {number} axisB */
-function swapAxes(arr, axisA, axisB) {
-  arr = NDArray.prototype.modules.basic.asarray(arr)
+export function swapAxes(arr: NDArray, axisA: number, axisB: number) {
+  arr = asarray(arr)
   const nDims = arr.shape.length;
   if (axisA < 0) axisA = nDims + axisA;
   if (axisB < 0) axisB = nDims + axisB;
@@ -106,13 +99,12 @@ function swapAxes(arr, axisA, axisB) {
 }
 
 
-/** @param {NDArray[]} arrays @param {number|null} axis */
-function concatenate(arrays, axis = null) {
+export function concatenate(arrays: NDArray[], axis: number | null = null) {
   ({ axis } = Object.assign({ axis }, this));
-  if (arrays instanceof NDArray) arrays = [...arrays];
-  arrays = arrays.map(NDArray.prototype.modules.basic.asarray);
+  if (isarray(arrays)) arrays = [...arrays];
+  arrays = arrays.map(asarray);
   if (axis == null) {
-    arrays = arrays.map(arr => NDArray.prototype.modules.basic.reshape(arr, -1));
+    arrays = arrays.map(arr => ravel(arr));
     axis = 0;
   }
   if (!arrays.length) throw new Error(`Expected at least two arrays`);
@@ -128,18 +120,17 @@ function concatenate(arrays, axis = null) {
     flat.push(...arr.flat);
   }
   // TO DO: infer or expect dtype here:
-  const out = new NDArray(flat, shape);
+  const out = new_NDArray(flat, shape, arrays[0].dtype);
   if (axis == 0) return out;
   else return swapAxes(out, axis, 0);
 }
 
 
-/** @param {NDArray[]} arrays @param {number} axis */
-function stack(arrays, axis = 0) {
+export function stack(arrays: NDArray[], axis: number = 0) {
   ({ axis } = Object.assign({ axis }, this));
-  if (arrays instanceof NDArray) arrays = [...arrays];
+  if (isarray(arrays)) arrays = [...arrays];
   if (!Array.isArray(arrays)) throw new Error(`Expected list of arrays. Found ${typeof arrays}`);
-  arrays = arrays.map(NDArray.prototype.modules.basic.asarray);
+  arrays = arrays.map(asarray);
   if (!arrays.length) throw new Error(`Expected at least two arrays`);
   const shapeIn = [...arrays[0].shape];
   if (axis < 0) axis = shapeIn.length + 1 + axis;
@@ -148,15 +139,7 @@ function stack(arrays, axis = 0) {
   const bArrays = [];
   for (let arr of arrays) {
     if (!allEq(arr.shape, shapeIn)) throw new Error(`Inconsistent input shape ${arr.shape} with respect to ${arr.shape}`);
-    bArrays.push(arr.reshape(shapeBroadcast));
+    bArrays.push(reshape(arr, shapeBroadcast));
   }
   return concatenate(bArrays, axis);
 }
-
-
-
-
-export default {
-  apply_along_axis, sort, transpose,
-  concatenate, stack,
-} 

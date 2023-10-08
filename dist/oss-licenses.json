@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "name": "ohm-js",
+    "version": "17.1.0",
+    "author": "Alex Warth <alexwarth@gmail.com> (http://tinlizzie.org/~awarth)",
+    "repository": "https://github.com/ohmjs/ohm",
+    "source": "https://registry.npmjs.org/ohm-js/-/ohm-js-17.1.0.tgz",
+    "license": "MIT",
+    "licenseText": null
+  }
+]
