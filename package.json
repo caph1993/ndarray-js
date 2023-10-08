@@ -1,12 +1,12 @@
 {
   "name": "@caph1993/numpy-js",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "build": "webpack --config webpack.config.js",
-    "test": "cd tests && node --trace-uncaught tests_september.js",
-    "build-docs": "api-documenter src/index.ts",
+    "test": "cd tests && ts-node tests_september.ts",
+    "build-docs": "typedoc --out docs ./src/**/*",
     "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
   },
   "keywords": [],
@@ -16,12 +16,13 @@
     "ohm-js": "^17.1.0"
   },
   "devDependencies": {
-    "@microsoft/api-documenter": "^7.23.9",
-    "@microsoft/tsdoc": "^0.14.2",
+    "@types/node": "^20.8.3",
     "d3": "^6.0.0",
     "eslint-plugin-tsdoc": "^0.2.17",
     "jsdom": "^22.1.0",
     "ts-loader": "^9.5.0",
+    "ts-node": "^10.9.1",
+    "typedoc": "^0.25.2",
     "typescript": "^5.2.2",
     "uglifyjs-webpack-plugin": "^2.2.0",
     "webpack": "^5.88.2",
