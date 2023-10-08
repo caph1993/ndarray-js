@@ -4,7 +4,7 @@ import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, rav
 import { fromJS } from './core-js-interface';
 import { allEq } from '../utils-js';
 import { DType } from '../core';
-type NDArray = import("./core-basic").NDArray;
+import type NDArray from "../core";
 
 export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: DType = Number) {
   arr = asarray(arr);

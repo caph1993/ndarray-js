@@ -3,9 +3,10 @@ import * as indexes from './core-indexes';
 import * as elementwise from './core-elementwise';
 import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts } from './core-basic';
 import { toJS } from './core-js-interface';
-type NDArray = import("./core-basic").NDArray;
 
-type ArrayOrConstant = NDArray | number | boolean;
+import type NDArray from "../core";
+
+export type ArrayOrConstant = NDArray | number | boolean;
 type Index = indexes.Where;
 
 
@@ -127,11 +128,6 @@ export const op_unary = {
 };
 
 
-/**
- * @param {NDArray} tgt
- * @param {ArrayOrConstant} src
- * @param {Index} where
- * */
 export function assign_operation(tgt: NDArray, src: ArrayOrConstant, where: Index, func, dtype) {
 
   if (tgt['__warnAssignment']) {

@@ -1,8 +1,8 @@
 //@ts-check
+import type NDArray from "../core";
 import { DType } from "../core";
 import { isarray, asarray, array, new_NDArray, _NDArray } from "./-core-globals";
 
-export type NDArray = import("./-core-globals").NDArray;
 export {
   isarray,
   asarray,
@@ -97,7 +97,7 @@ export function new_from(shape, f: any = undefined, dtype: DType = Number) {
   return new_NDArray(flat, shape, dtype);
 };
 
-export function empty(shape, /**@type {import('./core').DType} */dtype: DType = Number) {
+export function empty(shape, dtype: DType = Number) {
   return new_from(shape, (_) => undefined, dtype)
 };
 

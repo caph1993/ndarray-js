@@ -1,6 +1,6 @@
 //@ts-check
 import { modules } from '../core-modules';
-type NDArray = import("../core-modules/core-basic").NDArray;
+import type NDArray from '../core';
 
 const { basic, elementwise } = modules;
 

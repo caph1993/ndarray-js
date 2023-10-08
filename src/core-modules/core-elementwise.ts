@@ -1,7 +1,7 @@
 //@ts-check
 
 import { asarray, new_NDArray } from './core-basic';
-type NDArray = import("../core").default;
+import type NDArray from "../core";
 
 // Here, we declare only the core functions (those that are methods)
 

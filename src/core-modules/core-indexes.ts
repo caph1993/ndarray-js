@@ -1,11 +1,10 @@
 //@ts-check
 import { isarray, asarray, new_NDArray, shape_shifts } from './core-basic';
-type NDArray = import("../core").default;
+import type NDArray from "../core";
 
 
-// type RangeSpec = {{isRange:boolean, start:null|number, stop:null|number, step:null|number}};
-type RangeSpec = string;
-type indexSpec = ':' | number | RangeSpec | NDArray | number[];
+export type RangeSpec = string;
+export type indexSpec = ':' | number | RangeSpec | NDArray | number[];
 export type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
 export type Where = null | GeneralIndexSpec[];
 

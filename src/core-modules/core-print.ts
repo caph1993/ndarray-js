@@ -2,7 +2,7 @@
 
 import { round } from './core-elementwise';
 import { toJS } from './core-js-interface';
-type NDArray = import("../core").default;
+import type NDArray from "../core";
 
 
 export function humanReadable(arr: NDArray) {

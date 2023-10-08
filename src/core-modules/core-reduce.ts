@@ -1,7 +1,7 @@
 //@ts-check
 import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from './core-basic';
 import { op_binary } from './core-operators';
-type NDArray = import("../core").default;
+import type NDArray from "../core";
 
 
 export type AxisArg = null | number;

@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build": "webpack --config webpack.config.js",
-    "test": "cd tests && ts-node tests_september.ts",
-    "build-docs": "typedoc --out docs ./src/**/*",
+    "test": "cd tests && ts-node tests_october.ts",
+    "build-docs": "typedoc",
     "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
   },
   "keywords": [],
