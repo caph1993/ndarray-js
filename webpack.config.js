@@ -24,7 +24,8 @@ module.exports = {
     publicPath: '',
     filename: 'caph1993-numpy-js.js',
     path: path.resolve(__dirname, 'dist'),
-    libraryTarget: "commonjs"
+    // libraryTarget: "commonjs",
+    libraryTarget: 'umd', // Fix: "Uncaught ReferenceError: exports is not defined".
   },
   plugins: [
     new LicensePlugin(),

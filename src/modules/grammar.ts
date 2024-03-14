@@ -118,7 +118,7 @@ export const __makeSemantics = () => {
       nd_modules.operators.op_assign[symbol](_tgt, where, _src);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-        tgt = nd_modules.jsInterface.toJS(tgt);
+        tgt = nd_modules.jsInterface.tolist(tgt);
         while (_tgt.length) _tgt.pop();
         // @ts-ignore
         _tgt.push(..._tgt);
@@ -220,8 +220,8 @@ export const __makeSemantics = () => {
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
-      const { toJS } = nd_modules.jsInterface;
-      for (let i in list) if (nd_modules.basic.isarray(list[i])) list[i] = toJS(list[i]);
+      const { tolist } = nd_modules.jsInterface;
+      for (let i in list) if (nd_modules.basic.isarray(list[i])) list[i] = tolist(list[i]);
       return list;
     },
     _terminal() { return null; },

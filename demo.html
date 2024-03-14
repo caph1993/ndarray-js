@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Numpy JS Demo</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/javascript/javascript.min.js"></script>
+  <script src="dist/caph1993-numpy-js.js"></script>
+  <script>
+    var __console_log = console.log;
+    var __log_elem = null;
+    console.log = (...args) => {
+      __console_log(...args);
+      if (__log_elem !== null) {
+        $(__log_elem).append(args.join(' ') + '\n');
+      }
+    }
+  </script>
+  <style>
+    .hbox {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    .vbox {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    body{
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .justify-start {
+      justify-content: flex-start;
+    }
+    h3{
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="vbox" style="width:100%">
+  <h1>Demo of caph1993-numpy-js</h1>
+
+  <h3>Header:</h3>
+  <div style="border: solid 1px black; height: fit-content;">
+    <textarea id="codeHeader" disabled="true" style="width: 90vw; height:6.5em"></textarea>
+    <script>
+      (()=>{
+        $('#codeHeader').text(`
+${'<'}script src="https://d3js.org/d3.v7.min.js">${'<'}/script>
+${'<'}script src="dist/caph1993-numpy-js.js">${'<'}/script>
+// Or
+let d3 = require('d3');
+let np = require('caph1993-numpy-js');
+        `.trim());
+      })()
+    </script>
+  </div>
+  <h3>Your code (modify at will):</h3>
+  <div style="border: solid 1px black; height: fit-content;">
+    <textarea id="codeInput" style="height: fit-content !important;">
+
+// Part 1: data creation
+
+var XY = np.random.randn([1000, 2])
+console.log('First five points:');
+console.log(XY.index(`0:5`));
+
+var norm = XY.pow(2).sum({ axis: -1, keepdims: true }).pow(0.5)
+// Or: var norm = XY.pow(2).sum(-1, true).pow(0.5);
+// Or: var norm = XY.pow(2).sum({axis: -1}, {keepdims: true}).pow(0.5);
+// Or: var norm = XY.pow(2).sum({keepdims: true}, {axis: -1}).pow(0.5);
+// Or: var norm = XY.pow(2).sum(-1).pow(0.5).index(':', null);
+// Or: var norm = XY.pow(2).sum(-1).pow(0.5).index('...', null);
+var XY_unit = XY.op('/', norm);
+
+console.log('Norm of the first five points (before):');
+console.log(norm.index(`0:5`, 0));
+console.log('Norm of the first five points (after):');
+console.log(XY_unit.pow(2).sum(-1).pow(0.5).index(`0:5`));
+
+
+// Part 2: D3 graph initialization
+
+// set the dimensions and margins of the graph
+var margin = { top: 10, right: 30, bottom: 30, left: 60 },
+  width = 460 - margin.left - margin.right,
+  height = 400 - margin.top - margin.bottom;
+
+// append the svg object to the body of the page
+var svg = d3.select(document.body)
+  .append("svg")
+  .attr("width", width + margin.left + margin.right)
+  .attr("height", height + margin.top + margin.bottom)
+  .append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Add X axis
+var axisX = d3.scaleLinear()
+  .domain([-3, 3])
+  .range([0, width]);
+svg.append("g")
+  .attr("transform", "translate(0," + height + ")")
+  .call(d3.axisBottom(axisX));
+
+// Add Y axis
+var axisY = d3.scaleLinear()
+  .domain([-3, 3])
+  .range([height, 0]);
+svg.append("g")
+  .call(d3.axisLeft(axisY));
+
+
+// Part 3: add data points to the d3 graphs
+svg.append('g')
+  .selectAll("dot")
+  .data(XY.tolist())
+  .enter()
+  .append("circle")
+  .attr("cx", function (d) { return axisX(d[0]); })
+  .attr("cy", function (d) { return axisY(d[1]); })
+  .attr("r", 1.5)
+  .style("fill", "#69b3a2");
+
+svg.append('g')
+  .selectAll("dot")
+  .data(XY_unit.tolist())
+  .enter()
+  .append("circle")
+  .attr("cx", function (d) { return axisX(d[0]); })
+  .attr("cy", function (d) { return axisY(d[1]); })
+  .attr("r", 1.5)
+  .style("fill", "#b36969");
+
+svg.append('g')
+  .selectAll("dot")
+  .data(XY_unit.op('*', 2).tolist())
+  .enter()
+  .append("circle")
+  .attr("cx", function (d) { return axisX(d[0]); })
+  .attr("cy", function (d) { return axisY(d[1]); })
+  .attr("r", 1.5)
+  .style("fill", "#b36969");
+    </textarea>
+  </div>
+  <div class="hbox" style="width:100%">
+    <div></div>
+    <button onclick="executeCode()" style="padding:1em; margin:1em; font-size: large;">Execute</button>
+    <div></div>
+  </div>
+</div>
+</div>
+<div class="vbox justify-start">
+  <div class="vbox">
+    <h3>Errors:</h3>
+    <textarea disabled="true" id="stderr" cols="50" style="border:none; min-height: 20vh;">
+      (error logs will appear here)
+    </textarea>
+  </div>
+  <div class="vbox">
+    <h3>Console output:</h3>
+    <textarea disabled="true" id="stdout" cols="50" style="border:none; min-height: 20vh;">
+      (console.log logs will appear here)
+    </textarea>
+  </div>
+</div>
+<script>
+    $('#stderr').parent().hide();
+    var codeInput = document.getElementById("codeInput");
+    var codeEditor = CodeMirror.fromTextArea(codeInput, {
+      mode: "javascript",
+      lineNumbers: true,
+      theme: "default",
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      height: '60vh', 
+    });
+
+    function executeCode() {
+      var code = codeEditor.getValue();
+      $('svg').remove();
+      $('#stdout').html('');
+      $('#stderr').html('');
+      $('#stderr').parent().hide();
+      __log_elem = $('#stdout');
+      try{
+        eval(code);
+      } catch(e){
+        $('#stderr').parent().show();
+        $('#stderr').append(e.stack)
+        $('#stderr').append('Press F12 for more details')
+        throw e;
+      }
+    }
+  </script>
+</body>
+
+</html>

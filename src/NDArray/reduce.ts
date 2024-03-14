@@ -38,8 +38,13 @@ export function reduce(arr, axis, keepdims, reducer, dtype = Number): ArrayOrCon
   return number_collapse(out);
 };
 
+type ReduceKwArgs = { axis?: number, keepdims?: boolean };
+
 function __make_reducer(dtype, reducer) {
-  return function (arr: NDArray, axis: AxisArg = null, keepdims: boolean = false) {
+  return function (arr: NDArray, axis: AxisArg | ReduceKwArgs = null, keepdims: boolean | ReduceKwArgs = false) {
+    // Parse kwargs from right to left to overwrite (right has priority)
+    if (keepdims instanceof Object) ({ axis, keepdims } = Object.assign({ axis, keepdims }, keepdims));
+    if (axis instanceof Object) ({ axis, keepdims } = Object.assign({ axis, keepdims }, axis));
     ({ axis, keepdims } = Object.assign({ axis, keepdims }, this));
     return reduce(arr, axis, keepdims, reducer, dtype);
   };

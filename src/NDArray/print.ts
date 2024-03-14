@@ -1,7 +1,7 @@
 //@ts-check
 
 import { round } from './elementwise';
-import { toJS } from './js-interface';
+import { tolist } from './js-interface';
 import type NDArray from "../NDArray-class";
 
 
@@ -34,7 +34,7 @@ export function humanReadable(arr: NDArray) {
     rLimit--;
   }
   if (arr.dtype == Number) arr = round(arr, 2);
-  let list = toJS(arr);
+  let list = tolist(arr);
 
   function str(list, indent = 0, depth = 0) {
     if (list == '...' || depth >= arr.shape.length) return list;

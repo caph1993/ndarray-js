@@ -35,11 +35,11 @@ np.NDArray = NDArray;
 //  Define core-related functions
 // ==============================
 
-const { toJS } = NDArray.prototype.modules.jsInterface;
-np.JS = (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) => {
-  return toJS(np(template, ...variables));
+const { tolist } = NDArray.prototype.modules.jsInterface;
+np.tolist = (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) => {
+  return tolist(np(template, ...variables));
 }
-np.fromJS = NDArray.prototype.modules.jsInterface.fromJS;
+np.fromlist = NDArray.prototype.modules.jsInterface.fromlist;
 
 
 np.ravel = NDArray.prototype.modules.basic.ravel;

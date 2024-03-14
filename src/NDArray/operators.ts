@@ -2,7 +2,7 @@
 import * as indexes from './indexes';
 import * as elementwise from './elementwise';
 import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts } from './basic';
-import { toJS } from './js-interface';
+import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray-class";
 
@@ -161,7 +161,7 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, fun
   const cpy = asarray(tgtJS);
   assign_operation(cpy, src, where, func, dtype);
   // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-  const outJS = toJS(cpy);
+  const outJS = tolist(cpy);
   while (tgtJS.length) tgtJS.pop();
   // @ts-ignore
   tgtJS.push(...outJS);

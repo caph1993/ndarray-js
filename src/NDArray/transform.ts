@@ -1,7 +1,7 @@
 //@ts-check
 
 import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts, reshape } from './basic';
-import { fromJS } from './js-interface';
+import { fromlist } from './js-interface';
 import { allEq } from '../utils-js';
 import { DType } from '../NDArray-class';
 import type NDArray from "../NDArray-class";
@@ -33,7 +33,7 @@ export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: D
     groupsT.push(newRow);
   }
   const data = groupsT.map(transform);
-  const tmp = fromJS(data);
+  const tmp = fromlist(data);
   const shape = [...arr.shape.slice(0, axis), ...tmp.shape.slice(1), ...arr.shape.slice(axis + 1),];
   const out = new_NDArray(tmp.flat, shape, dtype);
   return number_collapse(out);

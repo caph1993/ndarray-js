@@ -10,10 +10,10 @@ function npTest(template, ...variables) {
   let idx = 0;
   const str = template.join('###').replace(/###/g, () => {
     let value = variables[idx++];
-    if (value instanceof np.NDArray) value = value.JS();
+    if (value instanceof np.NDArray) value = value.tolist();
     let isListOfArrays = false;
     if (Array.isArray(value) && value[0] instanceof np.NDArray) isListOfArrays = true;
-    if (isListOfArrays) value = value.map(np.JS);
+    if (isListOfArrays) value = value.map(np.tolist);
     let out = JSON.stringify(value)
     if (Array.isArray(value) && !isListOfArrays) out = `np.array(${out})`;
     return out;
@@ -44,22 +44,22 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
   const expected = JSON.parse(stdout);
   let obtained;
   try {
-    obtained = np.JS(template, ...variables);
+    obtained = np.tolist(template, ...variables);
   } catch (err) {
     console.error('EXPECTED:');
-    console.error(expected && np.fromJS(expected));
+    console.error(expected && np.array(expected));
     console.error('OBTAINED:');
     console.error(`(ERROR)`);
     throw err;
   }
   if (!allClose(obtained, expected)) {
     console.error('EXPECTED:');
-    console.error(expected && np.fromJS(expected));
+    console.error(expected && np.array(expected));
     console.error('OBTAINED:');
-    console.error(obtained && np.fromJS(obtained));
+    console.error(obtained && np.array(obtained));
     throw new Error(`Mismatch for ${str}`);
   }
-  console.log(obtained && np.fromJS(obtained).toString());
+  console.log(obtained && np.array(obtained).toString());
   return obtained;
 }
 

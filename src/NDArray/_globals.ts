@@ -17,7 +17,7 @@ export const new_NDArray = (flat: number[], shape: number[], dtype: DType) => ne
 
 export function asarray(A): NDArray {
   if (isarray(A)) return A;
-  else return np.fromJS(A);
+  else return np.fromlist(A);
 }
 
 export function array(A) {

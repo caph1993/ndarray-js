@@ -338,7 +338,7 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
  */
 AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
   /**@type {Array<GeneralIndexSpec|undefined>}*/
-  const _where: Array<GeneralIndexSpec | undefined> = where == null ? [] : where;
+  const _where: Array<GeneralIndexSpec | undefined> = where == null ? [] : [...where];
 
   const buffers = {
     axisIndexes: /**@type {AxisIndex[]}*/([]),
@@ -347,28 +347,35 @@ AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
   }
   let readDir = 1;
   const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
-  let axis = 0, j = 0, remainingAxes = shape.length;
-  while (remainingAxes > 0) {
+  let axis = 0, j = 0, remainingAxes = shape.length, remainingWhere = _where.length;
+  while (remainingWhere > 0 || remainingAxes > 0) {
     let axisWhere = _where[j];
-    _where[j] = undefined; // For ellipsis to avoid reading twice in opposite reading directions
-    j += readDir;
-    if (axisWhere == "None" || axisWhere === null) {
-      buffers.apparentShape.push(1);
-      continue;
-    } else if (axisWhere == "...") {
-      if (readDir == -1) throw new Error(`Index can only have a single ellipsis ('...')`)
-      readDir = -1;
-      for (let key in reversedAfter) reversedAfter[key] = buffers[key].length;
-      j = _where.length - 1;
-      axis = shape.length - 1;
-      continue;
+    if (remainingWhere > 0) {
+      if (j < 0 || j >= _where.length) axisWhere = ":";
+      remainingWhere--;
+      //else _where[j] = undefined; // For ellipsis to avoid reading twice in opposite reading directions
+      j += readDir;
+      if (axisWhere == "None" || axisWhere === null) {
+        buffers.apparentShape.push(1);
+        continue;
+      } else if (axisWhere == "...") {
+        if (readDir == -1) throw new Error(`Index can only have a single ellipsis. Found index(${where})`)
+        readDir = -1;
+        for (let key in reversedAfter) reversedAfter[key] = buffers[key].length;
+        j = _where.length - 1;
+        axis = shape.length - 1;
+        continue;
+      }
+    } else {
+      axisWhere = ":"; // If there are no more axes, fill with ":"
     }
+    // if (remainingAxes <= 0) throw Error(`Too many axes`);
     const { axisIndex, span } = AxisIndex.prototype.parse(axisWhere, shape[axis]);
     // Advance the axis cursor span axes in readDir and compute the total size of consumed axes
     remainingAxes -= span;
     let refSize = 1;
     for (let i = 0; i < span; i++) {
-      if (axis < 0 || axis >= shape.length) throw new Error(`Index spans over more dimensions than available`);
+      if (axis < 0 || axis >= shape.length) throw new Error(`Index spans over more dimensions than available in shape [${shape}]: index(${where})`);
       refSize *= shape[axis];
       axis += readDir;
     }

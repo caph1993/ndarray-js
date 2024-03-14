@@ -3,7 +3,7 @@
 import { isarray, number_collapse, new_NDArray, _NDArray } from './basic';
 
 
-export function fromJS(arr) {
+export function fromlist(arr: any, dtype = null) {
   if (isarray(arr)) return arr;
   if (typeof arr === "number") return new_NDArray([arr], [], Number);
   if (typeof arr === "boolean") return new_NDArray([arr ? 1 : 0], [], Boolean);
@@ -16,7 +16,7 @@ export function fromJS(arr) {
     root = root[0];
     if (shape.length > 256) throw new Error(`Circular reference or excessive array depth`);
   }
-  let dtype = typeof root === "boolean" ? Boolean : Number;
+  dtype = dtype !== null ? dtype : typeof root === "boolean" ? Boolean : Number;
   const flat: number[] = [];
   const pushToFlat = (arr, axis) => {
     // Check consistency
@@ -39,10 +39,10 @@ export function fromJS(arr) {
   return new_NDArray(flat, shape, dtype)
 }
 
-export function toJS(arr) {
-  if (isarray(this)) return toJS;
+export function tolist(arr) {
+  if (isarray(this)) return tolist;
   if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
-  if (Array.isArray(arr)) return arr.map(toJS);
+  if (Array.isArray(arr)) return arr.map(tolist);
   if (!(isarray(arr))) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
   arr = number_collapse(arr);
   if (!(isarray(arr))) return arr;

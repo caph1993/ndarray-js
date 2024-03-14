@@ -7,9 +7,12 @@ class NDArray {
   _flat: number[];
   shape: number[];
   dtype: DType;
-  modules: typeof import("./NDArray").modules;
-  reshape: (shape: any, ...more_shape: any[]) => any;
+
   index: (...where: any[]) => any;
+  reshape: (shape: any, ...more_shape: any[]) => any;
+
+  modules: typeof import("./NDArray").modules;
+
   any: (axis?: AxisArg, keepdims?: boolean) => NDArray | boolean;
   all: (axis?: AxisArg, keepdims?: boolean) => NDArray | boolean;
   sum: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
@@ -60,8 +63,9 @@ class NDArray {
   bitwise_shift_right_assign: SelfAssignmentOperator;
   bitwise_shift_left_assign: SelfAssignmentOperator;
   logical_and_assign: SelfAssignmentOperator;
-  JS: () => any;
-  fromJS: (A: any) => NDArray;
+
+  tolist: () => any;
+  // fromJS: (A: any) => NDArray;
   round: (decimals?: number) => NDArray;
   sort: (axis?: number) => NDArray;
   transpose: (axes?: number[]) => NDArray;
@@ -117,6 +121,10 @@ class NDArray {
     return this.shape[0] || 0;
   }
   copy: () => NDArray;
+  item() {
+    if (this.size != 1) throw new Error(`Can't convert array of size ${this.size} to scalar`);
+    return this._flat[0];
+  }
 }
 
 import { GLOBALS } from './_globals';
@@ -281,12 +289,12 @@ NDArray.prototype.logical_and_assign = assignOpDecorator(modules.operators.op_as
 //    array instantiation and reshaping
 // ==============================
 
-NDArray.prototype.JS = function () {
-  return modules.jsInterface.toJS(this);
+NDArray.prototype.tolist = function () {
+  return modules.jsInterface.tolist(this);
 }
-NDArray.prototype.fromJS = function (A) {
-  return modules.jsInterface.fromJS(A);
-}
+// NDArray.prototype.fromJS = function (A) {
+//   return modules.jsInterface.fromJS(A);
+// }
 
 // ==============================
 //    elementwise methods
