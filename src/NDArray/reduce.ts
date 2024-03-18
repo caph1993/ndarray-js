@@ -3,7 +3,7 @@ import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from 
 import { ArrayOrConstant, op_binary, op_unary } from './operators';
 import NDArray from "../NDArray-class";
 import { DType } from '../NDArray-class';
-import { ReduceStdParsedKwargs, ReduceStdSignature } from './kwargs';
+import { ReduceNormParsedKwargs, ReduceNormSignature, ReduceSignature, ReduceStdParsedKwargs, ReduceStdSignature } from './kwargs';
 
 const multiply = op_binary["*"];
 const subtract = op_binary["-"];
@@ -11,60 +11,6 @@ const pow = op_binary["**"];
 
 
 export type AxisArg = null | number;
-
-
-export type ReduceKwArgs = { axis?: number, keepdims?: boolean };
-function _NDReducer_parse_args(arr: NDArray, axis: AxisArg | ReduceKwArgs = null, keepdims: boolean | ReduceKwArgs = false) {
-  if (keepdims instanceof Object) ({ axis, keepdims } = Object.assign({ axis, keepdims }, keepdims));
-  if (axis instanceof Object) ({ axis, keepdims } = Object.assign({ axis, keepdims }, axis));
-  ({ axis, keepdims } = Object.assign({ axis, keepdims }, arr.__popKwArgs()));
-  keepdims = as_boolean(keepdims) as boolean;
-  axis = axis as AxisArg;
-  return [axis, keepdims] as [AxisArg, boolean];
-}
-
-export class NDReducer<T extends number | boolean, Kw extends ReduceKwArgs>{
-  reducer: (arr: any[]) => T;
-  self_reduce: (axis?: AxisArg | ReduceKwArgs, keepdims?: boolean | ReduceKwArgs) => T | NDArray;
-  dtype: DType;
-
-  constructor(reducer: (x: any[]) => T, dtype: any, _reduce = null) {
-    this.reducer = reducer;
-    this.dtype = dtype;
-    let _this = this;
-    this.self_reduce = function (axis = null, keepdims = false) { return _this.reduce(this, axis, keepdims); }
-    if (_reduce) this._reduce = _reduce;
-  }
-
-  reduce(arr: NDArray, axis: AxisArg | ReduceKwArgs = null, keepdims: boolean | ReduceKwArgs = false): NDArray | T {
-    return this._reduce(arr, ..._NDReducer_parse_args(arr, axis, keepdims));
-  }
-
-  _reduce(arr: NDArray, axis: AxisArg, keepdims: boolean): NDArray | T {
-    if (axis == null) return this.reducer(arr.flat);
-    if (axis < 0) axis = arr.shape.length - 1;
-    let m = arr.shape[axis];
-    let shift = shape_shifts(arr.shape)[axis];
-    const groups = Array.from({ length: m }, (_) => [] as T[]);
-    arr.flat.forEach((value, i) => groups[(Math.floor(i / shift)) % m].push(value as any as T));
-    // Transpose it:
-    let nCols = arr.size / m;
-    const groupsT = [];
-    for (let j = 0; j < nCols; j++) {
-      const newRow = [];
-      for (let i = 0; i < m; i++) newRow.push(groups[i][j]);
-      groupsT.push(newRow);
-    }
-    const flat: T[] = groupsT.map(this.reducer);
-    let shape = [...arr.shape];
-    if (keepdims) shape[axis] = 1;
-    else shape = shape.filter((_, i) => i != axis);
-    const out = new_NDArray((flat as any[] as number[]), shape, this.dtype);
-    return out.size == 1 ? (out.flat[0] as any as T) : out;
-  };
-}
-
-
 
 function apply_on_axis<T>(func: (arr: any[]) => T, dtype, arr: NDArray, axis: AxisArg, keepdims: boolean): NDArray | T {
   if (axis == null) return func(arr.flat);
@@ -130,7 +76,7 @@ class New_ReducerGeneric<Signature extends (...args: any[]) => any, Parsed exten
     }
     let defaults = [...this.defaults, ...extras];
     this.kwParse = function (arr: NDArray, ...args: Parameters<Signature>): Parsed {
-      let kwargs = Object.assign(Object.fromEntries(defaults), arr.__popKwArgs(), this);
+      let kwargs = Object.assign(Object.fromEntries(defaults), this);
       for (let i = 0; i < args.length; i++) {
         let value = args[i];
         if (value instanceof Object) Object.assign(kwargs, value);
@@ -145,30 +91,14 @@ class New_ReducerGeneric<Signature extends (...args: any[]) => any, Parsed exten
   }
 }
 
-type KwargsBasic = { axis?: number, keepdims?: boolean };
-type SignatureNumeric = (axis?: AxisArg | KwargsBasic, keepdims?: boolean | KwargsBasic) => NDArray | number;
 type ParsedNumeric = [number, boolean];
-class New_ReducerNumeric extends New_ReducerGeneric<SignatureNumeric, ParsedNumeric>{ }
+class New_ReducerNumeric extends New_ReducerGeneric<ReduceSignature, ParsedNumeric>{ }
+class New_ReducerBoolean extends New_ReducerGeneric<ReduceSignature<boolean>, ParsedNumeric>{ }
 
 
-const sum = new New_ReducerNumeric((arr: any[]) => arr.reduce((a, b) => a + b, 0));
 
-const variance = new class extends New_ReducerNumeric {
-  _reduce(arr: NDArray, ...args: ParsedNumeric) {
-    let [axis, keepdims] = args;
-    arr = subtract(arr, arr.mean({ axis, keepdims: true }));
-    arr = multiply(arr, arr);
-    return arr.mean({ axis, keepdims });
-  }
-}();
-
-
-type KwargsOrd = { axis?: number, keepdims?: boolean, ord?: number };
-type ParsedOrd = [number, boolean, number];
-type SignatureOrd = (arr: NDArray, axis?: AxisArg | KwargsOrd, keepdims?: boolean | KwargsOrd, ord?: number | KwargsOrd) => NDArray | number;
-const norm = new class extends New_ReducerGeneric<SignatureOrd, ParsedOrd>{
-  _reduce(arr: NDArray, ...args: ParsedOrd) {
-    let [axis, keepdims, ord] = args;
+const norm = new class ReducerNorm extends New_ReducerGeneric<ReduceNormSignature, ReduceNormParsedKwargs>{
+  _reduce(arr: NDArray, axis: number, keepdims: boolean, ord: number) {
     if (ord % 2 != 0) arr = arr.abs();
     if (ord == Infinity) return arr.max(axis, keepdims);
     if (ord == 1) return arr.sum(axis, keepdims);
@@ -177,7 +107,7 @@ const norm = new class extends New_ReducerGeneric<SignatureOrd, ParsedOrd>{
 }(null, [["ord", 2]]);
 
 
-const standard_deviation = new class extends New_ReducerGeneric<ReduceStdSignature, ReduceStdParsedKwargs>{
+const standard_deviation = new class ReducerStd extends New_ReducerGeneric<ReduceStdSignature, ReduceStdParsedKwargs>{
   _reduce(arr: NDArray, ...args: ReduceStdParsedKwargs) {
     let [axis, keepdims, ddof] = args;
     console.log('args', args);
@@ -196,26 +126,31 @@ const standard_deviation = new class extends New_ReducerGeneric<ReduceStdSignatu
 
 
 export const _reducers = {
-  sum,
-  // sum: new NDReducer<number, ReduceKwArgs>((arr) => arr.reduce((a, b) => a + b, 0), Number),
-  product: new NDReducer<number, ReduceKwArgs>((arr) => arr.reduce((a, b) => a * b, 1), Number),
-  mean: new NDReducer<number, ReduceKwArgs>((arr) => arr.reduce((a, b) => a + b, 0) / arr.length, Number),
+  sum: new New_ReducerNumeric((arr: any[]) => arr.reduce((a, b) => a + b, 0)),
+  product: new New_ReducerNumeric((arr: any[]) => arr.reduce((a, b) => a * b, 1)),
+  mean: new New_ReducerNumeric((arr: any[]) => arr.reduce((a, b) => a + b, 0) / arr.length),
   max: new New_ReducerNumeric((arr: any[]) => Math.max(...arr)),
-  // max: new NDReducer<number, ReduceKwArgs>((arr) => Math.max(...arr), Number),
-  min: new NDReducer<number, ReduceKwArgs>((arr) => Math.min(...arr), Number),
-  argmax: new NDReducer<number, ReduceKwArgs>((arr) => arr.indexOf(Math.max(...arr)), Number),
-  argmin: new NDReducer<number, ReduceKwArgs>((arr) => arr.indexOf(Math.min(...arr)), Number),
-  len: new NDReducer<number, ReduceKwArgs>((arr) => arr.length, Number),
-  any: new NDReducer<boolean, ReduceKwArgs>((arr) => {
+  min: new New_ReducerNumeric((arr: any[]) => Math.min(...arr)),
+  argmax: new New_ReducerNumeric((arr: any[]) => arr.indexOf(Math.max(...arr))),
+  argmin: new New_ReducerNumeric((arr: any[]) => arr.indexOf(Math.min(...arr))),
+  len: new New_ReducerNumeric((arr: any[]) => arr.length),
+  any: new New_ReducerBoolean((arr: any[]) => {
     for (let x of arr) if (x) return true;
     return false;
-  }, Boolean),
-  all: new NDReducer<boolean, ReduceKwArgs>((arr) => {
+  }),
+  all: new New_ReducerBoolean((arr) => {
     for (let x of arr) if (!x) return false;
     return true;
-  }, Boolean),
+  }),
   norm,
-  var: variance,
+  var: new class extends New_ReducerNumeric {
+    _reduce(arr: NDArray, ...args: ParsedNumeric) {
+      let [axis, keepdims] = args;
+      arr = subtract(arr, arr.mean({ axis, keepdims: true }));
+      arr = multiply(arr, arr);
+      return arr.mean({ axis, keepdims });
+    }
+  }(),
   std: standard_deviation,
 };
 

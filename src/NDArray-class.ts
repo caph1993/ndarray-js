@@ -110,17 +110,17 @@ class NDArray {
   get T() {
     return this.transpose();
   }
-  __popKwArgs() {
-    let out = this['__kwArgs'];
-    if (out === undefined) return {};
-    delete this['__kwArgs'];
-    return out;
-  }
-  /** @param {Object<string, any>} kwArgs */
-  withKwArgs(kwArgs: { [s: string]: any; }) {
-    this['__kwArgs'] = kwArgs;
-    return this;
-  }
+  // __popKwArgs() {
+  //   let out = this['__kwArgs'];
+  //   if (out === undefined) return {};
+  //   delete this['__kwArgs'];
+  //   return out;
+  // }
+  // /** @param {Object<string, any>} kwArgs */
+  // withKwArgs(kwArgs: { [s: string]: any; }) {
+  //   this['__kwArgs'] = kwArgs;
+  //   return this;
+  // }
   *[Symbol.iterator]() {
     for (let i = 0; i < this.shape[0]; i++) yield this.index(i);
   }
@@ -232,7 +232,7 @@ NDArray.prototype.std = modules.reduce.self_reducers.std;
 
 function binaryOpDecorator(func: import("./NDArray/operators").BinaryOperator): import("./NDArray/operators").SelfBinaryOperator {
   return function (other, out = null) {
-    ({ out } = Object.assign({ out }, this.__popKwArgs()));
+    // ({ out } = Object.assign({ out }, this.__popKwArgs()));
     return func(this, other, out);
   }
 }
@@ -333,12 +333,12 @@ NDArray.prototype.round = modules.elementwise.round_kw.as_method;
 
 /** @param {null|number[]} axes */
 NDArray.prototype.transpose = function (axes: null | number[] = null) {
-  ({ axes } = Object.assign({ axes }, this.__popKwArgs()));
+  // ({ axes } = Object.assign({ axes }, this.__popKwArgs()));
   return modules.transform.transpose(this, axes);
 };
 
 NDArray.prototype.sort = function (axis = -1) {
-  ({ axis } = Object.assign({ axis }, this.__popKwArgs()));
+  // ({ axis } = Object.assign({ axis }, this.__popKwArgs()));
   modules.transform.sort(this, axis);
   return null;
 };
