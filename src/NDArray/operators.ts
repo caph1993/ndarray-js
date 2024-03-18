@@ -5,6 +5,7 @@ import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, rav
 import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray-class";
+import { BinaryOperatorParsedKwargs, BinaryOperatorSignature, UnaryOperatorParsedKwargs, UnaryOperatorSignature, kwDecorators } from './kwargs';
 
 export type ArrayOrConstant = NDArray | number | boolean;
 type Index = indexes.Where;
@@ -65,15 +66,15 @@ export function __make_operator(dtype, func): BinaryOperator {
 }
 
 export function __make_operator_special(funcNum, funcBool): BinaryOperator {
-  function operator(A, B, out: NDArray | null = null) {
+  function operator(arr, other, out: NDArray | null = null) {
     if (isarray(this)) return operator.bind(_NDArray.prototype)(this, ...arguments);
-    A = asarray(A);
-    B = asarray(B);
-    let dtype = A.dtype, func;
-    if (A.dtype != B.dtype) console.warn(`Warning: operating arrays of different dtypes. Using ${dtype}`);
+    arr = asarray(arr);
+    other = asarray(other);
+    let dtype = arr.dtype, func;
+    if (arr.dtype != other.dtype) console.warn(`Warning: operating arrays of different dtypes. Using ${dtype}`);
     if (dtype == Boolean) func = funcBool;
     else func = funcNum;
-    return binary_operation(A, B, func, dtype, out);
+    return binary_operation(arr, other, func, dtype, out);
   };
   return operator;
 }
@@ -101,12 +102,12 @@ export const op_binary = {
   "or": __make_operator(Boolean, (a, b) => a || b),
   "and": __make_operator(Boolean, (a, b) => a && b),
   "xor": __make_operator(Boolean, (a, b) => (!a) != (!b)),
-
   "max": __make_operator(Number, (a, b) => Math.max(a, b)),
   "min": __make_operator(Number, (a, b) => Math.min(a, b)),
 
   // "isclose": ,
 }
+
 
 op_binary["↑"] = op_binary["max"];
 op_binary["↓"] = op_binary["min"];
@@ -244,3 +245,116 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 
 
 //op_binary["≈≈"] = op[MyArray.prototype.isclose,
+
+export const kw_op_binary = {
+  "+": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["+"],
+  }),
+  "-": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["-"],
+  }),
+  "*": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["*"],
+  }),
+  "/": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["/"],
+  }),
+  "%": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["%"],
+  }),
+  "//": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["//"],
+  }),
+  "**": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["**"],
+  }),
+  "<": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["<"],
+  }),
+  ">": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary[">"],
+  }),
+  ">=": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary[">="],
+  }),
+  "<=": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["<="],
+  }),
+  "==": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["=="],
+  }),
+  "!=": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["!="],
+  }),
+  "|": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["|"],
+  }),
+  "&": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["&"],
+  }),
+  "^": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["^"],
+  }),
+  "<<": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["<<"],
+  }),
+  ">>": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary[">>"],
+  }),
+  "max": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["max"],
+  }),
+  "min": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["min"],
+  }),
+  "or": kwDecorators<BinaryOperatorSignature<boolean>, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["or"],
+  }),
+  "and": kwDecorators<BinaryOperatorSignature<boolean>, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["and"],
+  }),
+  "xor": kwDecorators<BinaryOperatorSignature<boolean>, BinaryOperatorParsedKwargs>({
+    defaults: [["other", undefined, asarray], ["out", null]],
+    func: op_binary["xor"],
+  }),
+}
+export const kw_op_unary = {
+  "~": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
+    defaults: [["out", null]],
+    func: op_binary["~"],
+  }),
+  "not": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
+    defaults: [["out", null]],
+    func: op_binary["not"],
+  }),
+  "+": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
+    defaults: [["out", null]],
+    func: op_binary["+"],
+  }),
+  "-": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
+    defaults: [["out", null]],
+    func: op_binary["-"],
+  }),
+}

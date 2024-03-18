@@ -189,40 +189,20 @@ NDArray.prototype.toString = function () {
 // ==============================
 
 
+NDArray.prototype.any = modules.reduce.kw_reducers.any.as_method;
+NDArray.prototype.all = modules.reduce.kw_reducers.all.as_method;
 
-NDArray.prototype.any = modules.reduce.self_reducers.any;
-NDArray.prototype.all = modules.reduce.self_reducers.all;
+NDArray.prototype.sum = modules.reduce.kw_reducers.sum.as_method;
+NDArray.prototype.product = modules.reduce.kw_reducers.product.as_method;
+NDArray.prototype.max = modules.reduce.kw_reducers.max.as_method;
+NDArray.prototype.min = modules.reduce.kw_reducers.min.as_method;
+NDArray.prototype.argmax = modules.reduce.kw_reducers.argmax.as_method;
+NDArray.prototype.argmin = modules.reduce.kw_reducers.argmin.as_method;
+NDArray.prototype.mean = modules.reduce.kw_reducers.mean.as_method;
 
-NDArray.prototype.sum = modules.reduce.self_reducers.sum;
-NDArray.prototype.product = modules.reduce.self_reducers.product;
-NDArray.prototype.max = modules.reduce.self_reducers.max;
-NDArray.prototype.min = modules.reduce.self_reducers.min;
-NDArray.prototype.argmax = modules.reduce.self_reducers.argmax;
-NDArray.prototype.argmin = modules.reduce.self_reducers.argmin;
-NDArray.prototype.mean = modules.reduce.self_reducers.mean;
-
-NDArray.prototype.var = modules.reduce.self_reducers.var;
-NDArray.prototype.std = modules.reduce.self_reducers.std;
-
-
-// function reduceDecorator(func) {
-//   return function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false) {
-//     ({ axis, keepdims } = Object.assign({ axis, keepdims }, this.__popKwArgs()));
-//     return func(this, axis, keepdims);
-//   }
-// }
-// reducersExtra
-// NDArray.prototype.var = reduceDecorator(modules.reduce.self_reducers.var);
-
-// NDArray.prototype.norm = function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false, ord = 2) {
-//   ({ axis, keepdims, ord } = Object.assign({ axis, keepdims, ord }, this.__popKwArgs()));
-//   return modules.reduce.reducers.norm(this, axis, keepdims, ord);
-// } as any;
-// NDArray.prototype.std = function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false, ddof = 0) {
-//   ({ axis, keepdims, ddof } = Object.assign({ axis, keepdims, ddof }, this.__popKwArgs()));
-//   return modules.reduce.reducers.std(this, axis, keepdims, ddof);
-// }
-
+NDArray.prototype.var = modules.reduce.kw_reducers.var.as_method;
+NDArray.prototype.std = modules.reduce.kw_reducers.std.as_method;
+NDArray.prototype.norm = modules.reduce.kw_reducers.norm.as_method;
 
 
 // ==============================
@@ -237,33 +217,33 @@ function binaryOpDecorator(func: import("./NDArray/operators").BinaryOperator): 
   }
 }
 
-NDArray.prototype.add = binaryOpDecorator(modules.operators.op_binary["+"]);
-NDArray.prototype.subtract = binaryOpDecorator(modules.operators.op_binary["-"]);
-NDArray.prototype.multiply = binaryOpDecorator(modules.operators.op_binary["*"]);
-NDArray.prototype.divide = binaryOpDecorator(modules.operators.op_binary["/"]);
-NDArray.prototype.mod = binaryOpDecorator(modules.operators.op_binary["%"]);
-NDArray.prototype.divide_int = binaryOpDecorator(modules.operators.op_binary["//"]);
-NDArray.prototype.pow = binaryOpDecorator(modules.operators.op_binary["**"]);
+NDArray.prototype.add = modules.operators.kw_op_binary["+"].as_method;
+NDArray.prototype.subtract = modules.operators.kw_op_binary["-"].as_method;
+NDArray.prototype.multiply = modules.operators.kw_op_binary["*"].as_method;
+NDArray.prototype.divide = modules.operators.kw_op_binary["/"].as_method;
+NDArray.prototype.mod = modules.operators.kw_op_binary["%"].as_method;
+NDArray.prototype.divide_int = modules.operators.kw_op_binary["//"].as_method;
+NDArray.prototype.pow = modules.operators.kw_op_binary["**"].as_method;
 
-NDArray.prototype.maximum = binaryOpDecorator(modules.operators.op_binary["↑"]);
-NDArray.prototype.minimum = binaryOpDecorator(modules.operators.op_binary["↓"]);
+NDArray.prototype.maximum = modules.operators.kw_op_binary["max"].as_method;
+NDArray.prototype.minimum = modules.operators.kw_op_binary["min"].as_method;
 
-NDArray.prototype.bitwise_or = binaryOpDecorator(modules.operators.op_binary["|"]);
-NDArray.prototype.bitwise_and = binaryOpDecorator(modules.operators.op_binary["&"]);
-NDArray.prototype.bitwise_or = binaryOpDecorator(modules.operators.op_binary["^"]);
-NDArray.prototype.bitwise_shift_right = binaryOpDecorator(modules.operators.op_binary["<<"]);
-NDArray.prototype.bitwise_shift_right = binaryOpDecorator(modules.operators.op_binary[">>"]);
+NDArray.prototype.bitwise_or = modules.operators.kw_op_binary["|"].as_method;
+NDArray.prototype.bitwise_and = modules.operators.kw_op_binary["&"].as_method;
+NDArray.prototype.bitwise_or = modules.operators.kw_op_binary["^"].as_method;
+NDArray.prototype.bitwise_shift_right = modules.operators.kw_op_binary["<<"].as_method;
+NDArray.prototype.bitwise_shift_right = modules.operators.kw_op_binary[">>"].as_method;
 
-NDArray.prototype.logical_or = binaryOpDecorator(modules.operators.op_binary["or"]);
-NDArray.prototype.logical_and = binaryOpDecorator(modules.operators.op_binary["and"]);
-NDArray.prototype.logical_xor = binaryOpDecorator(modules.operators.op_binary["xor"]);
+NDArray.prototype.logical_or = modules.operators.kw_op_binary["or"].as_method;
+NDArray.prototype.logical_and = modules.operators.kw_op_binary["and"].as_method;
+NDArray.prototype.logical_xor = modules.operators.kw_op_binary["xor"].as_method;
 
-NDArray.prototype.greater = binaryOpDecorator(modules.operators.op_binary[">"]);
-NDArray.prototype.less = binaryOpDecorator(modules.operators.op_binary["<"]);
-NDArray.prototype.greater_equal = binaryOpDecorator(modules.operators.op_binary[">="]);
-NDArray.prototype.less_equal = binaryOpDecorator(modules.operators.op_binary["<="]);
-NDArray.prototype.equal = binaryOpDecorator(modules.operators.op_binary["=="]);
-NDArray.prototype.not_equal = binaryOpDecorator(modules.operators.op_binary["!="]);
+NDArray.prototype.greater = modules.operators.kw_op_binary[">"].as_method;
+NDArray.prototype.less = modules.operators.kw_op_binary["<"].as_method;
+NDArray.prototype.greater_equal = modules.operators.kw_op_binary[">="].as_method;
+NDArray.prototype.less_equal = modules.operators.kw_op_binary["<="].as_method;
+NDArray.prototype.equal = modules.operators.kw_op_binary["=="].as_method;
+NDArray.prototype.not_equal = modules.operators.kw_op_binary["!="].as_method;
 
 
 
