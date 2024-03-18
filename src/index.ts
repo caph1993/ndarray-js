@@ -58,6 +58,7 @@ np.min = reduce.reducers.min;
 np.argmax = reduce.reducers.argmax;
 np.argmin = reduce.reducers.argmin;
 np.mean = reduce.reducers.mean;
+np.norm = reduce.reducers.norm;
 np.var = reduce.reducers.var;
 np.std = reduce.reducers.std;
 
@@ -125,7 +126,7 @@ np.tanh = ew.ops.tanh;
 np.acosh = ew.ops.acosh;
 np.asinh = ew.ops.asinh;
 np.atanh = ew.ops.atanh;
-np.round = ew.ops.round;
+np.round = ew.round_kw.as_function;
 
 
 // ==============================

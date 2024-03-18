@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Numpy JS Demo 2</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
+  <script src="dist/caph1993-numpy-js.js"></script>
+
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/javascript/javascript.min.js"></script>
+  <script>
+    var __console_log = console.log;
+    var __log_elem = null;
+    console.log = (...args) => {
+      __console_log(...args);
+      if (__log_elem !== null) {
+        $(__log_elem).append(args.join(' ') + '\n');
+      }
+    }
+  </script>
+  <style>
+    .hbox {
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+    .vbox {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    body{
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .justify-start {
+      justify-content: flex-start;
+    }
+    h3{
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="vbox" style="width:100%">
+  <h1>Demo of caph1993-numpy-js</h1>
+
+  <h3>Header:</h3>
+  <div style="border: solid 1px black; height: fit-content;">
+    <textarea id="codeHeader" disabled="true" style="width: 90vw; height:6.5em"></textarea>
+    <script>
+      (()=>{
+        $('#codeHeader').text(`
+${'<'}script src="https://d3js.org/d3.v7.min.js">${'<'}/script>
+${'<'}script src="dist/caph1993-numpy-js.js">${'<'}/script>
+// Or
+let d3 = require('d3');
+let np = require('caph1993-numpy-js');
+        `.trim());
+      })()
+    </script>
+  </div>
+  <h3>Your code (modify at will):</h3>
+  <div style="border: solid 1px black; height: fit-content;">
+    <textarea id="codeInput" style="height: fit-content !important;">
+// Part 1: data creation
+  
+var XY = np.random.randn([1000, 2])
+var norm = XY.pow(2).sum({ axis: -1, keepdims: true }).pow(0.5)
+var XY_unit = XY.op('/', norm);
+
+console.log(`First five points:\n${XY.index(`0:5`)}`);
+console.log(`Norm of the first five points (before and after):`);
+console.log(np.stack([norm.index(':', 0), XY_unit.norm(-1)], -1).index(`0:5`));
+
+var svg = Plot.plot({
+  grid: true,
+  aspectRatio: 1, // undefined
+  marks: [
+    Plot.dot(XY.tolist().map(([x,y])=>({x, y})), {x: "x", y: "y", r:1, fill:"#69b369"}),
+    Plot.dot(XY_unit.tolist().map(([x,y])=>({x, y})), {x: "x", y: "y", r:1, fill:"#b36969"}),
+  ]
+});
+$(document.body).append(svg);
+
+    </textarea>
+  </div>
+  <div class="hbox" style="width:100%">
+    <div></div>
+    <button onclick="executeCode()" style="padding:1em; margin:1em; font-size: large;">Execute</button>
+    <div></div>
+  </div>
+</div>
+</div>
+<div class="vbox justify-start">
+  <div class="vbox">
+    <h3>Errors:</h3>
+    <textarea disabled="true" id="stderr" cols="50" style="border:none; min-height: 20vh;">
+      (error logs will appear here)
+    </textarea>
+  </div>
+  <div class="vbox">
+    <h3>Console output:</h3>
+    <textarea disabled="true" id="stdout" cols="50" style="border:none; min-height: 20vh;">
+      (console.log logs will appear here)
+    </textarea>
+  </div>
+</div>
+<script>
+    $('#stderr').parent().hide();
+    var codeInput = document.getElementById("codeInput");
+    var codeEditor = CodeMirror.fromTextArea(codeInput, {
+      mode: "javascript",
+      lineNumbers: true,
+      theme: "default",
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      height: '60vh', 
+    });
+
+    function executeCode() {
+      var code = codeEditor.getValue();
+      $('svg').remove();
+      $('#stdout').html('');
+      $('#stderr').html('');
+      $('#stderr').parent().hide();
+      __log_elem = $('#stdout');
+      try{
+        eval(code);
+      } catch(e){
+        $('#stderr').parent().show();
+        $('#stderr').append(e.stack)
+        $('#stderr').append('Press F12 for more details')
+        throw e;
+      }
+    }
+  </script>
+  <!-- <div id="myplot"></div> -->
+  <script>
+    // const plot = Plot.rectY({length: 10000}, Plot.binX({y: "count"}, {x: Math.random})).plot();
+    // const div = document.querySelector("#myplot");
+    // div.append(plot);
+  </script>
+</body>
+
+</html>

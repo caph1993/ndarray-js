@@ -42,6 +42,8 @@ export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: D
 
 export function sort(A: NDArray, axis = -1) {
   ({ axis } = Object.assign({ axis }, this));
+  //@ts-ignore
+  if (axis instanceof Object) ({ axis } = axis);
   return apply_along_axis(A, axis, (arr) => {
     const cpy = [...arr];
     cpy.sort((a, b) => a - b);
@@ -51,6 +53,9 @@ export function sort(A: NDArray, axis = -1) {
 
 export function transpose(arr: NDArray, axes: null | number[] = null) {
   ({ axes } = Object.assign({ axes }, this));
+  //@ts-ignore
+  if (axes !== null && axes["axes"]) ({ axes } = axes);
+
   let nDims = arr.shape.length;
   if (axes == null) return transpose(arr, Array.from({ length: nDims }, (_, i) => i).reverse());
   if (axes.length !== nDims) throw new Error(`Axes must have length ${nDims}. Found ${axes.length}`);
@@ -102,7 +107,9 @@ export function swapAxes(arr: NDArray, axisA: number, axisB: number) {
 
 
 export function concatenate(arrays: NDArray[], axis: number | null = null) {
-  ({ axis } = Object.assign({ axis }, this));
+  // ({ axis } = Object.assign({ axis }, this));
+  //@ts-ignore
+  if (axis instanceof Object) ({ axis } = axis);
   if (isarray(arrays)) arrays = [...arrays];
   arrays = arrays.map(asarray);
   if (axis == null) {
@@ -129,7 +136,9 @@ export function concatenate(arrays: NDArray[], axis: number | null = null) {
 
 
 export function stack(arrays: NDArray[], axis: number = 0) {
-  ({ axis } = Object.assign({ axis }, this));
+  // ({ axis } = Object.assign({ axis }, this));
+  //@ts-ignore
+  if (axis instanceof Object) ({ axis } = axis);
   if (isarray(arrays)) arrays = [...arrays];
   if (!Array.isArray(arrays)) throw new Error(`Expected list of arrays. Found ${typeof arrays}`);
   arrays = arrays.map(asarray);

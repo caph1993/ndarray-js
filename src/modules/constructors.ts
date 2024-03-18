@@ -1,5 +1,6 @@
 //@ts-check
 import NDArray from '../NDArray-class';
+import { KwParser } from '../NDArray/kwargs';
 
 const { basic, elementwise } = NDArray.prototype.modules;
 

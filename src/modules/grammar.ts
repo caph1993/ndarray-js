@@ -160,14 +160,16 @@ export const __makeSemantics = () => {
       const func = name.split('.').reduce((obj, name) => obj[name], np);
       if (func === undefined) throw new Error(`Unrecognized function ${name}`)
       const { args, kwArgs } = $callArgs.parse();
-      return func.bind(kwArgs)(...args);
+      return Object.keys(kwArgs).length == 0 ? func(...args) : func(...args, kwArgs);
+      // return func.bind(kwArgs)(...args); // Old version
     },
     Arr_method($arr, _dot, $name, $callArgs) {
       let arr = $arr.parse();
       let name = $name.sourceString;
       const { args, kwArgs } = $callArgs.parse();
       if (arr[name] === undefined) throw new Error(`Unrecognized method ${name}`);
-      return arr.withKwArgs(kwArgs)[name](...args);
+      // return arr.withKwArgs(kwArgs)[name](...args); // Old version
+      return Object.keys(kwArgs).length == 0 ? arr[name](...args) : arr[name](...args, kwArgs);
     },
     Parenthesis(_, $arr, __) { return $arr.parse(); },
     Arr_attribute($arr, _, $name) { return $arr.parse()[$name.sourceString]; },

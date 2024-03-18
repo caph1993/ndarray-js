@@ -2,19 +2,20 @@
 
 import { asarray, new_NDArray } from './basic';
 import type NDArray from "../NDArray-class";
+import { KwParser, RoundParsedKwargs, RoundSignature } from './kwargs';
 
 // Here, we declare only the core functions (those that are methods)
 
-export function elementwise(A, func, dtype) {
+export function elementwise(A: NDArray, func, dtype) {
   A = asarray(A);
   return new_NDArray(A.flat.map(func), A.shape, dtype);
 }
 
-
-export function round(A, decimals = 0) {
+export function round(A: NDArray, decimals: number) {
   if (decimals == 0) elementwise(A, Math.round, Number);
   return elementwise(A, x => parseFloat(x.toFixed(decimals)), Number);
 };
+export const round_kw = new KwParser<RoundSignature, RoundParsedKwargs>([["decimals", 0]]).decorators(round)
 
 export function bitwise_not(A: NDArray) {
   return elementwise(A, x => ~x, Number);

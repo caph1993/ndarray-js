@@ -65,6 +65,8 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 
 // Unit tests:
+npTest`np.arange(120)`
+npTest`np.arange(120).std()`
 
 
 

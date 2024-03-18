@@ -13,17 +13,20 @@ class NDArray {
 
   modules: typeof import("./NDArray").modules;
 
-  any: (axis?: AxisArg, keepdims?: boolean) => NDArray | boolean;
-  all: (axis?: AxisArg, keepdims?: boolean) => NDArray | boolean;
-  sum: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  product: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  max: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  min: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  argmax: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  argmin: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  mean: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  var: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
-  std: (axis?: AxisArg, keepdims?: boolean) => NDArray | number;
+  any: ReduceSignatureBool;
+  all: ReduceSignatureBool;
+  sum: ReduceSignature;
+  product: ReduceSignature;
+  max: ReduceSignature;
+  min: ReduceSignature;
+  argmax: ReduceSignature;
+  argmin: ReduceSignature;
+  mean: ReduceSignature;
+
+  var: ReduceSignature;
+  std: ReduceStdSignature;
+  norm: ReduceNormSignature;
+
   add: SelfBinaryOperator;
   subtract: SelfBinaryOperator;
   multiply: SelfBinaryOperator;
@@ -32,12 +35,13 @@ class NDArray {
   divide_int: SelfBinaryOperator;
   pow: SelfBinaryOperator;
   maximum: SelfBinaryOperator;
+  minimum: SelfBinaryOperator;
   bitwise_or: SelfBinaryOperator;
   bitwise_and: SelfBinaryOperator;
   bitwise_shift_right: SelfBinaryOperator;
   logical_xor: SelfBinaryOperator;
   logical_or: SelfBinaryOperator;
-  minimum: SelfBinaryOperator;
+
   logical_and: SelfBinaryOperator;
   greater: SelfBinaryOperator;
   less: SelfBinaryOperator;
@@ -47,6 +51,9 @@ class NDArray {
   not_equal: SelfBinaryOperator;
   isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
   allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
+
+  abs: SelfUnaryOperator;
+
   assign: SelfAssignmentOperator;
   add_assign: SelfAssignmentOperator;
   subtract_assign: SelfAssignmentOperator;
@@ -66,7 +73,7 @@ class NDArray {
 
   tolist: () => any;
   // fromJS: (A: any) => NDArray;
-  round: (decimals?: number) => NDArray;
+  round: RoundSignature;
   sort: (axis?: number) => NDArray;
   transpose: (axes?: number[]) => NDArray;
   op: (...args: any[]) => NDArray;
@@ -131,8 +138,9 @@ import { GLOBALS } from './_globals';
 GLOBALS.NDArray = NDArray;
 
 import { modules } from "./NDArray";
-import { SelfAssignmentOperator, SelfBinaryOperator } from './NDArray/operators';
-import { AxisArg } from './NDArray/reduce';
+import { SelfAssignmentOperator, SelfBinaryOperator, SelfUnaryOperator } from './NDArray/operators';
+// import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
+import { AxisArg, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature } from './NDArray/kwargs';
 NDArray.prototype.modules = modules;
 
 
@@ -181,24 +189,39 @@ NDArray.prototype.toString = function () {
 // ==============================
 
 
-function reduceDecorator(func) {
-  return function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false) {
-    ({ axis, keepdims } = Object.assign({ axis, keepdims }, this.__popKwArgs()));
-    return func(this, axis, keepdims);
-  }
-}
 
-NDArray.prototype.sum = reduceDecorator(modules.reduce.reducers.sum);
-NDArray.prototype.product = reduceDecorator(modules.reduce.reducers.product);
-NDArray.prototype.any = reduceDecorator(modules.reduce.reducers.any);
-NDArray.prototype.all = reduceDecorator(modules.reduce.reducers.all);
-NDArray.prototype.max = reduceDecorator(modules.reduce.reducers.max);
-NDArray.prototype.min = reduceDecorator(modules.reduce.reducers.min);
-NDArray.prototype.argmax = reduceDecorator(modules.reduce.reducers.argmax);
-NDArray.prototype.argmin = reduceDecorator(modules.reduce.reducers.argmin);
-NDArray.prototype.mean = reduceDecorator(modules.reduce.reducers.mean);
-NDArray.prototype.var = reduceDecorator(modules.reduce.reducers.var);
-NDArray.prototype.std = reduceDecorator(modules.reduce.reducers.std);
+NDArray.prototype.any = modules.reduce.self_reducers.any;
+NDArray.prototype.all = modules.reduce.self_reducers.all;
+
+NDArray.prototype.sum = modules.reduce.self_reducers.sum;
+NDArray.prototype.product = modules.reduce.self_reducers.product;
+NDArray.prototype.max = modules.reduce.self_reducers.max;
+NDArray.prototype.min = modules.reduce.self_reducers.min;
+NDArray.prototype.argmax = modules.reduce.self_reducers.argmax;
+NDArray.prototype.argmin = modules.reduce.self_reducers.argmin;
+NDArray.prototype.mean = modules.reduce.self_reducers.mean;
+
+NDArray.prototype.var = modules.reduce.self_reducers.var;
+NDArray.prototype.std = modules.reduce.self_reducers.std;
+
+
+// function reduceDecorator(func) {
+//   return function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false) {
+//     ({ axis, keepdims } = Object.assign({ axis, keepdims }, this.__popKwArgs()));
+//     return func(this, axis, keepdims);
+//   }
+// }
+// reducersExtra
+// NDArray.prototype.var = reduceDecorator(modules.reduce.self_reducers.var);
+
+// NDArray.prototype.norm = function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false, ord = 2) {
+//   ({ axis, keepdims, ord } = Object.assign({ axis, keepdims, ord }, this.__popKwArgs()));
+//   return modules.reduce.reducers.norm(this, axis, keepdims, ord);
+// } as any;
+// NDArray.prototype.std = function (axis: import("./NDArray/reduce").AxisArg = null, keepdims: boolean = false, ddof = 0) {
+//   ({ axis, keepdims, ddof } = Object.assign({ axis, keepdims, ddof }, this.__popKwArgs()));
+//   return modules.reduce.reducers.std(this, axis, keepdims, ddof);
+// }
 
 
 
@@ -253,6 +276,8 @@ function unaryOpDecorator(func: import("./NDArray/operators").UnaryOperator): im
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
 NDArray.prototype.bitwise_or = unaryOpDecorator(modules.operators.op_unary["~"]);
 NDArray.prototype.logical_or = unaryOpDecorator(modules.operators.op_unary["not"]);
+NDArray.prototype.abs = unaryOpDecorator(modules.operators.op_unary["abs"]);
+
 
 
 NDArray.prototype.isclose = modules.operators.isclose;
@@ -300,10 +325,7 @@ NDArray.prototype.tolist = function () {
 //    elementwise methods
 // ==============================
 
-NDArray.prototype.round = function (decimals = 0) {
-  ({ decimals } = Object.assign({ decimals }, this.__popKwArgs()));
-  return modules.elementwise.round(this, decimals);
-};
+NDArray.prototype.round = modules.elementwise.round_kw.as_method;
 
 // ==============================
 //    transform methods
