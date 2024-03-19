@@ -68,6 +68,10 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 npTest`np.arange(120)`
 npTest`np.arange(120).std()`
 
+let x = np.arange(120).reshape(-1, 2).pow(2).sum({ axis: -1 }).pow(0.5);
+npTest`np.allclose(${x}, np.sum(np.arange(120).reshape(-1, 2) ** 2, axis=-1) ** 0.5)`
+npTest`np.greater(${x}, np.sum(np.arange(120).reshape(-1, 2) ** 2, axis=-1) ** 0.5)`
+// npTest`np.allclose(${x}, (np.arange(120).reshape(-1, 2) ** 2).sum(axis=-1) ** 0.5)`
 
 
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=0)`

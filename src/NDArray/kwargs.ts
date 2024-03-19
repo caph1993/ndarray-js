@@ -1,5 +1,5 @@
 import { NDArray } from "../NDArray-class";
-import { asarray } from "./_globals";
+import { asarray, isarray } from "./_globals";
 
 export type AxisArg = null | number;
 
@@ -31,7 +31,7 @@ export type UnaryOperatorKwargs = { out?: NDArray | null };
 export type UnaryOperatorParsedKwargs = [NDArray | null];
 
 
-type KwTuple = [string, any] | [string, any, Function];
+type KwTuple = [string, any] | [string, any, (x: any) => any];
 
 export function kwDecorators<Signature extends (...args: any[]) => any, Parsed extends any[]>(
   { defaults, func }: { defaults: KwTuple[], func: (...args: any[]) => any }) {
@@ -50,13 +50,18 @@ export class KwParser<Signature extends (...args: any[]) => any, Parsed extends 
     let kwargs = Object.assign(Object.fromEntries(defaults));
     for (let i = 0; i < args.length; i++) {
       let value = args[i];
-      if (value instanceof Object) Object.assign(kwargs, value);
+      if (value instanceof Object && !isarray(value)) Object.assign(kwargs, value);
       else if (value !== undefined) kwargs[defaults[i][0]] = value;
     }
-    let sortedArgs = defaults.map(([key, _], i) => {
+    let sortedArgs = defaults.map((_, i) => {
+      let key = defaults[i][0];
       let value = kwargs[key];
-      if (value === undefined) throw new Error(`Missing argument ${key}`);
-      if (defaults[i].length === 3) return defaults[i][2](value);
+      if (value === undefined) {
+        throw new Error(`Missing argument ${key} in ${args}`);
+      }
+      if (defaults[i].length === 3) {
+        value = defaults[i][2](value);
+      }
       return value
     });
     return sortedArgs as Parsed;

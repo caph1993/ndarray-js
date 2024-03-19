@@ -43,12 +43,12 @@ class NDArray {
   logical_or: SelfBinaryOperator;
 
   logical_and: SelfBinaryOperator;
-  greater: SelfBinaryOperator;
-  less: SelfBinaryOperator;
-  greater_equal: SelfBinaryOperator;
-  less_equal: SelfBinaryOperator;
-  equal: SelfBinaryOperator;
-  not_equal: SelfBinaryOperator;
+  greater: BinaryOperatorSignature;
+  less: BinaryOperatorSignature;
+  greater_equal: BinaryOperatorSignature;
+  less_equal: BinaryOperatorSignature;
+  equal: BinaryOperatorSignature;
+  not_equal: BinaryOperatorSignature;
   isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
   allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
 
@@ -140,7 +140,7 @@ GLOBALS.NDArray = NDArray;
 import { modules } from "./NDArray";
 import { SelfAssignmentOperator, SelfBinaryOperator, SelfUnaryOperator } from './NDArray/operators';
 // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-import { AxisArg, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature } from './NDArray/kwargs';
+import { AxisArg, BinaryOperatorSignature, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature } from './NDArray/kwargs';
 NDArray.prototype.modules = modules;
 
 

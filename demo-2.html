@@ -73,21 +73,49 @@ let np = require('caph1993-numpy-js');
   <div style="border: solid 1px black; height: fit-content;">
     <textarea id="codeInput" style="height: fit-content !important;">
 // Part 1: data creation
-  
-var XY = np.random.randn([1000, 2])
-var norm = XY.pow(2).sum({ axis: -1, keepdims: true }).pow(0.5)
-var XY_unit = XY.op('/', norm);
 
-console.log(`First five points:\n${XY.index(`0:5`)}`);
-console.log(`Norm of the first five points (before and after):`);
+var XY = np.random.randn([5000, 2])
+var norm = np.norm(XY, { axis: -1, keepdims: true });
+var XY_unit = XY.op('/', norm);
+var group = np.greater(XY.index(':', 0), XY.index(':', 1));
+
+console.log(np.allclose(np.norm(XY, -1), XY.pow(2).sum({ axis: -1 }).pow(0.5)));
+
+console.log(`\nFirst five points:\n${XY.index(`0:5`)}`);
+console.log(`\nNorm of the first five points (before and after):`);
 console.log(np.stack([norm.index(':', 0), XY_unit.norm(-1)], -1).index(`0:5`));
 
 var svg = Plot.plot({
   grid: true,
-  aspectRatio: 1, // undefined
+  color: {scheme: "Observable10"},
+  aspectRatio: 1, // undefined,
   marks: [
-    Plot.dot(XY.tolist().map(([x,y])=>({x, y})), {x: "x", y: "y", r:1, fill:"#69b369"}),
+    Plot.dot(XY.tolist().map(([x,y],i)=>({x, y, group:group.index(i)})), {x: "x", y: "y", r:1, stroke:"group"}),
     Plot.dot(XY_unit.tolist().map(([x,y])=>({x, y})), {x: "x", y: "y", r:1, fill:"#b36969"}),
+  ]
+});
+$(document.body).append(svg);
+
+var svg = Plot.plot({
+  grid: true,
+  color: {scheme: "Observable10"},
+  marks: [
+    Plot.rectY(XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})), Plot.binX({y2: "count"}, {x: "x", fill:"group", mixBlendMode: "screen"})),
+  ]
+});
+$(document.body).append(svg);
+
+var x = np.linspace(-5, 5, 500)
+console.log(x.shape)
+var y = np.exp(-x.pow(2));//np.exp(-x.pow(2)/2)//.multiply(x.shape[0]);
+console.log(y.shape)
+
+var svg = Plot.plot({
+  grid: true,
+  color: {scheme: "Observable10"},
+  marks: [
+    Plot.rectY(XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})), Plot.binX({y: "count"}, {x: "x", fill:"group", mixBlendMode: "screen"})),
+    Plot.dot(np.stack([x, y], axis=-1).tolist().map(([x,y], i)=>({x, y})), {x: "x", y: "y", r:1}),
   ]
 });
 $(document.body).append(svg);
