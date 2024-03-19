@@ -1,6 +1,6 @@
-# Numpy-js
+# ndarray-js
 
-Numpy-js is a reimplementation of numpy for javascript that aims to make the coding experience as similar to numpy as possible.
+`ndarray-js` is a reimplementation of `numpy` for javascript that aims to make the coding experience as similar to `numpy` as possible.
 
 It features:
 
@@ -68,7 +68,7 @@ Find more details and usage patterns in the [documentation](https://caph1993.git
 
 Numpy-js can be used in:
 
-- web applications: `<script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js">`
+- web applications: `<script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js"></script>`
 - node applications: `npm install ndarray-js`
 - jupyter notebooks with ijavascript kernel. [Example](https://github.com/caph1993/numpy-js/blob/main/notebooks/normal-scatter.ipynb).
 

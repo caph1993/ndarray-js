@@ -2,13 +2,14 @@
 <html>
 
 <head>
-  <title>Numpy JS Demo 2</title>
+  <title>nDArrayJS Demo 2</title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
   
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
-  <script src="dist/caph1993-numpy-js.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js"></script>
+  <!-- <script src="dist/caph1993-numpy-js.js"></script> -->
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
@@ -61,7 +62,7 @@
       (()=>{
         $('#codeHeader').text(`
 ${'<'}script src="https://d3js.org/d3.v7.min.js">${'<'}/script>
-${'<'}script src="dist/caph1993-numpy-js.js">${'<'}/script>
+${'<'}script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js">${'<'}/script>
 // Or
 let d3 = require('d3');
 let np = require('caph1993-numpy-js');
