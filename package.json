@@ -1,20 +1,30 @@
 {
   "name": "@caph1993/numpy-js",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "",
   "main": "index.js",
+  "entrypoint":{
+    "main": "dist/caph1993-numpy-js.js"
+  },
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "test": "cd tests && ts-node tests_october.ts",
     "build-docs": "typedoc",
     "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
   },
-  "keywords": [],
+  "keywords": [
+    "numpy",
+    "numpy-js",
+    "math",
+    "ndarray",
+    "array",
+    "javascript",
+    "typescript"
+  ],
   "author": "Carlos Pinzón",
   "license": "BSD 3",
   "dependencies": {
-    "ohm-js": "^17.1.0",
-    "typedoc-default-themes": "^0.12.10"
+    "ohm-js": "^17.1.0"
   },
   "devDependencies": {
     "@mxssfd/typedoc-theme": "^1.1.3",
@@ -25,6 +35,7 @@
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.1",
     "typedoc": "^0.25.2",
+    "typedoc-default-themes": "^0.12.10",
     "typedoc-neo-theme": "^1.1.1",
     "typedoc-plugin-merge-modules": "^5.1.0",
     "typedoc-theme-hierarchy": "^4.1.2",
