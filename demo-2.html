@@ -76,10 +76,11 @@ let np = require('caph1993-numpy-js');
 
 var XY = np.random.randn([5000, 2])
 var norm = np.norm(XY, { axis: -1, keepdims: true });
+console.log(np.allclose(norm, XY.pow(2).sum(-1).index('...', 'None').pow(0.5)));
 var XY_unit = XY.op('/', norm);
-var group = np.greater(XY.index(':', 0), XY.index(':', 1));
+var angle = 45;
+var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180/np.pi).add(90-angle).abs().greater(90);
 
-console.log(np.allclose(np.norm(XY, -1), XY.pow(2).sum({ axis: -1 }).pow(0.5)));
 
 console.log(`\nFirst five points:\n${XY.index(`0:5`)}`);
 console.log(`\nNorm of the first five points (before and after):`);
@@ -105,10 +106,10 @@ var svg = Plot.plot({
 });
 $(document.body).append(svg);
 
+
 var x = np.linspace(-5, 5, 500)
-console.log(x.shape)
-var y = np.exp(-x.pow(2));//np.exp(-x.pow(2)/2)//.multiply(x.shape[0]);
-console.log(y.shape)
+// alt: var y = np.exp(x.pow(2).negative().divide(2)).multiply(x.shape[0]/np.sqrt(2*np.pi));
+var y = np`np.exp(-${x}**2 / 2) * ${x.shape[0]/np.sqrt(2*np.pi)}`;
 
 var svg = Plot.plot({
   grid: true,
@@ -170,6 +171,10 @@ $(document.body).append(svg);
         $('#stderr').append('Press F12 for more details')
         throw e;
       }
+      window.scrollBy({
+        top: 500,
+        behavior: 'smooth' // Smooth scrolling animation
+      });
     }
   </script>
   <!-- <div id="myplot"></div> -->

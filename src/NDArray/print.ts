@@ -1,9 +1,10 @@
 //@ts-check
 
-import { round } from './elementwise';
+import { ops as ew_ops } from './elementwise';
 import { tolist } from './js-interface';
 import type NDArray from "../NDArray-class";
 
+const round = ew_ops.round;
 
 export function humanReadable(arr: NDArray) {
   if (arr.shape.length == 0) return arr.flat[0].toString();

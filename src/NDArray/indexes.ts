@@ -15,7 +15,6 @@ export function index(arr: NDArray, where: Where) {
   // The index is simple if there are only ranges, numbers, ":" and at most one "..."
   // If index is simple, don't call ".indices" and make view
   // If index is advanced, get indices and make copy
-  // let { copy } = Object.assign({ copy: false }, arr.__popKwArgs()); // Old version
   let copy = false;
   if (!(isarray(arr))) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
   const axesIndex = AxesIndex.prototype.parse(arr.shape, where);

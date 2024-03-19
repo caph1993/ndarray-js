@@ -95,9 +95,8 @@ np.maximum = operators.kw_op_binary["max"].as_function;
 np.minimum = operators.kw_op_binary["min"].as_function;
 np.logical_or = operators.kw_op_binary["or"].as_function;
 np.logical_and = operators.kw_op_binary["and"].as_function;
+np.atan2 = operators.atan2;
 
-np.bitwise_not = operators.kw_op_unary["~"].as_function;
-np.logical_not = operators.kw_op_unary["not"].as_function;
 
 np.allclose = operators.allclose;
 np.isclose = operators.isclose;
@@ -105,29 +104,33 @@ np.isclose = operators.isclose;
 
 const ew = NDArray.prototype.modules.elementwise;
 
-np.sign = ew.ops.sign;
-np.sqrt = ew.ops.sqrt;
-np.square = ew.ops.square;
-np.abs = ew.ops.abs;
-np.exp = ew.ops.exp;
-np.log = ew.ops.log;
-np.log2 = ew.ops.log2;
-np.log10 = ew.ops.log10;
-np.log1p = ew.ops.log1p;
-np.sin = ew.ops.sin;
-np.cos = ew.ops.cos;
-np.tan = ew.ops.tan;
-np.asin = ew.ops.asin;
-np.acos = ew.ops.acos;
-np.atan = ew.ops.atan;
-np.atan2 = ew.ops.atan2;
-np.cosh = ew.ops.cosh;
-np.sinh = ew.ops.sinh;
-np.tanh = ew.ops.tanh;
-np.acosh = ew.ops.acosh;
-np.asinh = ew.ops.asinh;
-np.atanh = ew.ops.atanh;
-np.round = ew.round_kw.as_function;
+np.sign = ew.funcs.sign;
+np.sqrt = ew.funcs.sqrt;
+np.square = ew.funcs.square;
+np.exp = ew.funcs.exp;
+np.log = ew.funcs.log;
+np.log2 = ew.funcs.log2;
+np.log10 = ew.funcs.log10;
+np.log1p = ew.funcs.log1p;
+np.sin = ew.funcs.sin;
+np.cos = ew.funcs.cos;
+np.tan = ew.funcs.tan;
+np.asin = ew.funcs.asin;
+np.acos = ew.funcs.acos;
+np.atan = ew.funcs.atan;
+np.cosh = ew.funcs.cosh;
+np.sinh = ew.funcs.sinh;
+np.tanh = ew.funcs.tanh;
+np.acosh = ew.funcs.acosh;
+np.asinh = ew.funcs.asinh;
+np.atanh = ew.funcs.atanh;
+
+np.abs = ew.kw_ops.abs.as_function;
+np.bitwise_not = ew.kw_ops.bitwise_not.as_function;
+np.logical_not = ew.kw_ops.logical_not.as_function;
+np.abs = ew.kw_ops.abs.as_function;
+np.negative = ew.kw_ops.negative.as_function;
+np.round = ew.kw_ops.round.as_function;
 
 
 // ==============================
@@ -146,5 +149,8 @@ np.linspace = np.modules.constructors.linspace;
 np.geomspace = np.modules.constructors.geomspace;
 
 np.random = np.modules.random;
+
+np.pi = Math.PI;
+np.e = Math.E;
 
 export { np };

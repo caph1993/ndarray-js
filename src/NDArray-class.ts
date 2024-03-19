@@ -27,22 +27,23 @@ class NDArray {
   std: ReduceStdSignature;
   norm: ReduceNormSignature;
 
-  add: SelfBinaryOperator;
-  subtract: SelfBinaryOperator;
-  multiply: SelfBinaryOperator;
-  divide: SelfBinaryOperator;
-  mod: SelfBinaryOperator;
-  divide_int: SelfBinaryOperator;
-  pow: SelfBinaryOperator;
-  maximum: SelfBinaryOperator;
-  minimum: SelfBinaryOperator;
-  bitwise_or: SelfBinaryOperator;
-  bitwise_and: SelfBinaryOperator;
-  bitwise_shift_right: SelfBinaryOperator;
-  logical_xor: SelfBinaryOperator;
-  logical_or: SelfBinaryOperator;
+  add: BinaryOperatorSignature;
+  subtract: BinaryOperatorSignature;
+  multiply: BinaryOperatorSignature;
+  divide: BinaryOperatorSignature;
+  mod: BinaryOperatorSignature;
+  divide_int: BinaryOperatorSignature;
+  pow: BinaryOperatorSignature;
+  maximum: BinaryOperatorSignature;
+  minimum: BinaryOperatorSignature;
+  bitwise_or: BinaryOperatorSignature;
+  bitwise_and: BinaryOperatorSignature;
+  bitwise_shift_right: BinaryOperatorSignature;
 
-  logical_and: SelfBinaryOperator;
+  logical_xor: BinaryOperatorSignature<boolean>;
+  logical_or: BinaryOperatorSignature<boolean>;
+  logical_and: BinaryOperatorSignature<boolean>;
+
   greater: BinaryOperatorSignature;
   less: BinaryOperatorSignature;
   greater_equal: BinaryOperatorSignature;
@@ -52,7 +53,10 @@ class NDArray {
   isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
   allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
 
-  abs: SelfUnaryOperator;
+  abs: UnaryOperatorSignature;
+  negative: UnaryOperatorSignature;
+  logical_not: UnaryOperatorSignature;
+  bitwise_not: UnaryOperatorSignature;
 
   assign: SelfAssignmentOperator;
   add_assign: SelfAssignmentOperator;
@@ -138,9 +142,9 @@ import { GLOBALS } from './_globals';
 GLOBALS.NDArray = NDArray;
 
 import { modules } from "./NDArray";
-import { SelfAssignmentOperator, SelfBinaryOperator, SelfUnaryOperator } from './NDArray/operators';
+import { SelfAssignmentOperator } from './NDArray/operators';
 // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-import { AxisArg, BinaryOperatorSignature, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature } from './NDArray/kwargs';
+import { AxisArg, BinaryOperatorSignature, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature, UnaryOperatorSignature } from './NDArray/kwargs';
 NDArray.prototype.modules = modules;
 
 
@@ -212,7 +216,6 @@ NDArray.prototype.norm = modules.reduce.kw_reducers.norm.as_method;
 
 function binaryOpDecorator(func: import("./NDArray/operators").BinaryOperator): import("./NDArray/operators").SelfBinaryOperator {
   return function (other, out = null) {
-    // ({ out } = Object.assign({ out }, this.__popKwArgs()));
     return func(this, other, out);
   }
 }
@@ -246,19 +249,11 @@ NDArray.prototype.equal = modules.operators.kw_op_binary["=="].as_method;
 NDArray.prototype.not_equal = modules.operators.kw_op_binary["!="].as_method;
 
 
-
-function unaryOpDecorator(func: import("./NDArray/operators").UnaryOperator): import("./NDArray/operators").SelfUnaryOperator {
-  return function (out = null) {
-    ({ out } = Object.assign({ out }, this.__popKwArgs()));
-    return func(this, out);
-  }
-}
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_or = unaryOpDecorator(modules.operators.op_unary["~"]);
-NDArray.prototype.logical_or = unaryOpDecorator(modules.operators.op_unary["not"]);
-NDArray.prototype.abs = unaryOpDecorator(modules.operators.op_unary["abs"]);
-
-
+NDArray.prototype.bitwise_not = modules.elementwise.kw_ops.bitwise_not.as_method;
+NDArray.prototype.logical_not = modules.elementwise.kw_ops.logical_not.as_method;
+NDArray.prototype.negative = modules.elementwise.kw_ops.negative.as_method;
+NDArray.prototype.abs = modules.elementwise.kw_ops.abs.as_method;
 
 NDArray.prototype.isclose = modules.operators.isclose;
 NDArray.prototype.allclose = modules.operators.allclose;
@@ -305,7 +300,7 @@ NDArray.prototype.tolist = function () {
 //    elementwise methods
 // ==============================
 
-NDArray.prototype.round = modules.elementwise.round_kw.as_method;
+NDArray.prototype.round = modules.elementwise.kw_ops.round.as_method;
 
 // ==============================
 //    transform methods
@@ -313,12 +308,10 @@ NDArray.prototype.round = modules.elementwise.round_kw.as_method;
 
 /** @param {null|number[]} axes */
 NDArray.prototype.transpose = function (axes: null | number[] = null) {
-  // ({ axes } = Object.assign({ axes }, this.__popKwArgs()));
   return modules.transform.transpose(this, axes);
 };
 
 NDArray.prototype.sort = function (axis = -1) {
-  // ({ axis } = Object.assign({ axis }, this.__popKwArgs()));
   modules.transform.sort(this, axis);
   return null;
 };
@@ -340,8 +333,8 @@ const op: Op = function (...args): NDArray {
   if (typeof args[0] == "string") {
     const symbol = args[0];
     if (args.length == 1) {
-      let func = modules.operators.op_unary[symbol];
-      if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.operators.op_unary)]}`);
+      let func = modules.elementwise.ops[symbol];
+      if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.elementwise.ops)]}`);
       return func(this, symbol);
     }
     if (args.length > 2) throw new Error(`Too many arguments provided: ${[...args]}`);
@@ -358,7 +351,7 @@ const op: Op = function (...args): NDArray {
   if (args.length == 1) return this.index(where);
   const symbol = args[1];
   let func = modules.operators.op_assign[symbol];
-  if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.operators.op_unary)]}`);
+  if (!func) throw new Error(`Unknown assign operator "${symbol}". Options:${[...Object.keys(modules.operators.op_assign)]}`);
   if (args.length > 3) throw new Error(`Too many arguments provided: ${[...args]}`);
   const other = args[2];
   return func(this, where, other);

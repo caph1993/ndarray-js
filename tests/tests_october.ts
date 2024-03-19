@@ -65,6 +65,15 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 
 // Unit tests:
+
+var XY = np.random.randn([5000, 2])
+var norm = np.norm(XY, { axis: -1, keepdims: true });
+var XY_unit = XY.op('/', norm);
+//var group = np.greater(XY.index(':', 0), XY.index(':', 1));
+//var group = np.atan(XY.index(':', 1).divide(XY.index(':', 0))).greater(45/180*np.pi);
+var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180 / np.pi).abs().greater(10);
+
+
 npTest`np.arange(120)`
 npTest`np.arange(120).std()`
 
@@ -72,7 +81,6 @@ let x = np.arange(120).reshape(-1, 2).pow(2).sum({ axis: -1 }).pow(0.5);
 npTest`np.allclose(${x}, np.sum(np.arange(120).reshape(-1, 2) ** 2, axis=-1) ** 0.5)`
 npTest`np.greater(${x}, np.sum(np.arange(120).reshape(-1, 2) ** 2, axis=-1) ** 0.5)`
 // npTest`np.allclose(${x}, (np.arange(120).reshape(-1, 2) ** 2).sum(axis=-1) ** 0.5)`
-
 
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=0)`
 npTest`np.concatenate(${Array.from({ length: 5 }, () => np`np.arange(11)`)}, axis=-1)`

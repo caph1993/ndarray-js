@@ -34,8 +34,13 @@ export type UnaryOperatorParsedKwargs = [NDArray | null];
 type KwTuple = [string, any] | [string, any, (x: any) => any];
 
 export function kwDecorators<Signature extends (...args: any[]) => any, Parsed extends any[]>(
-  { defaults, func }: { defaults: KwTuple[], func: (...args: any[]) => any }) {
+  { defaults, func }: { defaults: KwTuple[], func: (arr: NDArray, ...args: Parsed) => any }) {
   return new KwParser<Signature, Parsed>(defaults).decorators(func);
+}
+
+export function kwDecorator<Signature extends (...args: any[]) => any, Parsed extends any[]>(
+  { defaults, func }: { defaults: KwTuple[], func: (...args: Parsed) => any }) {
+  return new KwParser<Signature, Parsed>(defaults).as_function(func);
 }
 
 export class KwParser<Signature extends (...args: any[]) => any, Parsed extends any[]> {
@@ -67,7 +72,7 @@ export class KwParser<Signature extends (...args: any[]) => any, Parsed extends 
     return sortedArgs as Parsed;
   }
 
-  decorator_func<F extends (arr: NDArray, ...args: Parsed) => ReturnType<Signature>>(func: F): (arr: NDArray | number | boolean, ...args: Parameters<Signature>) => ReturnType<Signature> {
+  as_arr_function<F extends (arr: NDArray, ...args: Parsed) => ReturnType<Signature>>(func: F): (arr: NDArray | number | boolean, ...args: Parameters<Signature>) => ReturnType<Signature> {
     let self = this;
     return function (arr: NDArray, ...args: Parameters<Signature>) {
       const parsed = self.parse(...args);
@@ -75,14 +80,24 @@ export class KwParser<Signature extends (...args: any[]) => any, Parsed extends 
     };
   }
 
-  decorator_method<F extends (arr: NDArray, ...args: Parsed) => ReturnType<Signature>>(func: F): (...args: Parameters<Signature>) => ReturnType<Signature> {
+  as_arr_method<F extends (arr: NDArray, ...args: Parsed) => ReturnType<Signature>>(func: F): (...args: Parameters<Signature>) => ReturnType<Signature> {
     let self = this;
     return function (...args: Parameters<Signature>) {
       const parsed = self.parse(...args);
       return func(this, ...parsed);
     } as any;
   }
+
   decorators<F extends (arr: NDArray, ...args: Parsed) => ReturnType<Signature>>(func: F) {
-    return { as_function: this.decorator_func(func), as_method: this.decorator_method(func) };
+    return { as_function: this.as_arr_function(func), as_method: this.as_arr_method(func) };
   }
+
+  as_function<F extends (...args: Parsed) => ReturnType<Signature>>(func: F): (...args: Parameters<Signature>) => ReturnType<Signature> {
+    let self = this;
+    return function (...args: Parameters<Signature>) {
+      const parsed = self.parse(...args);
+      return func(...parsed);
+    };
+  }
+
 }

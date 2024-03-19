@@ -36,7 +36,7 @@ export function linspace(start, stop, num = 50, endpoint = true) {
 
 export function geomspace(start, stop, num = 50, endpoint = true) {
   ({ stop, num, endpoint } = Object.assign({ stop, num, endpoint }, this));
-  start = elementwise.ops.log(start);
-  stop = elementwise.ops.log(stop);
-  return elementwise.ops.exp(linspace(start, stop, num, endpoint));
+  start = elementwise.funcs.log(start);
+  stop = elementwise.funcs.log(stop);
+  return elementwise.funcs.exp(linspace(start, stop, num, endpoint));
 }

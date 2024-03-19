@@ -242,12 +242,12 @@ export const __makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { op_unary } = nd_modules.operators;
+    const { ops } = nd_modules.elementwise;
     switch (symbol) {
-      case "+": return op_unary["+"](B);
-      case "-": return op_unary["-"](B);
-      case "~": return op_unary["~"](B);
-      case "!": return op_unary["not"](B);
+      case "+": return ops["+"](B);
+      case "-": return ops["-"](B);
+      case "~": return ops["~"](B);
+      case "!": return ops["not"](B);
     }
     throw new Error(`Programming Error: ${symbol}`);
   }

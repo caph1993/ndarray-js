@@ -1,6 +1,6 @@
 //@ts-check
 import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from './basic';
-import { ArrayOrConstant, op_binary, op_unary } from './operators';
+import { ArrayOrConstant, op_binary } from './operators';
 import NDArray from "../NDArray-class";
 import { DType } from '../NDArray-class';
 import { AxisArg, ReduceNormParsedKwargs, ReduceNormSignature, ReduceParsedKwargs, ReduceSignature, ReduceStdParsedKwargs, ReduceStdSignature, kwDecorators } from './kwargs';

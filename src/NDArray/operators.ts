@@ -5,7 +5,7 @@ import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, rav
 import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray-class";
-import { BinaryOperatorParsedKwargs, BinaryOperatorSignature, UnaryOperatorParsedKwargs, UnaryOperatorSignature, kwDecorators } from './kwargs';
+import { BinaryOperatorParsedKwargs, BinaryOperatorSignature, UnaryOperatorParsedKwargs, UnaryOperatorSignature, kwDecorator, kwDecorators } from './kwargs';
 
 export type ArrayOrConstant = NDArray | number | boolean;
 type Index = indexes.Where;
@@ -59,15 +59,14 @@ export type SelfBinaryOperator = (other: ArrayOrConstant, out?: NDArray | null) 
 
 export function __make_operator(dtype, func): BinaryOperator {
   function operator(A: ArrayOrConstant, B: ArrayOrConstant, out = null) {
-    if (isarray(this)) return operator.bind(_NDArray.prototype)(this, ...arguments);
     return binary_operation(A, B, func, dtype, out);
   };
+  //@ts-ignore
   return operator;
 }
 
 export function __make_operator_special(funcNum, funcBool): BinaryOperator {
   function operator(arr, other, out: NDArray | null = null) {
-    if (isarray(this)) return operator.bind(_NDArray.prototype)(this, ...arguments);
     arr = asarray(arr);
     other = asarray(other);
     let dtype = arr.dtype, func;
@@ -76,6 +75,7 @@ export function __make_operator_special(funcNum, funcBool): BinaryOperator {
     else func = funcNum;
     return binary_operation(arr, other, func, dtype, out);
   };
+  //@ts-ignore
   return operator;
 }
 
@@ -104,7 +104,6 @@ export const op_binary = {
   "xor": __make_operator(Boolean, (a, b) => (!a) != (!b)),
   "max": __make_operator(Number, (a, b) => Math.max(a, b)),
   "min": __make_operator(Number, (a, b) => Math.min(a, b)),
-
   // "isclose": ,
 }
 
@@ -114,18 +113,6 @@ op_binary["↓"] = op_binary["min"];
 op_binary["≤"] = op_binary["leq"];
 op_binary["≥"] = op_binary["geq"];
 op_binary["≠"] = op_binary["neq"];
-
-
-export type UnaryOperator = (A: ArrayOrConstant, out?: NDArray | null) => NDArray
-export type SelfUnaryOperator = (out?: NDArray | null) => NDArray
-
-export const op_unary = {
-  // Unary operators:
-  "~": elementwise.bitwise_not,
-  "not": elementwise.logical_not,
-  "+": elementwise.__make_elementwise(x => x),
-  "-": elementwise.__make_elementwise(x => -x, Number),
-};
 
 
 export function assign_operation(tgt: NDArray, src: ArrayOrConstant, where: Index, func, dtype) {
@@ -246,11 +233,15 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 
 //op_binary["≈≈"] = op[MyArray.prototype.isclose,
 
-export const kw_op_binary = {
-  "+": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
+function mk_kw_operator(op) {
+  return kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
     defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["+"],
-  }),
+    func: op,
+  })
+}
+
+export const kw_op_binary = {
+  "+": mk_kw_operator(op_binary["+"]),
   "-": kwDecorators<BinaryOperatorSignature, BinaryOperatorParsedKwargs>({
     defaults: [["other", undefined, asarray], ["out", null]],
     func: op_binary["-"],
@@ -340,21 +331,10 @@ export const kw_op_binary = {
     func: op_binary["xor"],
   }),
 }
-export const kw_op_unary = {
-  "~": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: op_binary["~"],
-  }),
-  "not": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: op_binary["not"],
-  }),
-  "+": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: op_binary["+"],
-  }),
-  "-": kwDecorators<UnaryOperatorSignature, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: op_binary["-"],
-  }),
-}
+
+export const atan2 = kwDecorator<(y: NDArray, x: NDArray, out?: NDArray | null) => NDArray, any>({
+  defaults: [["y", undefined, asarray], ["x", undefined, asarray], ["out", null]],
+  func: __make_operator(Number, (y, x) => Math.atan2(y, x)),
+});
+
+
