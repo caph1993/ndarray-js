@@ -68,8 +68,8 @@ Find more details and usage patterns in the [documentation](https://caph1993.git
 
 Numpy-js can be used in:
 
-- web applications: `<script src="(TODO: put a cdn url here)">`
-- node applications: `npm install @caph1993/numpy-js`
+- web applications: `<script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js">`
+- node applications: `npm install ndarray-js`
 - jupyter notebooks with ijavascript kernel. [Example](https://github.com/caph1993/numpy-js/blob/main/notebooks/normal-scatter.ipynb).
 
 

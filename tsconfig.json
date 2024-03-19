@@ -3,6 +3,9 @@
     "target": "es5",
     "lib": ["ES2019", "DOM"],
     "downlevelIteration"  : true,
+    "declaration": true,
+    "declarationMap": true,
+    "declarationDir": "dist"
   },
   "include": [
     "src/index.ts"

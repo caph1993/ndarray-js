@@ -1,11 +1,8 @@
 {
-  "name": "@caph1993/numpy-js",
-  "version": "4.0.1",
+  "name": "ndarray-js",
+  "version": "1.0.0",
   "description": "",
-  "main": "index.js",
-  "entrypoint":{
-    "main": "dist/caph1993-numpy-js.js"
-  },
+  "main": "src/index.ts",
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "test": "cd tests && ts-node tests_october.ts",
@@ -13,13 +10,14 @@
     "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
   },
   "keywords": [
-    "numpy",
-    "numpy-js",
-    "math",
     "ndarray",
+    "numpy",
+    "math",
     "array",
+    "numpy-js",
+    "typescript",
     "javascript",
-    "typescript"
+    "numjs"
   ],
   "author": "Carlos Pinzón",
   "license": "BSD 3",
@@ -30,6 +28,7 @@
     "@mxssfd/typedoc-theme": "^1.1.3",
     "@types/node": "^20.8.3",
     "d3": "^6.0.0",
+    "declaration-bundler-webpack-plugin": "^1.0.3",
     "eslint-plugin-tsdoc": "^0.2.17",
     "jsdom": "^22.1.0",
     "ts-loader": "^9.5.0",
