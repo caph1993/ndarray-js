@@ -95,7 +95,7 @@ var svg = Plot.plot({
     Plot.dot(XY_unit.tolist().map(([x,y])=>({x, y})), {x: "x", y: "y", r:1, fill:"#b36969"}),
   ]
 });
-$(document.body).append(svg);
+document.body.append(svg);
 
 var svg = Plot.plot({
   grid: true,
@@ -104,7 +104,7 @@ var svg = Plot.plot({
     Plot.rectY(XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})), Plot.binX({y2: "count"}, {x: "x", fill:"group", mixBlendMode: "screen"})),
   ]
 });
-$(document.body).append(svg);
+document.body.append(svg);
 
 
 var x = np.linspace(-5, 5, 500)
@@ -119,7 +119,7 @@ var svg = Plot.plot({
     Plot.dot(np.stack([x, y], axis=-1).tolist().map(([x,y], i)=>({x, y})), {x: "x", y: "y", r:1}),
   ]
 });
-$(document.body).append(svg);
+document.body.append(svg);
 
     </textarea>
   </div>
