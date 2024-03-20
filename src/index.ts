@@ -214,7 +214,7 @@ np.round = ew.kw_ops.round.as_function;
 
 import { modules } from './modules';
 
-/** @category Main */
+/** @category Main @namespace*/
 np.modules = modules;
 /** @category Modules */
 np.random = np.modules.random;

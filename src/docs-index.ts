@@ -1,7 +1,8 @@
 /**
  * @module ndarray-js
  * @description
- * # Welcome to the documentation of ndarray-js
+ * <style>h1 a code{ font-size: inherit; }</style>
+ * # Welcome to the documentation of `ndarray-js`
  * ndarray-js is a reimplementation of numpy for javascript that aims to make the coding experience as similar to numpy as possible.
  * ## API Index
  *  - Global namespace: {@link np}
@@ -24,3 +25,7 @@ import { np } from './index';
 import NDArray from './NDArray';
 
 export { np, NDArray };
+
+/** @namespace */
+export const modules = np.modules;
+

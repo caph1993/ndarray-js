@@ -19,7 +19,7 @@ export function __normal(n) {
     let u = Math.random() * 2 - 1;
     let v = Math.random() * 2 - 1;
     let s = u * u + v * v;
-    if (s >= 1) continue;
+    if (s > 1) continue;
     let x = Math.sqrt(-2 * Math.log(s) / s) * u;
     let y = Math.sqrt(-2 * Math.log(s) / s) * v;
     out.push(x);
@@ -33,7 +33,7 @@ export function randn(shape) {
   return new np.NDArray(flat, shape, Number);
 };
 export function normal(mean, std, shape) {
-  return np.add(mean, np.multiply(std, shape));
+  return randn(shape).multiply(std).add(mean);
 };
 
 

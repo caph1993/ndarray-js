@@ -31,4 +31,30 @@ module.exports = {
   // mergeModulesMergeMode: "project",
   // readme: "./docs-readme.md",
   readme: "none",
+
+  kindSortOrder: [
+    "Reference",
+    "Project",
+    "Namespace",
+    "Enum",
+    "EnumMember",
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Constructor",
+    "Property",
+    "Variable",
+    "Function",
+    "Accessor",
+    "Method",
+    "Parameter",
+    "TypeParameter",
+    "TypeLiteral",
+    "CallSignature",
+    "ConstructorSignature",
+    "IndexSignature",
+    "GetSignature",
+    "SetSignature",
+    "Module"
+  ]
 }

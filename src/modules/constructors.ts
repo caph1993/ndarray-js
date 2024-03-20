@@ -4,16 +4,22 @@ import { KwParser } from '../array/kwargs';
 
 const { basic, elementwise } = NDArray.prototype.modules;
 
-export function empty(shape, dtype: import('../NDArray').DType = Number) {
+/**
+ * Creates a new array with the specified shape and type, without initializing entries.
+ */
+export function empty(shape: number[], dtype: import('../NDArray').DType = Number) {
   return basic.new_from(shape, undefined, dtype)
 };
 
-export function zeros(shape, dtype: import('../NDArray').DType = Number) {
+/**
+ * Creates a new array of zeros with the specified shape and dtype.
+ */
+export function zeros(shape: number[], dtype: import('../NDArray').DType = Number) {
   const c = dtype == Boolean ? false : 0;
   return basic.new_from(shape, (_) => c, dtype)
 };
 
-export function ones(shape, dtype: import('../NDArray').DType = Number) {
+export function ones(shape: number[], dtype: import('../NDArray').DType = Number) {
   const c = dtype == Boolean ? true : 1;
   return basic.new_from(shape, (_) => c, dtype)
 };

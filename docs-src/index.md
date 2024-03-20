@@ -1,5 +1,3 @@
-
-
 <script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
