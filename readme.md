@@ -41,7 +41,7 @@ for(let point2d of x){
 
 Numpy-js can be used in:
 
-- web applications: `<script src="https://cdn.jsdelivr.net/npm/ndarray-js@1.0.0/dist/index.js"></script>`
+- web applications: `<script src="https://cdn.jsdelivr.net/npm/ndarray-js@latest/dist/index.js"></script>`
 - node applications: `npm install ndarray-js`
 - jupyter notebooks with ijavascript kernel.
 [Example](https://github.com/caph1993/numpy-js/blob/main/notebooks/normal-scatter.ipynb).
@@ -49,6 +49,7 @@ Numpy-js can be used in:
 
 ## ToDo
 It does not provide yet:
+ - trapz, binning.
  - a simple group_by operator.
  - the linear algebra module
  - all the random module. Only uniform, normal, exponential, gamma, beta and some others are provided.

@@ -41,6 +41,11 @@
  * console.log(a.tolist());
  * ```
  * 
+ * ## Use in Jupyter notebooks:
+ * You need to install the ipykernel (the setup is a bit more complex).
+ * 
+ * Example notebook: https://github.com/caph1993/numpy-js/blob/main/notebooks/normal-scatter.ipynb 
+ * 
  * [[include: clean-index.md]]
 */
 
