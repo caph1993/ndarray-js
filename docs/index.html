@@ -61,11 +61,16 @@
   background-color: #007bff; /* Change this to your desired button color */
   color: white;
   font-size: 16px;
-  cursor: pointer;
   }
  /* Optional: You can add hover effect */
  .execute-button:hover {
   background-color: #0056b3; /* Change color on hover */
+}
+.execute-button[disabled],
+.execute-button[disabled]:hover {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
 }
 /* Define keyframes for the shading effect */
 @keyframes shade {
@@ -199,8 +204,11 @@ document.querySelector('#svg-outputs').append(svg);`.replace(new RegExp('// \\(E
     let first=true;
     setTimeout(()=>$('.execute-button').addClass('gliding-light-button'), 1500);
     setTimeout(()=>$('.execute-button').addClass('shaded-button'), 1500+5000);
+    ;
+    ;
     ;$('.execute-button').on('click', ()=>{
       ;$('.execute-button').removeClass('shaded-button');
+      ;$('.execute-button').prop('disabled', true);
       var code = codeEditor.getValue();
       ;$('#stdout').parent().show();
       ;$('#svg-outputs').html('');
@@ -209,14 +217,19 @@ document.querySelector('#svg-outputs').append(svg);`.replace(new RegExp('// \\(E
       ;$('#stderr').parent().hide();
       ;$('#stderr').parent().hide();
       __log_elem = $('#stdout');
-      try{
-        eval(code);
-      } catch(e){
-        ;$('#stderr').parent().show();
-        ;$('#stderr').append(e.stack)
-        ;$('#stderr').append('Press F12 for more details')
-        throw e;
-      }
+      setTimeout(async ()=>{
+        try{
+          eval(code);
+          await new Promise(ok=>setTimeout(ok, 500));
+        } catch(e){
+          ;$('#stderr').parent().show();
+          ;$('#stderr').append(e.stack)
+          ;$('#stderr').append('Press F12 for more details')
+          throw e;
+        } finally{
+          ;$('.execute-button').prop('disabled', false);
+        }
+      }, 1);
       if(first){
       window.scrollBy({
         top: 500,
