@@ -4,14 +4,13 @@
 
 It features:
 
-- all types of basic indexing: `[0]`, `[1, :, 3]`, `[0:3:5, 4]`, `[mask]`, `[indices]`.
-- all types of advanced indexing, for example `[mask, ..., indices, -1:-1:-2, :, :, -1]`.
-- manual broadcasting, like `[..., null, :]`, and automatic broadcasting of all basic operations 
-- a parser that can execute numpy code with numpy (python) syntax like `np.python\`np.arange(120).reshape(20,3,2).mean(axis=0)\``.
- - all numpy array creation
- - all numpy array operations
+ - A parser that can execute numpy code with numpy (python) syntax like ```x = np`np.arange(120).reshape(20,3,2).mean(axis=0)` ```.
+ - Handling of args/kwargs, e.g. you can use any of `x.mean(-1, true)` or `x.mean({axis: -1, keepdims: true})` or `x.mean(-1, {keepdims: true})`.
 
- - a simple but powerful group by operator
+ - All types of advanced indexing, for example ```y = np`${x}[2, :, mask, ..., indices, -1:-1:-2, -1]` ```, or without parsing, `y = x.index(2, ':', mask, '...', indices, '-1:-1:-2', -1)`.
+ - broadcasting, both manual and automatic for all basic operations.
+
+ - a simple group_by operator.
 
 It does not provide yet:
  - the linear algebra module

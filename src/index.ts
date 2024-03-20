@@ -1,5 +1,13 @@
 //@ts-check
 
+/**
+ * Namespace for the ndarray-js package.
+ * 
+ * np is both the main namespace and a numpy parser: np`...` is equivalent to np.numpy`...`.
+ * @param template 
+ * @param variables 
+ * @returns 
+ */
 const np = function (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) {
   const usage = 'Usage example: np`np.arange(10)+${5}` or np([0,1,2]).';
   if (typeof template == "number") return template;

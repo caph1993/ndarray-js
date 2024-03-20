@@ -7,6 +7,9 @@
     "build": "webpack --config webpack.config.js",
     "test": "cd tests && ts-node tests_october.ts",
     "build-docs": "typedoc",
+    "build-docs-json": "typedoc --json out.json",
+    "build-docs-2": "ts-to-jsdoc -f -p ./tsconfig.json -o sphinx-docs/_ts_to_jsdoc",
+    "build-docs-3": "cd sphinx-docs && make html",
     "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
   },
   "keywords": [
@@ -25,7 +28,6 @@
     "ohm-js": "^17.1.0"
   },
   "devDependencies": {
-    "@mxssfd/typedoc-theme": "^1.1.3",
     "@types/node": "^20.8.3",
     "d3": "^6.0.0",
     "declaration-bundler-webpack-plugin": "^1.0.3",
@@ -33,7 +35,7 @@
     "jsdom": "^22.1.0",
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.1",
-    "typedoc": "^0.25.2",
+    "typedoc": "^0.25.12",
     "typedoc-default-themes": "^0.12.10",
     "typedoc-neo-theme": "^1.1.1",
     "typedoc-plugin-merge-modules": "^5.1.0",

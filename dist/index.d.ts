@@ -1,3 +1,8 @@
+/**
+ * @param {TemplateStringsArray | any[] | number | boolean} template
+ * @param {...any} [variables]
+ * @returns {any}
+ */
 declare const np: {
     (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]): any;
     NDArray: typeof NDArray;

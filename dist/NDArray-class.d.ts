@@ -1,4 +1,6 @@
+/** @typedef {NumberConstructor | BooleanConstructor} DType */
 export type DType = NumberConstructor | BooleanConstructor;
+/** @typedef {NDArray | number | boolean} ArrayOrConstant */
 export type ArrayOrConstant = NDArray | number | boolean;
 declare class NDArray {
     _flat: number[];
@@ -74,13 +76,26 @@ declare class NDArray {
     get flat(): number[];
     set flat(list: number[]);
     get T(): NDArray;
+    /**
+       * @returns {Generator<any, void, unknown>}
+       */
     [Symbol.iterator](): Generator<any, void, unknown>;
     get length(): number;
     copy: () => NDArray;
+    /**
+       * @returns {number}
+       */
     item(): number;
 }
 import { SelfAssignmentOperator } from './NDArray/operators';
 import { BinaryOperatorSignature, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundSignature, UnaryOperatorSignature } from './NDArray/kwargs';
 export { NDArray };
 export default NDArray;
+/** @typedef {NumberConstructor | BooleanConstructor} DType */
+/** @typedef {NDArray | number | boolean} ArrayOrConstant */
+/** @typedef {"+" | "-" | "*" | "/" | "%" | "//" | "**" | "<" | ">" | ">=" | "<=" | "==" | "!=" | " | " | "&" | "^" | "<<" | ">>" | "or" | "and" | "xor" | "max" | "min"} BinaryOpSymbol */
+/** @typedef {"=" | "+=" | "-=" | "*=" | "/=" | "%=" | "//=" | "**=" | "|=" | "&=" | "^=" | "<<=" | ">>=" | "max=" | "min=" | "or=" | "and="} AssignmentOpSymbol */
+/** @typedef {"~" | "not" | "-"} UnaryOpSymbol */
+/** @typedef {import("./NDArray/indexes").Where} Where */
+/** @typedef {Object} Op */
 //# sourceMappingURL=NDArray-class.d.ts.map

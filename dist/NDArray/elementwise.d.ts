@@ -1,4 +1,12 @@
+/** @typedef {import('../NDArray-class')} NDArray */
 import type NDArray from "../NDArray-class";
+/**
+ * @param {NDArray} A
+ * @param {any} func
+ * @param {any} dtype
+ * @param {NDArray} [out=null]
+ * @returns {NDArray}
+ */
 export declare function elementwise(A: NDArray, func: any, dtype: any, out?: NDArray): NDArray;
 export declare const funcs: {
     sign: (A: NDArray, out?: NDArray) => NDArray;
