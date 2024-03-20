@@ -12,7 +12,7 @@ The library implements a large subset of numpy operations (see the documentation
 
 ```js
 // Feature 1. A parsing system that can interpret numpy code as ndarray-js instructions
-x = np`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 2)).mean(axis=0)`
+x = np`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 4)).mean(axis=0)`
 y = np`(${x} * ${x}) / 2`
 
 // Feature 2. Handling of args/kwargs following numpy order
