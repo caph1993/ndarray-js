@@ -13,12 +13,13 @@
  */
 
 
-type NDArrayPrototype = typeof import("./NDArray-class").NDArray;
+type NDArrayPrototype = typeof import("./NDArray").NDArray;
 type npPrototype = typeof import(".").np;
 
-//@ts-ignore
+/** @ignore */
 const _np: npPrototype = null, _array: NDArrayPrototype = null;
 
+/** @ignore */
 export const GLOBALS = {
   NDArray: _array,
   np: _np,

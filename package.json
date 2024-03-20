@@ -6,8 +6,11 @@
   "scripts": {
     "build": "webpack --config webpack.config.js",
     "test": "cd tests && ts-node tests_october.ts",
+    "serve-docs": "cd docs && python -m http.server 8000",
     "build-docs": "typedoc",
-    "build-docs-json": "typedoc --json out.json",
+    "build-docs-4": "ts-docs src/index.ts",
+    "build-docs-6": "api-extractor run --local --verbose",
+    "build-docs-5": "typedoc --json out.json",
     "build-docs-2": "ts-to-jsdoc -f -p ./tsconfig.json -o sphinx-docs/_ts_to_jsdoc",
     "build-docs-3": "cd sphinx-docs && make html",
     "lint": "eslint -f unix \"src/**/*.{ts,tsx}\""
@@ -28,6 +31,10 @@
     "ohm-js": "^17.1.0"
   },
   "devDependencies": {
+    "@microsoft/api-extractor": "^7.43.0",
+    "@mxssfd/typedoc-theme": "^1.1.3",
+    "@ts-docs/default-docs-structure": "^0.4.4",
+    "@ts-docs/ts-docs": "^0.4.4",
     "@types/node": "^20.8.3",
     "d3": "^6.0.0",
     "declaration-bundler-webpack-plugin": "^1.0.3",
@@ -37,8 +44,9 @@
     "ts-node": "^10.9.1",
     "typedoc": "^0.25.12",
     "typedoc-default-themes": "^0.12.10",
-    "typedoc-neo-theme": "^1.1.1",
+    "typedoc-github-wiki-theme": "^1.1.0",
     "typedoc-plugin-merge-modules": "^5.1.0",
+    "typedoc-plugin-missing-exports": "^2.2.0",
     "typedoc-theme-hierarchy": "^4.1.2",
     "typescript": "^5.2.2",
     "uglifyjs-webpack-plugin": "^2.2.0",
