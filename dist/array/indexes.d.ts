@@ -3,7 +3,7 @@ export type RangeSpec = string;
 export type indexSpec = ':' | number | RangeSpec | NDArray | number[];
 export type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
 export type Where = null | GeneralIndexSpec[];
-export declare function index(arr: NDArray, where: Where): number | NDArray;
+export declare function index(arr: NDArray, where: Where): NDArray;
 export declare class AxesIndex {
     shape: any;
     internalShape: any;

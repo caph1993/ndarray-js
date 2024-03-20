@@ -1,6 +1,6 @@
 {
   "name": "ndarray-js",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "",
   "main": "src/index.ts",
   "scripts": {
@@ -47,6 +47,7 @@
     "typedoc-github-wiki-theme": "^1.1.0",
     "typedoc-plugin-merge-modules": "^5.1.0",
     "typedoc-plugin-missing-exports": "^2.2.0",
+    "typedoc-plugin-script-inject": "^1.0.0",
     "typedoc-theme-hierarchy": "^4.1.2",
     "typescript": "^5.2.2",
     "uglifyjs-webpack-plugin": "^2.2.0",

@@ -18,9 +18,9 @@ export function index(arr: NDArray, where: Where) {
   let copy = false;
   if (!(isarray(arr))) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
   const axesIndex = AxesIndex.prototype.parse(arr.shape, where);
-  if (axesIndex.isConstant) {
+  if (axesIndex.isConstant && arr.shape.length == 1) {
     let [index] = axesIndex.indices;
-    return arr.flat[index];
+    return arr.flat[index] as any as NDArray;
   } else if (axesIndex.isSimple) {
     const composition = __compose_simpleIndexes(arr._simpleIndexes, axesIndex);
     const out = new_NDArray(arr._flat, axesIndex.shape, arr.dtype);
@@ -70,8 +70,8 @@ export class AxesIndex {
     return this.axisIndexes.map(idx => idx.indices);
   }
   get size() {
-    if (this._size) return this._size;
-    return this._size = this.axisIndexes.map(idx => idx.size).reduce((a, b) => a * b, 0);
+    if (this._size !== null) return this._size;
+    return this._size = this.axisIndexes.map(idx => idx.size).reduce((a, b) => a * b, 1);
   }
 }
 

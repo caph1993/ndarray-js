@@ -58,6 +58,9 @@ devDependencies:
   typedoc-plugin-missing-exports:
     specifier: ^2.2.0
     version: 2.2.0(typedoc@0.25.12)
+  typedoc-plugin-script-inject:
+    specifier: ^1.0.0
+    version: 1.0.0(typedoc@0.25.12)
   typedoc-theme-hierarchy:
     specifier: ^4.1.2
     version: 4.1.2(typedoc@0.25.12)
@@ -2503,6 +2506,14 @@ packages:
     resolution: {integrity: sha512-2+XR1IcyQ5UwXZVJe9NE6HrLmNufT9i5OwoIuuj79VxuA3eYq+Y6itS9rnNV1D7UeQnUSH8kISYD73gHE5zw+w==}
     peerDependencies:
       typedoc: 0.24.x || 0.25.x
+    dependencies:
+      typedoc: 0.25.12(typescript@5.2.2)
+    dev: true
+
+  /typedoc-plugin-script-inject@1.0.0(typedoc@0.25.12):
+    resolution: {integrity: sha512-dxzZbuUzyJHhSxf5FGzPz6DW3Hys3pXppwgZCFW7Jne9k0cZ8g4Tll/J5FAbIJiqSgsk/Gs17JtzT2ZyriWfMw==}
+    peerDependencies:
+      typedoc: ^0.24.8
     dependencies:
       typedoc: 0.25.12(typescript@5.2.2)
     dev: true

@@ -25,6 +25,14 @@ export function binary_operation(A, B, func) {
     }
   }
 };
+export function extend<T extends any[]>(listA: T, listB: any[], chunkSize = 10000) {
+  let i = 0;
+  for (let i = 0; i < listB.length; i += chunkSize) {
+    i = Math.min(i, listB.length);
+    listA.push(...listB.slice(i, i + chunkSize));
+  }
+  return listA;
+}
 
 export function ravel(A) {
   // Flatten js array
@@ -40,7 +48,7 @@ export function ravel(A) {
       seen[depth - 10000] = a;
     }
     if (Array.isArray(a)) {
-      q.push(...a.map(v => [v, depth + 1]));
+      extend(q, a.map(v => [v, depth + 1]));
       continue;
     }
     flat.push(a);

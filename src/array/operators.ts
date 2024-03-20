@@ -6,6 +6,7 @@ import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray";
 import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorator, kwDecorators } from './kwargs';
+import { extend } from '../utils-js';
 
 export type ArrayOrConstant = NDArray | number | boolean;
 type Index = indexes.Where;
@@ -152,7 +153,7 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, fun
   const outJS = tolist(cpy);
   while (tgtJS.length) tgtJS.pop();
   // @ts-ignore
-  tgtJS.push(...outJS);
+  extend(tgtJS, outJS);
 }
 
 

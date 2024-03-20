@@ -1,10 +1,8 @@
 //@ts-check
 
 /**
- * Namespace for the ndarray-js package.
+ * Parser and main namespace for the ndarray-js package.
  * <script src="https://cdn.jsdelivr.net/npm/ndarray-js@latest/dist/index.js"></script>
- * @remarks
- * `np` is both the main namespace and a numpy parser: ``np`...` `` is equivalent to ``np.numpy`...` ``.
  */
 const np = function (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) {
   const usage = 'Usage example: np`np.arange(10)+${5}` or np([0,1,2]).';

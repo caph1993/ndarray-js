@@ -13,7 +13,7 @@ declare class NDArray {
     /** @category Attributes @readonly */
     dtype: DType;
     /** @category Indexing / slicing */
-    index: (...where: Where) => number | NDArray;
+    index: (...where: Where) => NDArray;
     /** @ignore */
     modules: typeof import("./array").modules;
     /** @category Reducers */
@@ -96,37 +96,37 @@ declare class NDArray {
     bitwise_not: UnaryOperatorMethod;
     /** @category Unary logical operators */
     logical_not: UnaryOperatorMethod;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     add_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     subtract_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     multiply_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     divide_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     mod_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     pow_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     divide_int_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     maximum_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     minimum_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     bitwise_and_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     bitwise_or_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     logical_or_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     bitwise_shift_right_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     bitwise_shift_left_assign: SelfAssignmentOperator;
-    /** @category Assignment operators */
+    /** @category Operators with assignment */
     logical_and_assign: SelfAssignmentOperator;
     /** @category Transformations */
     ravel: () => NDArray;
@@ -147,8 +147,9 @@ declare class NDArray {
     _simpleIndexes: import("./array/indexes").AxesIndex | null;
     /** @category Attributes @readonly */
     get size(): number;
-    get flat(): number[];
     /** @category Attributes @readonly */
+    get flat(): number[];
+    /** @internal */
     set flat(list: number[]);
     /**
      * @category Transformations
@@ -160,7 +161,7 @@ declare class NDArray {
      * For 1D arrays, yields numbers.
      * For multidimensional arrays, yields array views.
      */
-    [Symbol.iterator](): Generator<number | NDArray, void, unknown>;
+    [Symbol.iterator](): Generator<NDArray, void, unknown>;
     /** @category Attributes @readonly */
     get length(): number;
     /** @category Transformations */

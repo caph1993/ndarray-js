@@ -2,7 +2,7 @@
 
 import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts, reshape } from './basic';
 import { fromlist } from './js-interface';
-import { allEq } from '../utils-js';
+import { allEq, extend } from '../utils-js';
 import { DType } from '../NDArray';
 import type NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
@@ -126,7 +126,7 @@ export function concatenate(arrays: NDArray[], axis: number | null = null) {
     if (!allEq(arr.shape.filter((_, i) => i != axis), shapeIn.filter((_, i) => i != axis))) throw new Error(`Inconsistent input shape ${shapeIn} with respect to ${arr.shape.map((v, i) => i == axis ? '?' : v)}`);
     shape[0] += arr.shape[axis];
     arr = axis == 0 ? arr : swapAxes(arr, axis, 0);
-    flat.push(...arr.flat);
+    extend(flat, arr.flat);
   }
   // TO DO: infer or expect dtype here:
   const out = new_NDArray(flat, shape, arrays[0].dtype);
@@ -148,6 +148,7 @@ export function stack(arrays: NDArray[], axis: number = 0) {
   const shapeBroadcast = [...shapeIn.slice(0, axis), 1, ...shapeIn.slice(axis)];
   const bArrays = [];
   for (let arr of arrays) {
+    console.log('SHAPE', arr.shape, arr.size);
     if (!allEq(arr.shape, shapeIn)) throw new Error(`Inconsistent input shape ${arr.shape} with respect to ${arr.shape}`);
     bArrays.push(reshape(arr, shapeBroadcast));
   }

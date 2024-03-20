@@ -20,7 +20,7 @@ class NDArray {
   dtype: DType;
 
   /** @category Indexing / slicing */
-  index: (...where: Where) => number | NDArray;
+  index: (...where: Where) => NDArray;
 
   /** @ignore */
   modules: typeof import("./array").modules;
@@ -111,37 +111,37 @@ class NDArray {
   /** @category Unary logical operators */
   logical_not: UnaryOperatorMethod;
 
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   add_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   subtract_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   multiply_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   divide_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   mod_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   pow_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   divide_int_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   maximum_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   minimum_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   bitwise_and_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   bitwise_or_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   logical_or_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   bitwise_shift_right_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   bitwise_shift_left_assign: SelfAssignmentOperator;
-  /** @category Assignment operators */
+  /** @category Operators with assignment */
   logical_and_assign: SelfAssignmentOperator;
 
   /** @category Transformations */
@@ -177,12 +177,13 @@ class NDArray {
   get size() {
     return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;
   }
+  /** @category Attributes @readonly */
   get flat() {
     if (this._simpleIndexes == null) return this._flat;
     const indices = this._simpleIndexes.indices;
     return indices.map(i => this._flat[i]);
   }
-  /** @category Attributes @readonly */
+  /** @internal */
   set flat(list) {
     if (list.length != this.size)
       throw new Error(`Length mismatch. Can't write ${list.length} values into ${this.size} available positions.`);

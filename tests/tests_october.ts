@@ -66,12 +66,14 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 // Unit tests:
 
-var XY = np.random.randn([5000, 2])
+var XY = np.random.randn([500000, 2])
 var norm = np.norm(XY, { axis: -1, keepdims: true });
+console.log(np.allclose(norm, XY.pow(2).sum(-1).index('...', 'None').pow(0.5)));
 var XY_unit = XY.op('/', norm);
-//var group = np.greater(XY.index(':', 0), XY.index(':', 1));
-//var group = np.atan(XY.index(':', 1).divide(XY.index(':', 0))).greater(45/180*np.pi);
-var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180 / np.pi).abs().greater(10);
+var angle = 45; // <-- rotate me
+var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180 / np.pi).add(90 - angle).abs().greater(90);
+np.stack([norm.index(':', 0), XY_unit.norm(-1)], -1).index(`0:5`);
+
 
 
 npTest`np.arange(120)`

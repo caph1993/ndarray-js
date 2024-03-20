@@ -67,7 +67,7 @@ export function reshape(A: NDArray, shape_or_first: number | number[], ...more_s
   A = asarray(A);
   let shape: number[];
   if (!more_shape.length) shape = parse_shape(shape_or_first);
-  else shape = [shape_or_first, ...more_shape].map(as_number)
+  else shape = [shape_or_first, ...more_shape].map(as_number);
   const n = A.size;
   // Find -1
   const inferredIndex = shape.indexOf(-1);
@@ -77,6 +77,11 @@ export function reshape(A: NDArray, shape_or_first: number | number[], ...more_s
       throw new Error("Invalid shape. The total number of elements must match the product of the known dimensions.");
     }
     shape[inferredIndex] = n / known;
+  } else {
+    let m = shape.reduce((a, b) => a * b, 1);
+    if (n !== m) {
+      throw new Error(`Invalid target shape [${shape}] from source [${A.shape}]. Expected size ${n}. Found ${m}.`);
+    }
   }
   return new_NDArray(A.flat, shape, A.dtype);
 };

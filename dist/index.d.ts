@@ -1,8 +1,6 @@
 /**
- * Namespace for the ndarray-js package.
+ * Parser and main namespace for the ndarray-js package.
  * <script src="https://cdn.jsdelivr.net/npm/ndarray-js@latest/dist/index.js"></script>
- * @remarks
- * `np` is both the main namespace and a numpy parser: ``np`...` `` is equivalent to ``np.numpy`...` ``.
  */
 declare const np: {
     (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]): any;
@@ -21,31 +19,31 @@ declare const np: {
     /** @category Casting and reshaping */
     asarray: typeof import("./array/_globals").asarray;
     /** @category Reducers */
-    sum: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    sum: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    product: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    product: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    prod: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    prod: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    any: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => boolean | NDArray;
+    any: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    all: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => boolean | NDArray;
+    all: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    max: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    max: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    min: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    min: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    argmax: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    argmax: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    argmin: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    argmin: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    mean: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    mean: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    norm: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceNormKwargs, keepdims?: boolean | import("./array/kwargs").ReduceNormKwargs, ord?: number | import("./array/kwargs").ReduceNormKwargs) => number | NDArray;
+    norm: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceNormKwargs, keepdims?: boolean | import("./array/kwargs").ReduceNormKwargs, ord?: number | import("./array/kwargs").ReduceNormKwargs) => NDArray;
     /** @category Reducers */
-    var: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => number | NDArray;
+    var: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
     /** @category Reducers */
-    std: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceStdKwargs, keepdims?: boolean | import("./array/kwargs").ReduceStdKwargs, ddof?: number | import("./array/kwargs").ReduceStdKwargs) => number | NDArray;
+    std: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceStdKwargs, keepdims?: boolean | import("./array/kwargs").ReduceStdKwargs, ddof?: number | import("./array/kwargs").ReduceStdKwargs) => NDArray;
     /** @category Transformations */
     transpose: typeof import("./array/transform").transpose;
     /** @category Transformations */
@@ -153,7 +151,7 @@ declare const np: {
     negative: (arr: number | boolean | NDArray, out?: NDArray) => NDArray;
     /** @category Elementwise operators */
     round: (arr: number | boolean | NDArray, decimals?: number) => NDArray;
-    /** @category Main */
+    /** @category Main @namespace*/
     modules: {
         constructors: typeof import("./modules/constructors");
         grammar: typeof import("./modules/grammar");

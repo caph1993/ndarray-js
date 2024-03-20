@@ -4,16 +4,16 @@ import { asarray, isarray } from "./_globals";
 export type AxisArg = null | number;
 
 export type ReduceKwargs = { axis?: AxisArg, keepdims?: boolean };
-export type ReduceSignature<T = number> = (axis?: AxisArg | ReduceKwargs, keepdims?: boolean | ReduceKwargs) => NDArray | T;
+export type ReduceSignature<T = number> = (axis?: AxisArg | ReduceKwargs, keepdims?: boolean | ReduceKwargs) => NDArray;
 export type ReduceSignatureBool = ReduceSignature<boolean>;
 export type ReduceParsedKwargs = [AxisArg, boolean];
 
 export type ReduceStdKwargs = { axis?: number, keepdims?: boolean, ddof?: number };
-export type ReduceStdSignature = (axis?: AxisArg | ReduceStdKwargs, keepdims?: boolean | ReduceStdKwargs, ddof?: number | ReduceStdKwargs) => NDArray | number;
+export type ReduceStdSignature = (axis?: AxisArg | ReduceStdKwargs, keepdims?: boolean | ReduceStdKwargs, ddof?: number | ReduceStdKwargs) => NDArray;
 export type ReduceStdParsedKwargs = [AxisArg, boolean, number];
 
 export type ReduceNormKwargs = { axis?: number, keepdims?: boolean, ord?: number };
-export type ReduceNormSignature = (axis?: AxisArg | ReduceNormKwargs, keepdims?: boolean | ReduceNormKwargs, ord?: number | ReduceNormKwargs) => NDArray | number;
+export type ReduceNormSignature = (axis?: AxisArg | ReduceNormKwargs, keepdims?: boolean | ReduceNormKwargs, ord?: number | ReduceNormKwargs) => NDArray;
 export type ReduceNormParsedKwargs = [AxisArg, boolean, number];
 
 

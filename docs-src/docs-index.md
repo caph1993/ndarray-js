@@ -16,6 +16,9 @@
   }
 </script>
 <style>
+  .tsd-page-toolbar{
+    z-index: 5; /* top bar on top of codemirror code and gutters */
+  }
   .hbox {
     display: flex;
     flex-direction: row;
@@ -35,6 +38,42 @@
   .justify-start {
     justify-content: flex-start;
   }
+  /* Define keyframes for the gliding light effect */
+@keyframes gliding-light {
+  0% { box-shadow: 0px 0px 10px rgba(255, 255, 255, 0.8); }
+  50% { box-shadow: 150px 0px 200px rgba(255, 255, 255, 0.2); }
+  100% { box-shadow: 300px 0px 300px rgba(255, 255, 255, 0); }
+}
+/* Apply the gliding light animation to the button */
+.gliding-light-button {
+  animation: gliding-light 3s;
+}
+/* Optional: You can add hover effect */
+.gliding-light-button:hover {
+  background-color: #0056b3; /* Change color on hover */
+}
+/* Apply the shading animation to the button */
+ .execute-button {
+  padding: 10px 20px;
+  border: none;
+  background-color: #007bff; /* Change this to your desired button color */
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  }
+ /* Optional: You can add hover effect */
+ .execute-button:hover {
+  background-color: #0056b3; /* Change color on hover */
+}
+/* Define keyframes for the shading effect */
+@keyframes shade {
+  0% { box-shadow: 0px 0px 0px rgba(0, 0, 0, 0.5); }
+  50% { box-shadow: 8px 0px 15px rgba(0, 0, 0, 0.5); }
+  100% { box-shadow: 16px 0px 30px rgba(0, 0, 0, 0.5); }
+}
+.shaded-button {
+  animation: shade 2s infinite alternate; /* Apply the shading animation */
+}
 </style>
 <div class="vbox" style="width:100%">
 <!-- 
@@ -52,13 +91,41 @@
     })();
   </script>
 </div> -->
-<h3>Interactive demo (modify at will):</h3>
-<div style="border: solid 1px black; height: fit-content;">
-<textarea id="codeInput" style="height: fit-content !important;">
+<div style="border: solid 1px black;">
+<textarea id="codeInput">
   </textarea>
-  <script>
-    (()=>{
-      ;$('#codeInput').text(`
+</div>
+<div class="hbox" style="width:100%">
+  <div></div>
+  <button class="execute-button" style="padding:1em; margin:1em; font-size: large;">Execute</button>
+  <div></div>
+</div>
+</div>
+</div>
+<div class="vbox justify-start">
+<div class="vbox">
+  <h4>Errors:</h4>
+  <textarea disabled="true" id="stderr" cols="50" style="border:none; min-height: 20vh;">
+    (error logs will appear here)
+  </textarea>
+</div>
+<div class="vbox">
+  <h4>Console output:</h4>
+  <textarea disabled="true" id="stdout" cols="50" style="border:none; min-height: 20vh;">
+    (console.log logs will appear here)
+  </textarea>
+  <h4>SVG outputs:</h4>
+  <div id="svg-outputs">
+  </div>
+</div>
+</div>
+<script>
+  ;$('#stderr').parent().hide();
+  ;$('#stdout').parent().hide();
+  ;$('.tsd-panel-group.tsd-index-group').html('');
+  ;$(document).ready(()=>{
+    ;$('.tsd-panel-group.tsd-index-group').html('');
+    let initialCode = `
 // Part 1: data creation
 // (ENTER)
 var XY = np.random.randn([5000, 2])
@@ -88,7 +155,10 @@ var svg = Plot.plot({
 grid: true,
 color: {scheme: "Observable10"},
 marks: [
-  Plot.rectY(XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})), Plot.binX({y2: "count"}, {x: "x", fill:"group", mixBlendMode: "screen"})),
+  Plot.rectY(
+    XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})), Plot.binX({y2: "count"},
+    {x: "x", fill:"group", mixBlendMode: "screen"})
+  ),
 ]
 });
 document.querySelector('#svg-outputs').append(svg);
@@ -101,54 +171,34 @@ var svg = Plot.plot({
 grid: true,
 color: {scheme: "Observable10"},
 marks: [
-  Plot.rectY(XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})), Plot.binX({y: "count"}, {x: "x", fill:"group", mixBlendMode: "screen"})),
+  Plot.rectY(
+    XY.tolist().map(([x,y], i)=>({x, y, group:group.index(i)})),
+    Plot.binX({y: "count"}, {x: "x", fill:"group", mixBlendMode: "screen"}),
+  ),
   Plot.dot(np.stack([x, y], axis=-1).tolist().map(([x,y], i)=>({x, y})), {x: "x", y: "y", r:1}),
 ]
 });
-document.querySelector('#svg-outputs').append(svg);`.replace(new RegExp('// \\(ENTER\\)', 'g'), ''));
-})()
-    </script>
-</div>
-<div class="hbox" style="width:100%">
-  <div></div>
-  <button id="execute-button" style="padding:1em; margin:1em; font-size: large;">Execute</button>
-  <div></div>
-</div>
-</div>
-</div>
-<div class="vbox justify-start">
-<div class="vbox">
-  <h4>Errors:</h4>
-  <textarea disabled="true" id="stderr" cols="50" style="border:none; min-height: 20vh;">
-    (error logs will appear here)
-  </textarea>
-</div>
-<div class="vbox">
-  <h4>Console output:</h4>
-  <textarea disabled="true" id="stdout" cols="50" style="border:none; min-height: 20vh;">
-    (console.log logs will appear here)
-  </textarea>
-  <h4>SVG outputs:</h4>
-  <div id="svg-outputs">
-  </div>
-</div>
-</div>
-<script>
-  ;$('#stderr').parent().hide();
-  ;$('#stdout').parent().hide();
-  var codeInput = document.getElementById("codeInput");
-  var codeEditor = CodeMirror.fromTextArea(codeInput, {
-    mode: "javascript",
-    lineNumbers: true,
-    theme: "default",
-    autoCloseBrackets: true,
-    matchBrackets: true,
-    height: '60vh', 
-  });
-  ;
-  (()=>{
+document.querySelector('#svg-outputs').append(svg);`.replace(new RegExp('// \\(ENTER\\)', 'g'), '');
+    var codeInput = document.getElementById("codeInput");
+    // ;$('#codeInput').text(initialCode);
+    var codeEditor = CodeMirror.fromTextArea(codeInput, {
+      mode: "javascript",
+      lineNumbers: true,
+      theme: "default",
+      autoRefresh:true,
+      autoCloseBrackets: true,
+      matchBrackets: true,
+      height: '60vh', 
+    });
+    codeEditor.setValue(initialCode);
+    codeEditor.refresh();
+    setTimeout(function() {codeEditor.refresh();}, 200);
+    // setTimeout(()=>$('div.CodeMirror-scroll').trigger('click'), 1000);
     let first=true;
-    ;$('#execute-button').on('click', ()=>{
+    setTimeout(()=>$('.execute-button').addClass('gliding-light-button'), 1500);
+    setTimeout(()=>$('.execute-button').addClass('shaded-button'), 1500+5000);
+    ;$('.execute-button').on('click', ()=>{
+      ;$('.execute-button').removeClass('shaded-button');
       var code = codeEditor.getValue();
       ;$('#stdout').parent().show();
       ;$('#svg-outputs').html('');
@@ -173,5 +223,5 @@ document.querySelector('#svg-outputs').append(svg);`.replace(new RegExp('// \\(E
       }
       first=false;
     });
-  })();
+  });
 </script>
