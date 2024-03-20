@@ -226,15 +226,15 @@ document.querySelector('#svg-outputs').append(svg);`.replace(new RegExp('// \\(E
           throw e;
         } finally{
           ;$('.execute-button').prop('disabled', false);
+          if(first){
+          window.scrollBy({
+            top: 500,
+            behavior: 'smooth' // Smooth scrolling animation
+          });
+          }
+          first=false;
         }
       }, 1);
-      if(first){
-      window.scrollBy({
-        top: 500,
-        behavior: 'smooth' // Smooth scrolling animation
-      });
-      }
-      first=false;
     });
   });
 </script>
