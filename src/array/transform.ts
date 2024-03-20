@@ -148,7 +148,6 @@ export function stack(arrays: NDArray[], axis: number = 0) {
   const shapeBroadcast = [...shapeIn.slice(0, axis), 1, ...shapeIn.slice(axis)];
   const bArrays = [];
   for (let arr of arrays) {
-    console.log('SHAPE', arr.shape, arr.size);
     if (!allEq(arr.shape, shapeIn)) throw new Error(`Inconsistent input shape ${arr.shape} with respect to ${arr.shape}`);
     bArrays.push(reshape(arr, shapeBroadcast));
   }

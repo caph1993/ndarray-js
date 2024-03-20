@@ -66,6 +66,8 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 // Unit tests:
 
+np`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 5)).mean(axis=0)`
+
 var XY = np.random.randn([500000, 2])
 var norm = np.norm(XY, { axis: -1, keepdims: true });
 console.log(np.allclose(norm, XY.pow(2).sum(-1).index('...', 'None').pow(0.5)));
