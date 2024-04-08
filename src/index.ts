@@ -94,13 +94,14 @@ np.transpose = transform.transpose;
 /** @category Transformations */
 np.apply_along_axis = transform.apply_along_axis;
 /** @category Transformations */
-np.sort = transform.sort;
+np.sort = transform.kw_exported.sort;
 /** @category Transformations */
 np.concatenate = transform.concatenate;
 /** @category Transformations */
 np.stack = transform.stack;
 
 const operators = NDArray.prototype.modules.operators;
+
 /** @category Binary operators */
 np.add = operators.kw_op_binary["+"].as_function;
 /** @category Binary operators */
@@ -146,6 +147,9 @@ np.logical_or = operators.kw_op_binary["or"].as_function;
 /** @category Binary operators */
 np.logical_and = operators.kw_op_binary["and"].as_function;
 np.atan2 = operators.atan2;
+
+
+np.assign = operators.op_assign['='];
 
 np.allclose = operators.allclose;
 np.isclose = operators.isclose;
@@ -193,6 +197,10 @@ np.acosh = ew.funcs.acosh;
 np.asinh = ew.funcs.asinh;
 /** @category Elementwise operators */
 np.atanh = ew.funcs.atanh;
+/** @category Elementwise operators */
+np.floor = ew.funcs.floor;
+/** @category Elementwise operators */
+np.ceil = ew.funcs.ceil;
 
 /** @category Elementwise operators */
 np.abs = ew.kw_ops.abs.as_function;
@@ -230,6 +238,13 @@ np.linspace = np.modules.constructors.linspace;
 /** @category Constructors */
 np.geomspace = np.modules.constructors.geomspace;
 
+
+np.take = np.modules.indexing.take;
+np.where = np.modules.indexing.where;
+np.quantile = np.modules.statistics.kw_exported.quantile;
+// np.percentile = np.modules.statistics.kw_exported.percentile;
+// np.median = np.modules.statistics.kw_exported.median;
+// np.average = np.modules.statistics.kw_exported.average;
 
 
 /** @category Math constants */

@@ -6,6 +6,7 @@ import { allEq, extend } from '../utils-js';
 import { DType } from '../NDArray';
 import type NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
+import { AxisArg, Parsed_axis, Signature_axis, kwDecorators } from './kwargs';
 
 export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: DType = Number): ArrayOrConstant {
   arr = asarray(arr);
@@ -39,14 +40,17 @@ export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: D
   return number_collapse(out);
 }
 
-
-export function sort(A: NDArray, axis = -1) {
-  ({ axis } = Object.assign({ axis }, this));
+const cmp_nan_at_the_end = (a: number, b: number) => {
+  // https://stackoverflow.com/a/56265258/3671939
   //@ts-ignore
-  if (axis instanceof Object) ({ axis } = axis);
+  return a - b || isNaN(a) - isNaN(b) || Object.is(b, -0) - Object.is(a, -0);
+}
+
+export function sort(A: NDArray, axis: AxisArg) {
+  if (axis == null) return sort(A.reshape(-1), 0);
   return apply_along_axis(A, axis, (arr) => {
     const cpy = [...arr];
-    cpy.sort((a, b) => a - b);
+    cpy.sort(cmp_nan_at_the_end)
     return cpy;
   }, A.dtype);
 }
@@ -153,3 +157,11 @@ export function stack(arrays: NDArray[], axis: number = 0) {
   }
   return concatenate(bArrays, axis);
 }
+
+
+export const kw_exported = {
+  sort: kwDecorators<Signature_axis, Parsed_axis>({
+    defaults: [["axis", null]],
+    func: sort,
+  }).as_function,
+};

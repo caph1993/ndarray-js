@@ -112,37 +112,37 @@ class NDArray {
   logical_not: UnaryOperatorMethod;
 
   /** @category Operators with assignment */
-  assign: SelfAssignmentOperator;
+  assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  add_assign: SelfAssignmentOperator;
+  add_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  subtract_assign: SelfAssignmentOperator;
+  subtract_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  multiply_assign: SelfAssignmentOperator;
+  multiply_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  divide_assign: SelfAssignmentOperator;
+  divide_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  mod_assign: SelfAssignmentOperator;
+  mod_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  pow_assign: SelfAssignmentOperator;
+  pow_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  divide_int_assign: SelfAssignmentOperator;
+  divide_int_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  maximum_assign: SelfAssignmentOperator;
+  maximum_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  minimum_assign: SelfAssignmentOperator;
+  minimum_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  bitwise_and_assign: SelfAssignmentOperator;
+  bitwise_and_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  bitwise_or_assign: SelfAssignmentOperator;
+  bitwise_or_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  logical_or_assign: SelfAssignmentOperator;
+  logical_or_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  bitwise_shift_right_assign: SelfAssignmentOperator;
+  bitwise_shift_right_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  bitwise_shift_left_assign: SelfAssignmentOperator;
+  bitwise_shift_left_assign: AssignmentOperatorMethod;
   /** @category Operators with assignment */
-  logical_and_assign: SelfAssignmentOperator;
+  logical_and_assign: AssignmentOperatorMethod;
 
   /** @category Transformations */
   ravel: () => NDArray;
@@ -230,9 +230,8 @@ import { GLOBALS } from './_globals';
 GLOBALS.NDArray = NDArray;
 
 import { modules } from "./array";
-import { SelfAssignmentOperator } from './array/operators';
 // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-import { AxisArg, BinaryOperatorMethod, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature, UnaryOperatorMethod } from './array/kwargs';
+import { AxisArg, BinaryOperatorMethod, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature, UnaryOperatorMethod, AssignmentOperatorMethod } from './array/kwargs';
 NDArray.prototype.modules = modules;
 
 
@@ -302,12 +301,6 @@ NDArray.prototype.norm = modules.reduce.kw_reducers.norm.as_method;
 // ==============================
 
 
-function binaryOpDecorator(func: import("./array/operators").BinaryOperator): import("./array/operators").SelfBinaryOperator {
-  return function (other, out = null) {
-    return func(this, other, out);
-  }
-}
-
 NDArray.prototype.add = modules.operators.kw_op_binary["+"].as_method;
 NDArray.prototype.subtract = modules.operators.kw_op_binary["-"].as_method;
 NDArray.prototype.multiply = modules.operators.kw_op_binary["*"].as_method;
@@ -347,29 +340,25 @@ NDArray.prototype.isclose = modules.operators.isclose;
 NDArray.prototype.allclose = modules.operators.allclose;
 
 
-function assignOpDecorator(func: import("./array/operators").AssignmentOperator): import("./array/operators").SelfAssignmentOperator {
-  //@ts-ignore
-  return function (...args) { return func(this, ...args); }
-}
-NDArray.prototype.assign = assignOpDecorator(modules.operators.op_assign["="]);
-NDArray.prototype.add_assign = assignOpDecorator(modules.operators.op_assign["+="]);
-NDArray.prototype.subtract_assign = assignOpDecorator(modules.operators.op_assign["-="]);
-NDArray.prototype.multiply_assign = assignOpDecorator(modules.operators.op_assign["*="]);
-NDArray.prototype.divide_assign = assignOpDecorator(modules.operators.op_assign["/="]);
-NDArray.prototype.mod_assign = assignOpDecorator(modules.operators.op_assign["%="]);
-NDArray.prototype.divide_int_assign = assignOpDecorator(modules.operators.op_assign["//="]);
-NDArray.prototype.pow_assign = assignOpDecorator(modules.operators.op_assign["**="]);
+NDArray.prototype.assign = modules.operators.kw_op_assign["="].as_method;
+NDArray.prototype.add_assign = modules.operators.kw_op_assign["+="].as_method;
+NDArray.prototype.subtract_assign = modules.operators.kw_op_assign["-="].as_method;
+NDArray.prototype.multiply_assign = modules.operators.kw_op_assign["*="].as_method;
+NDArray.prototype.divide_assign = modules.operators.kw_op_assign["/="].as_method;
+NDArray.prototype.mod_assign = modules.operators.kw_op_assign["%="].as_method;
+NDArray.prototype.divide_int_assign = modules.operators.kw_op_assign["//="].as_method;
+NDArray.prototype.pow_assign = modules.operators.kw_op_assign["**="].as_method;
 
-NDArray.prototype.maximum_assign = assignOpDecorator(modules.operators.op_assign["↑="]);
-NDArray.prototype.minimum_assign = assignOpDecorator(modules.operators.op_assign["↓="]);
+NDArray.prototype.maximum_assign = modules.operators.kw_op_assign["max="].as_method;
+NDArray.prototype.minimum_assign = modules.operators.kw_op_assign["min="].as_method;
 
-NDArray.prototype.bitwise_or_assign = assignOpDecorator(modules.operators.op_assign["|="]);
-NDArray.prototype.bitwise_and_assign = assignOpDecorator(modules.operators.op_assign["&="]);
-NDArray.prototype.bitwise_shift_left_assign = assignOpDecorator(modules.operators.op_assign["<<="]);
-NDArray.prototype.bitwise_shift_right_assign = assignOpDecorator(modules.operators.op_assign[">>="]);
+NDArray.prototype.bitwise_or_assign = modules.operators.kw_op_assign["|="].as_method;
+NDArray.prototype.bitwise_and_assign = modules.operators.kw_op_assign["&="].as_method;
+NDArray.prototype.bitwise_shift_left_assign = modules.operators.kw_op_assign["<<="].as_method;
+NDArray.prototype.bitwise_shift_right_assign = modules.operators.kw_op_assign[">>="].as_method;
 
-NDArray.prototype.logical_or_assign = assignOpDecorator(modules.operators.op_assign["or="]);
-NDArray.prototype.logical_and_assign = assignOpDecorator(modules.operators.op_assign["and="]);
+NDArray.prototype.logical_or_assign = modules.operators.kw_op_assign["or="].as_method;
+NDArray.prototype.logical_and_assign = modules.operators.kw_op_assign["and="].as_method;
 
 
 

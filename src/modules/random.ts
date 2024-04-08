@@ -63,7 +63,7 @@ export function shuffled(arr) {
   }
   const perm = _shuffled(Array.from({ length: arr.length }, (_, i) => i));
   const out = np.empty(arr.shape, arr.dtype);
-  for (let i = 0; i < arr.length; i++) out.assign([i], arr.index(perm[i]));
+  for (let i = 0; i < arr.length; i++) out.assign(arr.index(perm[i]), i);
   return out;
 }
 

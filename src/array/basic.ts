@@ -42,6 +42,7 @@ export function as_number(obj) {
 // Reshape and shape shifts for indexing
 // ====================
 
+
 export function shape_shifts(shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
   const shifts = Array.from({ length: shape.length }, (_) => 0);
@@ -50,7 +51,10 @@ export function shape_shifts(shape) {
   return shifts;
 }
 
-export function parse_shape(list: number | number[] | NDArray) {
+
+export type Shape = number | number[] | NDArray;
+
+export function parse_shape(list: Shape) {
   if (typeof list == "number") return [list];
   if (isarray(list)) {
     if (list.shape.length > 1) {
@@ -63,7 +67,7 @@ export function parse_shape(list: number | number[] | NDArray) {
 }
 
 
-export function reshape(A: NDArray, shape_or_first: number | number[], ...more_shape: number[]) {
+export function reshape(A: NDArray, shape_or_first: Shape, ...more_shape: number[]) {
   A = asarray(A);
   let shape: number[];
   if (!more_shape.length) shape = parse_shape(shape_or_first);
@@ -95,14 +99,14 @@ export function ravel(A: NDArray) {
 // Constructors
 // ====================
 
-export function new_from(shape, f: any = undefined, dtype: DType = Number) {
+export function new_from(shape: Shape, f: any = undefined, dtype: DType = Number) {
   shape = parse_shape(shape);
   const size = shape.reduce((a, b) => a * b, 1);
   const flat: number[] = Array.from({ length: size }, f);
   return new_NDArray(flat, shape, dtype);
 };
 
-export function empty(shape, dtype: DType = Number) {
+export function empty(shape: Shape, dtype: DType = Number) {
   return new_from(shape, (_) => undefined, dtype)
 };
 

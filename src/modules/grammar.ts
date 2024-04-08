@@ -87,6 +87,7 @@ ArrayGrammar {
   SliceTerm
     = SliceRange
     | (":" | "..." | "None") -- constant
+    | ("True" | "False") -- boolean_constant
     | JsArray
     | ArithmeticLogicExp
   
@@ -153,6 +154,9 @@ export const __makeSemantics = () => {
     },
     SliceTerm_constant($x) {
       return $x.sourceString;
+    },
+    SliceTerm_boolean_constant($x) {
+      return $x.sourceString === "True";
     },
     Arr_call($name, $names, _, $callArgs) {
       let name = $name.sourceString + $names.sourceString;

@@ -1,12 +1,12 @@
 //@ts-check
 import * as indexes from './indexes';
-import * as elementwise from './elementwise';
-import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts } from './basic';
+import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shifts } from './basic';
 import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray";
-import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorator, kwDecorators } from './kwargs';
+import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorator, kwDecorators, AssignmentOperatorParsedKwargs, AssignmentOperatorMethod } from './kwargs';
 import { extend } from '../utils-js';
+import { Where } from './indexes';
 
 export type ArrayOrConstant = NDArray | number | boolean;
 type Index = indexes.Where;
@@ -157,21 +157,14 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, fun
 }
 
 
-export type AssignmentOperator = { (tgt: NDArray, src: ArrayOrConstant): NDArray; (tgt: NDArray, where: Index, src: ArrayOrConstant): NDArray; }
-export type SelfAssignmentOperator = { (other: ArrayOrConstant): NDArray; (where: Index, other: ArrayOrConstant): NDArray; }
+// export type AssignmentOperator = { (tgt: NDArray, src: ArrayOrConstant): NDArray; (tgt: NDArray, where: Index, src: ArrayOrConstant): NDArray; }
+// export type SelfAssignmentOperator = { (other: ArrayOrConstant): NDArray; (where: Index, other: ArrayOrConstant): NDArray; }
 
 
-export function __make_assignment_operator(dtype, func): AssignmentOperator {
-  function operator(...args) {
-    if (isarray(this)) return operator.bind(_NDArray.prototype)(this, ...args);
-    if (args.length < 2) throw new Error(`Not enough arguments for assignment operator`);
-    if (args.length > 3) throw new Error(`Too many arguments for assignment operator`);
-    let tgt = args[0];
-    let src = args[args.length == 3 ? 2 : 1];
-    let where = args.length == 3 ? args[1] : null;
-    return assign_operation(tgt, src, where, func, dtype);
+export function __make_assignment_operator(dtype, func) {
+  return function operator(a: NDArray, values: NDArray, ...where: Where) {
+    return assign_operation(a, values, where, func, dtype);
   }
-  return operator;
 }
 
 export const op_assign = {
@@ -196,8 +189,8 @@ export const op_assign = {
 };
 
 
-op_assign["↑="] = op_assign["max="];
-op_assign["↓="] = op_assign["min="];
+// op_assign["↑="] = op_assign["max="];
+// op_assign["↓="] = op_assign["min="];
 
 
 // ====================================
@@ -234,8 +227,8 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 
 //op_binary["≈≈"] = op[MyArray.prototype.isclose,
 
-function mk_kw_operator(op) {
-  return kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
+function mk_kw_operator<T = number>(op: BinaryOperator) {
+  return kwDecorators<BinaryOperatorMethod<T>, BinaryOperatorParsedKwargs>({
     defaults: [["other", undefined, asarray], ["out", null]],
     func: op,
   })
@@ -243,94 +236,28 @@ function mk_kw_operator(op) {
 
 export const kw_op_binary = {
   "+": mk_kw_operator(op_binary["+"]),
-  "-": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["-"],
-  }),
-  "*": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["*"],
-  }),
-  "/": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["/"],
-  }),
-  "%": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["%"],
-  }),
-  "//": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["//"],
-  }),
-  "**": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["**"],
-  }),
-  "<": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["<"],
-  }),
-  ">": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary[">"],
-  }),
-  ">=": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary[">="],
-  }),
-  "<=": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["<="],
-  }),
-  "==": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["=="],
-  }),
-  "!=": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["!="],
-  }),
-  "|": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["|"],
-  }),
-  "&": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["&"],
-  }),
-  "^": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["^"],
-  }),
-  "<<": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["<<"],
-  }),
-  ">>": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary[">>"],
-  }),
-  "max": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["max"],
-  }),
-  "min": kwDecorators<BinaryOperatorMethod, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["min"],
-  }),
-  "or": kwDecorators<BinaryOperatorMethod<boolean>, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["or"],
-  }),
-  "and": kwDecorators<BinaryOperatorMethod<boolean>, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["and"],
-  }),
-  "xor": kwDecorators<BinaryOperatorMethod<boolean>, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op_binary["xor"],
-  }),
+  "-": mk_kw_operator(op_binary["-"]),
+  "*": mk_kw_operator(op_binary["*"]),
+  "/": mk_kw_operator(op_binary["/"]),
+  "%": mk_kw_operator(op_binary["%"]),
+  "//": mk_kw_operator(op_binary["//"]),
+  "**": mk_kw_operator(op_binary["**"]),
+  "<": mk_kw_operator(op_binary["<"]),
+  ">": mk_kw_operator(op_binary[">"]),
+  ">=": mk_kw_operator(op_binary[">="]),
+  "<=": mk_kw_operator(op_binary["<="]),
+  "==": mk_kw_operator(op_binary["=="]),
+  "!=": mk_kw_operator(op_binary["!="]),
+  "|": mk_kw_operator(op_binary["|"]),
+  "&": mk_kw_operator(op_binary["&"]),
+  "^": mk_kw_operator(op_binary["^"]),
+  "<<": mk_kw_operator(op_binary["<<"]),
+  ">>": mk_kw_operator(op_binary[">>"]),
+  "max": mk_kw_operator(op_binary["max"]),
+  "min": mk_kw_operator(op_binary["min"]),
+  "or": mk_kw_operator<boolean>(op_binary["or"]),
+  "and": mk_kw_operator<boolean>(op_binary["and"]),
+  "xor": mk_kw_operator<boolean>(op_binary["xor"]),
 }
 
 export const atan2 = kwDecorator<(y: NDArray, x: NDArray, out?: NDArray | null) => NDArray, any>({
@@ -338,4 +265,34 @@ export const atan2 = kwDecorator<(y: NDArray, x: NDArray, out?: NDArray | null) 
   func: __make_operator(Number, (y, x) => Math.atan2(y, x)),
 });
 
+
+
+
+function mk_kw_assign_operator(op) {
+  return kwDecorators<AssignmentOperatorMethod, AssignmentOperatorParsedKwargs>({
+    defaults: [["values", undefined, asarray], ['...where', []]],
+    func: op,
+  })
+}
+
+export const kw_op_assign = {
+  "=": mk_kw_assign_operator(op_assign["="]),
+  "+=": mk_kw_assign_operator(op_assign["+="]),
+  "-=": mk_kw_assign_operator(op_assign["-="]),
+  "*=": mk_kw_assign_operator(op_assign["*="]),
+  "/=": mk_kw_assign_operator(op_assign["/="]),
+  "%=": mk_kw_assign_operator(op_assign["%="]),
+  "//=": mk_kw_assign_operator(op_assign["//="]),
+  "**=": mk_kw_assign_operator(op_assign["**="]),
+  "|=": mk_kw_assign_operator(op_assign["|="]),
+  "&=": mk_kw_assign_operator(op_assign["&="]),
+  "^=": mk_kw_assign_operator(op_assign["^="]),
+  "<<=": mk_kw_assign_operator(op_assign["<<="]),
+  ">>=": mk_kw_assign_operator(op_assign[">>="]),
+  // Operators with custom ascii identifiers:
+  "max=": mk_kw_assign_operator(op_assign["max="]),
+  "min=": mk_kw_assign_operator(op_assign["min="]),
+  "or=": mk_kw_assign_operator(op_assign["or="]),
+  "and=": mk_kw_assign_operator(op_assign["and="]),
+}
 

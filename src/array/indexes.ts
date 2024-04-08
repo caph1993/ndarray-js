@@ -5,7 +5,7 @@ import type NDArray from "../NDArray";
 
 export type RangeSpec = string;
 export type indexSpec = ':' | number | RangeSpec | NDArray | number[];
-export type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
+export type GeneralIndexSpec = ':' | '...' | 'None' | null | boolean | indexSpec;
 export type Where = null | GeneralIndexSpec[];
 
 
@@ -35,7 +35,6 @@ export function index(arr: NDArray, where: Where) {
     return out;
   }
 }
-
 
 // type SimpleIndexes = null | { size: number, ranges: { refSize: number, range: null | number | [number, number, number] }[], indices: null | number[] };
 
@@ -87,8 +86,8 @@ function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): Ax
     let { spec: specB } = second.axisIndexes[j];
     if (specA.type == "array") throw new Error(`Expected simple index. Found advanced: ${specA.type}`);
     if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
-    let /**@type {AxisIndexSpec} */ spec: AxisIndexSpec;
-    if (specA.type == "number") spec = specA
+    let spec: AxisIndexSpec;
+    if (specA.type == "number") spec = specA;
     else {
       j++;
       if (specA.type == ":") spec = specB;
@@ -207,6 +206,7 @@ export class AxisIndex {
   get indices() {
     if (this._indices) return this._indices;
     let indices;
+    // if (this.spec.type == 'false') indices = []; else
     if (this.spec.type == ':') indices = Array.from({ length: this.spec.size }, (_, i) => i);
     else if (this.spec.type === "number") indices = [this.spec.index];
     else if (this.spec.type === "array") indices = this.spec.indices;
@@ -221,6 +221,7 @@ export class AxisIndex {
     else if (this.spec.type === "number") return 1;
     else if (this.spec.type === "array") return this.spec.indices.length;
     else if (this.spec.type == "range") return this.spec.range.nSteps;
+    // else if (this.spec.type == 'false') return 0;
     else throw new Error(`Unknown spec type ${this.spec['type']}`);
   }
 }
@@ -286,6 +287,8 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
   let spec: AxisIndexSpec;
   let span = 1;
 
+  if (isarray(indexSpec) && indexSpec.shape.length == 0) indexSpec = indexSpec.flat[0]; // Unwrap scalar
+
   if (indexSpec == ':' || indexSpec === undefined) {
     spec = { type: ':', size: size };
   }
@@ -325,6 +328,7 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
       spec = { type: 'range', range };
     }
   }
+  // else if (typeof indexSpec == "boolean" && indexSpec === false) spec = { type: 'false' };
   else throw new Error(`Unknown index type. Found ${typeof indexSpec}: ${indexSpec}`);
 
   const axisIndex = new AxisIndex(spec);
@@ -337,7 +341,6 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
  * @returns {AxesIndex}
  */
 AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
-  /**@type {Array<GeneralIndexSpec|undefined>}*/
   const _where: Array<GeneralIndexSpec | undefined> = where == null ? [] : [...where];
 
   const buffers = {
@@ -355,8 +358,11 @@ AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
       remainingWhere--;
       //else _where[j] = undefined; // For ellipsis to avoid reading twice in opposite reading directions
       j += readDir;
-      if (axisWhere == "None" || axisWhere === null) {
+      if (axisWhere == "None" || axisWhere === null || axisWhere === true) {
         buffers.apparentShape.push(1);
+        continue;
+      } else if (axisWhere === false) {
+        buffers.apparentShape.push(0);
         continue;
       } else if (axisWhere == "...") {
         if (readDir == -1) throw new Error(`Index can only have a single ellipsis. Found index(${where})`)

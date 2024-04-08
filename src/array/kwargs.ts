@@ -1,5 +1,6 @@
 import { NDArray } from '../NDArray';
 import { asarray, isarray } from "./_globals";
+import { Where } from './indexes';
 
 export type AxisArg = null | number;
 
@@ -32,7 +33,31 @@ export type UnaryOperatorKwargs = { out?: NDArray | null };
 export type UnaryOperatorParsedKwargs = [NDArray | null];
 
 
+
+
+export type AssignmentOperatorMethod<T = number> = (other: NDArray | T, ...where: Where) => NDArray;
+export type AssignmentOperatorKwargs = { other: NDArray };
+export type AssignmentOperatorParsedKwargs = [NDArray];
+
+
+
+// Used in statistics.ts:
+export type Kwargs_q_axis = { q: number, axis?: AxisArg };
+export type Signature_q_axis = (q: number | Kwargs_q_axis, axis?: AxisArg | Kwargs_q_axis) => NDArray;
+export type Parsed_q_axis = [number, AxisArg];
+
+// Used by sort:
+export type Kwargs_axis = { axis?: AxisArg };
+export type Signature_axis = (axis?: AxisArg | Kwargs_axis) => NDArray;
+export type Parsed_axis = [AxisArg];
+
+
+
+
+// The last one can be [argumentName, defaultValue, transformFunction]
+// The last one can be [`...${argumentName}`, defaultValue, transformFunction]
 type KwTuple = [string, any] | [string, any, (x: any) => any];
+
 
 export function kwDecorators<Signature extends (...args: any[]) => any, Parsed extends any[]>(
   { defaults, func }: { defaults: KwTuple[], func: (arr: NDArray, ...args: Parsed) => any }) {
@@ -44,20 +69,31 @@ export function kwDecorator<Signature extends (...args: any[]) => any, Parsed ex
   return new KwParser<Signature, Parsed>(defaults).as_function(func);
 }
 
+
 export class KwParser<Signature extends (...args: any[]) => any, Parsed extends any[]> {
   defaults: KwTuple[];
+  spreadKey: string | null;
 
   constructor(defaults: KwTuple[]) {
     this.defaults = defaults;
+    const last = defaults.length && defaults.slice(-1)[0];
+    if (last && last[0].startsWith('...')) {
+      this.spreadKey = last[0] = last[0].slice(3);
+    }
   }
 
   parse(...args: Parameters<Signature>): Parsed {
     let defaults = this.defaults;
     let kwargs = Object.assign(Object.fromEntries(defaults));
+    if (this.spreadKey) kwargs[this.spreadKey] = [...kwargs[this.spreadKey]]; // copy
     for (let i = 0; i < args.length; i++) {
       let value = args[i];
       if (value instanceof Object && !isarray(value)) Object.assign(kwargs, value);
-      else if (value !== undefined) kwargs[defaults[i][0]] = value;
+      else if (value !== undefined) {
+        if (this.spreadKey && i >= defaults.length - 1) kwargs[this.spreadKey].push(value);
+        else if (i < defaults.length) kwargs[defaults[i][0]] = value;
+        else throw new Error(`Too many arguments ${args}`);
+      }
     }
     let sortedArgs = defaults.map((_, i) => {
       let key = defaults[i][0];

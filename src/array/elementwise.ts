@@ -43,6 +43,10 @@ export const funcs = {
   acosh: mk_elementwise(Math.acosh, Number),
   asinh: mk_elementwise(Math.asinh, Number),
   atanh: mk_elementwise(Math.atanh, Number),
+  floor: mk_elementwise(Math.floor, Number),
+  ceil: mk_elementwise(Math.ceil, Number),
+  isFinite: mk_elementwise(isFinite, Boolean),
+  isNaN: mk_elementwise(isNaN, Boolean),
 }
 
 const _ops = {
@@ -90,5 +94,4 @@ const _kw_ops = {
 
 export const kw_ops = {
   ..._kw_ops,
-
 }
