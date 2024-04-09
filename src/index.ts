@@ -158,49 +158,54 @@ np.isclose = operators.isclose;
 const ew = NDArray.prototype.modules.elementwise;
 
 /** @category Elementwise operators */
-np.sign = ew.funcs.sign;
+np.sign = ew.kw_funcs.sign;
 /** @category Elementwise operators */
-np.sqrt = ew.funcs.sqrt;
+np.sqrt = ew.kw_funcs.sqrt;
 /** @category Elementwise operators */
-np.square = ew.funcs.square;
+np.square = ew.kw_funcs.square;
 /** @category Elementwise operators */
-np.exp = ew.funcs.exp;
+np.exp = ew.kw_funcs.exp;
 /** @category Elementwise operators */
-np.log = ew.funcs.log;
+np.log = ew.kw_funcs.log;
 /** @category Elementwise operators */
-np.log2 = ew.funcs.log2;
+np.log2 = ew.kw_funcs.log2;
 /** @category Elementwise operators */
-np.log10 = ew.funcs.log10;
+np.log10 = ew.kw_funcs.log10;
 /** @category Elementwise operators */
-np.log1p = ew.funcs.log1p;
+np.log1p = ew.kw_funcs.log1p;
 /** @category Elementwise operators */
-np.sin = ew.funcs.sin;
+np.sin = ew.kw_funcs.sin;
 /** @category Elementwise operators */
-np.cos = ew.funcs.cos;
+np.cos = ew.kw_funcs.cos;
 /** @category Elementwise operators */
-np.tan = ew.funcs.tan;
+np.tan = ew.kw_funcs.tan;
 /** @category Elementwise operators */
-np.asin = ew.funcs.asin;
+np.asin = ew.kw_funcs.asin;
 /** @category Elementwise operators */
-np.acos = ew.funcs.acos;
+np.acos = ew.kw_funcs.acos;
 /** @category Elementwise operators */
-np.atan = ew.funcs.atan;
+np.atan = ew.kw_funcs.atan;
 /** @category Elementwise operators */
-np.cosh = ew.funcs.cosh;
+np.cosh = ew.kw_funcs.cosh;
 /** @category Elementwise operators */
-np.sinh = ew.funcs.sinh;
+np.sinh = ew.kw_funcs.sinh;
 /** @category Elementwise operators */
-np.tanh = ew.funcs.tanh;
+np.tanh = ew.kw_funcs.tanh;
 /** @category Elementwise operators */
-np.acosh = ew.funcs.acosh;
+np.acosh = ew.kw_funcs.acosh;
 /** @category Elementwise operators */
-np.asinh = ew.funcs.asinh;
+np.asinh = ew.kw_funcs.asinh;
 /** @category Elementwise operators */
-np.atanh = ew.funcs.atanh;
+np.atanh = ew.kw_funcs.atanh;
 /** @category Elementwise operators */
-np.floor = ew.funcs.floor;
+np.floor = ew.kw_funcs.floor;
 /** @category Elementwise operators */
-np.ceil = ew.funcs.ceil;
+np.ceil = ew.kw_funcs.ceil;
+
+/** @category Elementwise operators */
+np.isnan = ew.kw_funcs.isnan;
+/** @category Elementwise operators */
+np.isfinite = ew.kw_funcs.isfinite;
 
 /** @category Elementwise operators */
 np.abs = ew.kw_ops.abs.as_function;
@@ -242,6 +247,7 @@ np.geomspace = np.modules.constructors.geomspace;
 np.take = np.modules.indexing.take;
 np.where = np.modules.indexing.where;
 np.quantile = np.modules.statistics.kw_exported.quantile;
+np.nanquantile = np.modules.statistics.kw_exported.nanquantile;
 // np.percentile = np.modules.statistics.kw_exported.percentile;
 // np.median = np.modules.statistics.kw_exported.median;
 // np.average = np.modules.statistics.kw_exported.average;

@@ -10,6 +10,9 @@ const subtract = op_binary["-"];
 const pow = op_binary["**"];
 
 
+/**
+ * This function reduces an array along an axis
+ */
 function apply_on_axis<T>(func: (arr: any[]) => T, dtype, arr: NDArray, axis: AxisArg, keepdims: boolean): NDArray | T {
   if (axis == null) return func(arr.flat);
   if (axis < 0) axis = arr.shape.length - 1;

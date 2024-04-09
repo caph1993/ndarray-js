@@ -65,11 +65,37 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 }
 
 
+console.log(np.apply_along_axis(np.ones([2, 5]), 0, (arr) => {
+  return np.ones(10).tolist();
+}));
+
 // Unit tests:
+for (let q of np.linspace(0, 1, 11).tolist()) {
+  npTest`np.quantile(np.linspace(0,1,100).reshape(5, 10, 2), ${q}, axis=1)`;
+  npTest`np.quantile(np.linspace(0,1,100).reshape(5, 2, 10), ${q}, axis=1)`;
+  npTest`np.quantile(np.linspace(0,1,100).reshape(5, 4, 5), ${q}, axis=1)`;
+  // npTest`np.quantile((np.linspace(0,1,100)**2).reshape(5, 4, 5), ${q}, axis=1)`; // Syntax not yet working
+}
+
+npTest`np.array(3)[False]`;
+npTest`np.array(3)[True]`;
 
 npTest`1/np.linspace(0,1,100)`;
 // npTest`1/np.linspace(0,1,100)[::-1]`;
+npTest`np.sum(np.linspace(0,1,100))`;
 npTest`np.quantile(1/np.linspace(0,1,100), 1)`;
+
+npTest`np.quantile(np.sin(np.linspace(0,10,100)), np.linspace(0, 1, 12))`;
+
+for (let q of np.linspace(0, 1, 11).tolist()) {
+  npTest`np.quantile(1/np.linspace(0,1,100)**2, ${q})`;
+  npTest`np.nanquantile(1/np.linspace(0,1,100)**2, ${q})`;
+  npTest`np.quantile(1/np.linspace(0,1,100).reshape(10, 10), ${q})`;
+}
+for (let q of np.linspace(0, 1, 11).tolist()) {
+  npTest`np.quantile(np.linspace(0,1,100).reshape(5, 4, 5), ${q}, axis=1)`;
+  // npTest`np.quantile((np.linspace(0,1,100)**2).reshape(5, 4, 5), ${q}, axis=1)`; // Syntax not yet working
+}
 
 
 npTest`np.array(10)`;
@@ -80,15 +106,6 @@ npTest`np.ones([10, 10])[False]`;
 
 npTest`np.arange(120).reshape(2,3,4,5)[1][1]`
 npTest`np.arange(120).reshape(2,3,4,5)[np.arange(120).reshape(2,3,4,5)<10]`
-
-for (let q of np.linspace(0, 1, 11).tolist()) {
-  npTest`np.quantile(1/np.linspace(0,1,100)**2, ${q})`;
-  npTest`np.quantile(1/np.linspace(0,1,100).reshape(10, 10), ${q})`;
-}
-for (let q of np.linspace(0, 1, 11).tolist()) {
-  npTest`np.quantile(np.linspace(0,1,100).reshape(5, 4, 5), ${q}, axis=1)`;
-  // npTest`np.quantile((np.linspace(0,1,100)**2).reshape(5, 4, 5), ${q}, axis=1)`; // Syntax not yet working
-}
 
 
 console.log('Success')

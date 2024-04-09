@@ -147,7 +147,7 @@ class NDArray {
   /** @category Transformations */
   ravel: () => NDArray;
   /** @category Transformations */
-  reshape: (shape: any, ...more_shape: any[]) => any;
+  reshape: (shape: any, ...more_shape: any[]) => NDArray;
   /** @category Transformations */
   sort: (axis?: number) => NDArray;
   /** @category Transformations */

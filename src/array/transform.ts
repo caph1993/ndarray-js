@@ -6,8 +6,12 @@ import { allEq, extend } from '../utils-js';
 import { DType } from '../NDArray';
 import type NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
-import { AxisArg, Parsed_axis, Signature_axis, kwDecorators } from './kwargs';
+import { AxisArg, Func_a_lastAxis } from './kwargs';
 
+
+/**
+ * This function can reduce, sort, operate pointwise, or increase the dimensionality.
+ */
 export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: DType = Number): ArrayOrConstant {
   arr = asarray(arr);
   if (axis == null) return transform(arr.flat);
@@ -23,7 +27,7 @@ export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: D
 
   let m = arr.shape[axis];
   let shift = shape_shifts(arr.shape)[axis];
-  const groups = Array.from({ length: m }, (_) =>/**@type {number[]}*/([]));
+  const groups = Array.from({ length: m }, (_) => ([] as number[]));
   arr.flat.forEach((value, i) => groups[(Math.floor(i / shift)) % m].push(value));
   // Transpose it:
   let nCols = arr.size / m;
@@ -40,19 +44,18 @@ export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: D
   return number_collapse(out);
 }
 
-const cmp_nan_at_the_end = (a: number, b: number) => {
+export const cmp_nan_at_the_end = (a: number, b: number) => {
   // https://stackoverflow.com/a/56265258/3671939
   //@ts-ignore
   return a - b || isNaN(a) - isNaN(b) || Object.is(b, -0) - Object.is(a, -0);
 }
 
-export function sort(A: NDArray, axis: AxisArg) {
-  if (axis == null) return sort(A.reshape(-1), 0);
-  return apply_along_axis(A, axis, (arr) => {
+export function sort(a: NDArray, axis: number) {
+  return apply_along_axis(a, axis, (arr) => {
     const cpy = [...arr];
     cpy.sort(cmp_nan_at_the_end)
     return cpy;
-  }, A.dtype);
+  }, a.dtype) as NDArray;
 }
 
 export function transpose(arr: NDArray, axes: null | number[] = null) {
@@ -160,8 +163,5 @@ export function stack(arrays: NDArray[], axis: number = 0) {
 
 
 export const kw_exported = {
-  sort: kwDecorators<Signature_axis, Parsed_axis>({
-    defaults: [["axis", null]],
-    func: sort,
-  }).as_function,
+  sort: Func_a_lastAxis.defaultDecorator(sort),
 };

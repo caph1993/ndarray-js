@@ -1,45 +1,79 @@
 //@ts-check
 import NDArray from "../NDArray";
-import { AxisArg, kwDecorators, Parsed_q_axis, Signature_q_axis } from "../array/kwargs";
-import { apply_along_axis } from "../array/transform";
+import { asarray, new_NDArray } from "../array/_globals";
+import { AxisArg, Func_a_q_axis, Func_a_axis_keepdims } from "../array/kwargs";
+import { n_ary_operation, op_binary } from "../array/operators";
+import { cmp_nan_at_the_end, swapAxes } from "../array/transform";
 import { np } from "./_globals";
 
 
 /**
  * Compute the q-th percentile of the data along the specified axis.
  */
-export function percentile(a: NDArray, q: NDArray | number, axis: AxisArg) {
-  return quantile(a, np.divide(q, 100), axis);
+export function percentile(a: NDArray, q: NDArray | number, axis: AxisArg | null) {
+  q = np.divide(q, 100);
+  return quantile(a, q, axis);
+}
+
+
+function js_quantile_a_1D_q_01D(
+  a_flat: number[],
+  q_flat: number[],
+  _nan_handling = false,
+): number[] {
+  a_flat = [...a_flat].sort(cmp_nan_at_the_end);
+  let n = a_flat.length;
+  if (_nan_handling) n -= a_flat.reduce((cum, x) => cum + (isNaN(x) ? 1 : 0), 0);
+  return q_flat.map(q => {
+    const nq = q * (n - 1);
+    const lo = Math.floor(nq);
+    if (nq == lo) return a_flat[lo];
+    const hi = lo + 1;
+    if (nq == hi) return a_flat[hi];
+    return a_flat[lo] * (hi - nq) + a_flat[hi] * (nq - lo);
+  });
 }
 
 /**
  * Compute the q-th quantile of the data along the specified axis.
  */
-export function quantile(a: NDArray, q: NDArray | number, axis: AxisArg) {
-  if (axis == null) {
-    a = a.reshape(-1);
-    axis = 0;
+export function quantile(a: NDArray, q: NDArray | number, axis: number, _nan_handling = false) {
+  q = asarray(q);
+  if (axis != a.shape.length - 1) { a = swapAxes(a, axis, -1); }
+  const outer_shape = q.shape;
+  const inner_shape = a.shape.slice(0, -1);
+  a = a.reshape(-1, a.shape.at(-1));
+  q = q.reshape(-1);
+  const [nrows, ncols] = a.shape;
+  const out = new Float64Array(q.size * nrows);
+  for (let i = 0; i < nrows; i++) {
+    const row = a.flat.slice(i * ncols, (i + 1) * ncols);
+    const values = js_quantile_a_1D_q_01D(row, q.flat, _nan_handling);
+    let j = i;
+    for (let k in values) {
+      out[j] = values[k];
+      j += nrows;
+    }
   }
-  const sorted = np.sort(a, axis);
-  const n = sorted.shape[axis];
-  const indices_float = np.multiply(q, n - 1);
-  const lo = np.floor(indices_float);
-  const hi = np.ceil(indices_float);
-  const weights_hi = np.subtract(indices_float, lo);
-  const weights_lo = np.subtract(1, weights_hi);
-  let out_lo = np.take(sorted, lo, axis);
-  let out_hi = np.take(sorted, hi, axis);
-  // Fix the problem of neighbor with infinity with weight of 0
-  out_lo = np.multiply(weights_lo, out_lo);
-  out_hi = np.multiply(weights_hi, out_hi);
-  out_lo = np.where(np.equal(weights_lo, 0), np.asarray(0), out_lo);
-  out_hi = np.where(np.equal(weights_hi, 0), np.asarray(0), out_hi);
-  return np.add(out_lo, out_hi);
+  return new_NDArray([...out], [...outer_shape, ...inner_shape], Number);
+
+  // a = np.sort(a, { axis: null });
+  // const n = _nan_handling ? np.isnan(a).logical_not().sum(0) : a.shape[0];
+  // // TODO: throw if out of bounds 
+  // const indices_float = op_binary["*"](q, op_binary["-"](n, 1));
+  // return n_ary_operation([indices_float], a.shape.slice(1), (iq) => {
+  //   const lo = Math.floor(iq);
+  //   if (iq == lo) return np.asarray(a.index(iq));
+  //   const hi = lo + 1;
+  //   if (iq == hi) return np.asarray(a.index(iq));
+  //   return average(a.index(`${lo}:${hi + 1}`), 0, asarray([hi - iq, iq - lo]), false);
+  // });
 }
+
 /**
  * Compute the median along the specified axis.
  */
-export function median(a: NDArray, axis, keepdims) {
+export function median(a: NDArray, axis: AxisArg | null, keepdims: boolean) {
   let out = quantile(a, 0.5, axis);
   if (keepdims) {
     const shape = a.shape.slice();
@@ -52,46 +86,47 @@ export function median(a: NDArray, axis, keepdims) {
 /**
  * Compute the weighted average along the specified axis.
  */
-export function average(a: NDArray, axis, weights, keepdims) {
-  if (weights === undefined) return np.mean(a, axis);
+export function average(a: NDArray, axis: AxisArg | null, weights: NDArray | null, keepdims: boolean) {
+  if (weights === null) return np.mean(a, axis);
+  // MISSING: assert weights is 1D
   const denominator = np.sum(weights);
   const weights_shape = a.shape.map(() => 1);
-  weights_shape[axis] = a.shape[axis];
+  weights_shape[axis] = weights.size;
   weights = weights.reshape(weights_shape);
   const numerator = np.sum(np.multiply(a, weights), axis, keepdims);
-  return np.divide(numerator, denominator);
+  return np.asarray(np.divide(numerator, denominator));
 }
 
 
-// /**
-//  * Compute the q-th percentile of the data along the specified axis, while ignoring nan values.
-// */
-// export function nanpercentile(a: NDArray, q: NDArray | number, axis) {
-//   return nanquantile(a, np.divide(q, 100), axis);
-// }
+/**
+ * Compute the q-th percentile of the data along the specified axis, while ignoring nan values.
+*/
+export function nanpercentile(a: NDArray, q: NDArray | number, axis: AxisArg | null) {
+  q = np.divide(q, 100);
+  return nanquantile(a, q, axis);
+}
 
 
-// /**
-//  * Compute the q-th quantile of the data along the specified axis, while ignoring nan values.
-//  */
-// export function nanquantile(a: NDArray, q: NDArray | number, axis) {
-//   throw new Error("Not implemented");
-//   return a;
-// }
+/**
+ * Compute the q-th quantile of the data along the specified axis, while ignoring nan values.
+ */
+export function nanquantile(a: NDArray, q: NDArray | number, axis: AxisArg | null) {
+  return quantile(a, q, axis, true)
+}
 
 
-// /**
-//  * Compute the median along the specified axis, while ignoring NaNs.
-//  */
-// export function nanmedian(a: NDArray, axis, keepdims) {
-//   let out = nanquantile(a, 0.5, axis);
-//   if (keepdims) {
-//     const shape = a.shape.slice();
-//     shape[axis] = 1;
-//     out = out.reshape(shape);
-//   }
-//   return out;
-// }
+/**
+ * Compute the median along the specified axis, while ignoring NaNs.
+ */
+export function nanmedian(a: NDArray, axis: number, keepdims: boolean) {
+  let out = nanquantile(a, 0.5, axis);
+  if (keepdims) {
+    const shape = a.shape.slice();
+    shape[axis] = 1;
+    out = out.reshape(shape);
+  }
+  return out;
+}
 
 
 
@@ -215,13 +250,14 @@ Averages and variances
   - nanmean(a[, axis, dtype, out, keepdims, where]) Compute the arithmetic mean along the specified axis, ignoring NaNs.
   - nanstd(a[, axis, dtype, out, ddof, ...]) Compute the standard deviation along the specified axis, while ignoring NaNs.
   - nanvar(a[, axis, dtype, out, ddof, ...]) Compute the variance along the specified axis, while ignoring NaNs.
-
  */
 
 
 export const kw_exported = {
-  quantile: kwDecorators<Signature_q_axis, Parsed_q_axis>({
-    defaults: [["q", undefined], ["axis", null]],
-    func: quantile,
-  }).as_function,
+  quantile: Func_a_q_axis.defaultDecorator(quantile),
+  nanquantile: Func_a_q_axis.defaultDecorator(nanquantile),
+  percentile: Func_a_q_axis.defaultDecorator(percentile),
+  nanpercentile: Func_a_q_axis.defaultDecorator(nanpercentile),
+  median: Func_a_axis_keepdims.defaultDecorator(median),
+  nanmedian: Func_a_axis_keepdims.defaultDecorator(nanmedian),
 };

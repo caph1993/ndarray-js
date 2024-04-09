@@ -4,8 +4,8 @@ import type NDArray from "../NDArray";
 
 
 export type RangeSpec = string;
-export type indexSpec = ':' | number | RangeSpec | NDArray | number[];
-export type GeneralIndexSpec = ':' | '...' | 'None' | null | boolean | indexSpec;
+export type IndexSpec = ':' | number | RangeSpec | NDArray | number[];
+export type GeneralIndexSpec = '...' | 'None' | null | boolean | IndexSpec;
 export type Where = null | GeneralIndexSpec[];
 
 
@@ -90,7 +90,9 @@ function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): Ax
     if (specA.type == "number") spec = specA;
     else {
       j++;
-      if (specA.type == ":") spec = specB;
+      if (specA.type === false) spec = specA;
+      else if (specB.type === false) spec = specB;
+      else if (specA.type == ":") spec = specB;
       else if (specB.type == ":") spec = specA;
       else {
         let { start: startA, step: stepA, nSteps: nStepsA } = specA.range;
@@ -182,14 +184,14 @@ export function __parse_sliceRange(axis_size, { start, stop, step }) {
 }
 
 
-export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] };
+export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] } | { type: false };
 
 export class AxisIndex {
   spec: AxisIndexSpec;
-  private _indices: null;
+  private _indices: number[] | null;
   isSimple: boolean;
   isConstant: boolean;
-  parse: (indexSpec: indexSpec | undefined, size: number) => { axisIndex: AxisIndex; span: number; };
+  parse: (indexSpec: IndexSpec | undefined, size: number) => { axisIndex: AxisIndex; span: number; };
   parse_range: (size: number, start?: number, stop?: number, step?: number) => { start: number; step: number; nSteps: number; };
   parse_range_spec: (rangeString: string) => { start: number; stop: number; step: number; };
 
@@ -205,11 +207,12 @@ export class AxisIndex {
   }
   get indices() {
     if (this._indices) return this._indices;
-    let indices;
+    let indices: number[];
     // if (this.spec.type == 'false') indices = []; else
-    if (this.spec.type == ':') indices = Array.from({ length: this.spec.size }, (_, i) => i);
+    if (this.spec.type === ':') indices = Array.from({ length: this.spec.size }, (_, i) => i);
     else if (this.spec.type === "number") indices = [this.spec.index];
     else if (this.spec.type === "array") indices = this.spec.indices;
+    else if (this.spec.type === false) indices = [];
     else if (this.spec.type == "range") {
       const { nSteps, step, start } = this.spec.range;
       indices = Array.from({ length: nSteps }, (_, i) => start + i * step);
@@ -217,11 +220,11 @@ export class AxisIndex {
     return this._indices = indices;
   }
   get size() {
-    if (this.spec.type == ':') return this.spec.size;
+    if (this.spec.type === ':') return this.spec.size;
     else if (this.spec.type === "number") return 1;
     else if (this.spec.type === "array") return this.spec.indices.length;
     else if (this.spec.type == "range") return this.spec.range.nSteps;
-    // else if (this.spec.type == 'false') return 0;
+    else if (this.spec.type === false) return 0;
     else throw new Error(`Unknown spec type ${this.spec['type']}`);
   }
 }
@@ -271,9 +274,9 @@ AxisIndex.prototype.parse_range_spec = function (rangeString: string): { start: 
  * We are reading `indexSpec` and `shape` in parallel, in the reading direction readDir.
  * With respect to `shape` we are at the given `axis`.
  * With respect to `indexSpec`, we found `indexSpec`, which we should process.
- * @param {indexSpec|undefined} indexSpec
+ * @param {IndexSpec|undefined} indexSpec
  */
-AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
+AxisIndex.prototype.parse = function (indexSpec: IndexSpec | undefined, size) {
   /**
    * 
    * span (virtual shape) matches shape unless there are boolean masks spanning
@@ -283,7 +286,6 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
    * merge these axes, resulting in an a vShape of (2, 12, 5).
    * The boolean mask is then converted to indices in the flattened merged axis.
    */
-  /**@type {AxisIndexSpec} */
   let spec: AxisIndexSpec;
   let span = 1;
 
@@ -336,17 +338,13 @@ AxisIndex.prototype.parse = function (indexSpec: indexSpec | undefined, size) {
 }
 
 
-/**
- * @param {Where} where
- * @returns {AxesIndex}
- */
-AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
+AxesIndex.prototype.parse = function (shape: number[], where: Where): AxesIndex {
   const _where: Array<GeneralIndexSpec | undefined> = where == null ? [] : [...where];
 
   const buffers = {
-    axisIndexes: /**@type {AxisIndex[]}*/([]),
-    apparentShape: /**@type {number[]}*/([]),
-    internalShape: /**@type {number[]}*/([]),
+    axisIndexes: [] as AxisIndex[],
+    apparentShape: [] as number[],
+    internalShape: [] as number[],
   }
   let readDir = 1;
   const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
@@ -381,7 +379,7 @@ AxesIndex.prototype.parse = function (shape, where: Where): AxesIndex {
     remainingAxes -= span;
     let refSize = 1;
     for (let i = 0; i < span; i++) {
-      if (axis < 0 || axis >= shape.length) throw new Error(`Index spans over more dimensions than available in shape [${shape}]: index(${where})`);
+      if (axis < 0 || axis >= shape.length) throw new Error(`Index where=${JSON.stringify(where)} spans over more dimensions than available in shape=${JSON.stringify(shape)}`);
       refSize *= shape[axis];
       axis += readDir;
     }

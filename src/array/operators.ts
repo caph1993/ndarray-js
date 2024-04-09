@@ -1,15 +1,20 @@
 //@ts-check
 import * as indexes from './indexes';
-import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shifts } from './basic';
+import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shifts, new_NDArray } from './basic';
 import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray";
-import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorator, kwDecorators, AssignmentOperatorParsedKwargs, AssignmentOperatorMethod } from './kwargs';
+import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorator, kwDecorators, AssignmentOperatorParsedKwargs, AssignmentOperatorMethod, AxisArg } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
+import { concatenate } from './transform';
+import { broadcast_n_shapes, broadcast_shapes } from './_globals';
 
 export type ArrayOrConstant = NDArray | number | boolean;
 type Index = indexes.Where;
+
+
+
 
 
 export function binary_operation(A: ArrayOrConstant, B: ArrayOrConstant, func: any, dtype: any, out: NDArray | null = null): ArrayOrConstant {
@@ -18,7 +23,7 @@ export function binary_operation(A: ArrayOrConstant, B: ArrayOrConstant, func: a
   // Find output shape and input broadcast shapes
   A = asarray(A);
   B = asarray(B);
-  const [shape, shapeA, shapeB] = _broadcast_shapes(A.shape, B.shape);
+  const [shape, shapeA, shapeB] = broadcast_shapes(A.shape, B.shape);
   if (out == null) out = new_from(shape, (_) => undefined, dtype);
   else if (!(isarray(out))) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
@@ -37,26 +42,9 @@ export function binary_operation(A: ArrayOrConstant, B: ArrayOrConstant, func: a
     flatOut.push(func(flatA[idxA], flatB[idxB]));
   };
   out.flat = flatOut;
-  return number_collapse(out);
+  return out;
 }
 
-export function _broadcast_shapes(shapeA, shapeB) {
-  const shape = [];
-  const maxDim = Math.max(shapeA.length, shapeB.length);
-  shapeA = [...Array.from({ length: maxDim - shapeA.length }, () => 1), ...shapeA];
-  shapeB = [...Array.from({ length: maxDim - shapeB.length }, () => 1), ...shapeB];
-  for (let axis = maxDim - 1; axis >= 0; axis--) {
-    const dim1 = shapeA[axis];
-    const dim2 = shapeB[axis];
-    if (dim1 !== 1 && dim2 !== 1 && dim1 !== dim2)
-      throw new Error(`Can not broadcast axis ${axis} with sizes ${dim1} and ${dim2}`);
-    shape.unshift(Math.max(dim1, dim2));
-  }
-  return [shape, shapeA, shapeB];
-}
-
-export type BinaryOperator = (A: ArrayOrConstant, B: ArrayOrConstant, out?: NDArray | null) => NDArray
-export type SelfBinaryOperator = (other: ArrayOrConstant, out?: NDArray | null) => NDArray
 
 export function __make_operator(dtype, func): BinaryOperator {
   function operator(A: ArrayOrConstant, B: ArrayOrConstant, out = null) {
@@ -66,8 +54,13 @@ export function __make_operator(dtype, func): BinaryOperator {
   return operator;
 }
 
+
+export type BinaryOperator = (A: ArrayOrConstant, B: ArrayOrConstant, out?: NDArray | null) => NDArray
+export type SelfBinaryOperator = (other: ArrayOrConstant, out?: NDArray | null) => NDArray
+
+
 export function __make_operator_special(funcNum, funcBool): BinaryOperator {
-  function operator(arr, other, out: NDArray | null = null) {
+  function operator(arr: NDArray, other: NDArray, out: NDArray | null = null) {
     arr = asarray(arr);
     other = asarray(other);
     let dtype = arr.dtype, func;
@@ -81,31 +74,33 @@ export function __make_operator_special(funcNum, funcBool): BinaryOperator {
 }
 
 export const op_binary = {
+
   "+": __make_operator(Number, (a, b) => a + b),
   "-": __make_operator(Number, (a, b) => a - b),
   "*": __make_operator(Number, (a, b) => a * b),
   "/": __make_operator(Number, (a, b) => a / b),
   "%": __make_operator(Number, (a, b) => (a % b)),
-  "//": __make_operator(Number, (a, b) => Math.floor(a / b)),
+  "|": __make_operator(Number, (a, b) => a | b),
+  "&": __make_operator(Number, (a, b) => a & b),
+  "^": __make_operator(Number, (a, b) => a ^ b),
+  "<<": __make_operator(Number, (a, b) => a << b),
+  ">>": __make_operator(Number, (a, b) => a >> b),
   "**": __make_operator(Number, (a, b) => Math.pow(a, b)),
+  "//": __make_operator(Number, (a, b) => Math.floor(a / b)),
+
   "<": __make_operator(Boolean, (a, b) => a < b),
   ">": __make_operator(Boolean, (a, b) => a > b),
   ">=": __make_operator(Boolean, (a, b) => a >= b),
   "<=": __make_operator(Boolean, (a, b) => a <= b),
   "==": __make_operator(Boolean, (a, b) => a == b),
   "!=": __make_operator(Boolean, (a, b) => a != b),
-  "|": __make_operator_special((a, b) => a | b, (a, b) => a || b),
-  "&": __make_operator_special((a, b) => a & b, (a, b) => a && b),
-  "^": __make_operator(Number, (a, b) => a ^ b),
-  "<<": __make_operator(Number, (a, b) => a << b),
-  ">>": __make_operator(Number, (a, b) => a >> b),
   // Operators with custom ascii identifiers:
   "or": __make_operator(Boolean, (a, b) => a || b),
   "and": __make_operator(Boolean, (a, b) => a && b),
   "xor": __make_operator(Boolean, (a, b) => (!a) != (!b)),
   "max": __make_operator(Number, (a, b) => Math.max(a, b)),
   "min": __make_operator(Number, (a, b) => Math.min(a, b)),
-  // "isclose": ,
+  // "approx": ,
 }
 
 
@@ -162,7 +157,10 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, fun
 
 
 export function __make_assignment_operator(dtype, func) {
-  return function operator(a: NDArray, values: NDArray, ...where: Where) {
+  return function operator(a: NDArray, values: NDArray, where: Where) {
+    // console.log(`where=${JSON.stringify(where)}`)
+    if (where.length === 1 && where[0] === false) return a;
+    if (where.length === 1 && where[0] === true) where = [];
     return assign_operation(a, values, where, func, dtype);
   }
 }
@@ -296,3 +294,75 @@ export const kw_op_assign = {
   "and=": mk_kw_assign_operator(op_assign["and="]),
 }
 
+
+
+
+
+
+export function n_ary_operation<
+  F extends (...args: any) => NDArray | number | number[] | boolean | boolean[]
+>(
+  arrs: NDArray[],
+  elem_shape: number[],
+  func: F,
+): NDArray {
+  // Find output shape and input broadcast shapes
+  arrs = arrs.map(asarray);
+
+  // // Some optimization for common low-complexity cases
+  // if (arrs.length == 1 && elem_shape.length == 0) {
+  //   const a = arrs[0];
+  //   //@ts-ignore
+  //   return new_NDArray(a.flat.map(x => number_collapse(func(x))), a.shape, Number); // FIX
+  // } else if (arrs.length == 1) {
+  //   const a = arrs[0];
+  //   const a_size = a.size;
+  //   const out_elem_size = elem_shape.reduce((a, b) => a * b, 1);
+  //   const outs = [];
+  //   a.flat.forEach((x, i) => {
+  //     //@ts-ignore
+  //     const values = number_collapse(func(x));
+  //     const end = (i + 1) * out_elem_size;
+  //     for (let j = i * out_elem_size; j < end; j++) outs[j] = values[i];
+  //   });
+  //   //@ts-ignore
+  //   return new_NDArray(outs, a.shape, Number); // FIX
+  // }
+
+  const rawShapes = arrs.map(a => a.shape);
+  // Broadcast shapes
+  const [shapes, shape] = broadcast_n_shapes(...rawShapes);
+  const size = shape.reduce((a, b) => a * b, 1);
+  if (shape.length == 0) {
+    return asarray(func(...arrs.map((a) => a.flat[0])));
+  }
+  const shifts = shapes.map(shape => shape_shifts(shape));
+
+  function* iter_n_ary() {
+    for (let i = 0; i < size; i++) {
+      let idx = i;
+      // compute index per array
+      let idxs = arrs.map(_ => 0);
+      for (let axis = shape.length - 1; axis >= 0; axis--) {
+        for (let j = 0; j < arrs.length; j++) {
+          idxs[j] += shifts[j][axis] * (idx % shapes[j][axis]);
+        }
+        idx = Math.floor(idx / shape[axis]);
+      }
+      yield [i, idxs] as [number, number[]];
+    }
+  }
+
+  // Iterate with broadcasted indices
+  const flat = [];
+  let funcOutIsNDArray = false;
+  for (let [i, idxs] of iter_n_ary()) {
+    // apply function
+    const value = func(...arrs.map((a, j) => a.flat[idxs[j]]));
+    if (i == 0) funcOutIsNDArray = isarray(value);
+    flat.push(value);
+  };
+  let out = funcOutIsNDArray ? concatenate(flat) : asarray(flat);
+  out = out.reshape([shape, ...out.shape.slice(1)]);
+  return out;
+}
