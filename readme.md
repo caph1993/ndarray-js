@@ -60,5 +60,3 @@ It does not provide yet:
  - a simple group_by operator.
  - the linear algebra module
  - all the random module. Only uniform, normal, exponential, gamma, beta and some others are provided.
-
-<script src="https://cdn.jsdelivr.net/npm/ndarray-js@latest/dist/index.js"></script>
