@@ -3,51 +3,72 @@
 import { asarray, new_NDArray } from './basic';
 import type NDArray from "../NDArray";
 import { KwParser, RoundParsedKwargs, RoundSignature, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorators, Func_a_out } from './kwargs';
-import { ArrayOrConstant } from '../NDArray';
+import { TypedArrayConstructor, dtype_leq, new_buffer } from "../dtypes";
 
 // Here, we declare only the core functions (those that are methods)
 
-export function elementwise(A: NDArray, func, dtype, out: NDArray = null) {
+export function elementwise<
+  T extends TypedArrayConstructor,
+  T_a extends TypedArrayConstructor,
+  T_out extends TypedArrayConstructor,
+>(
+  A: NDArray<T_a>,
+  func,
+  dtype: T,
+  out: NDArray<T_out> = null,
+) {
   A = asarray(A);
+  //@ts-ignore
+  if (out) dtype = out.dtype;
+  //@ts-ignore
+  const in_buffer = dtype_leq(dtype, A.dtype) ? A.flat : new_buffer(A.flat, dtype);
+  const out_buffer = in_buffer.map(func) as InstanceType<T>;
   if (out) {
-    out.flat = A.flat.map(func);
+    //@ts-ignore
+    out.flat = out_buffer;
     return out;
   }
-  return new_NDArray(A.flat.map(func), A.shape, dtype);
+  return new_NDArray(out_buffer, A.shape);
 }
 
-function mk_elementwise(op, dtype) {
-  return function (A: NDArray, out: NDArray = null) {
+function mk_elementwise<
+  T extends TypedArrayConstructor,
+>(op, dtype: T) {
+  return function <
+    T_a extends TypedArrayConstructor,
+    T_out extends TypedArrayConstructor,
+  >(A: NDArray<T_a>, out: NDArray<T_out> = null) {
     return elementwise(A, op, dtype, out);
   }
 }
 
 export const funcs = {
-  sign: mk_elementwise(Math.sign, Number),
-  sqrt: mk_elementwise(Math.sqrt, Number),
-  square: mk_elementwise((a) => a * a, Number),
-  exp: mk_elementwise(Math.exp, Number),
-  log: mk_elementwise(Math.log, Number),
-  log2: mk_elementwise(Math.log2, Number),
-  log10: mk_elementwise(Math.log10, Number),
-  log1p: mk_elementwise(Math.log1p, Number),
-  sin: mk_elementwise(Math.sin, Number),
-  cos: mk_elementwise(Math.cos, Number),
-  tan: mk_elementwise(Math.tan, Number),
-  asin: mk_elementwise(Math.asin, Number),
-  acos: mk_elementwise(Math.acos, Number),
-  atan: mk_elementwise(Math.atan, Number),
-  cosh: mk_elementwise(Math.cosh, Number),
-  sinh: mk_elementwise(Math.sinh, Number),
-  tanh: mk_elementwise(Math.tanh, Number),
-  acosh: mk_elementwise(Math.acosh, Number),
-  asinh: mk_elementwise(Math.asinh, Number),
-  atanh: mk_elementwise(Math.atanh, Number),
-  floor: mk_elementwise(Math.floor, Number),
-  ceil: mk_elementwise(Math.ceil, Number),
-  isfinite: mk_elementwise(isFinite, Boolean),
-  isnan: mk_elementwise(isNaN, Boolean),
+  sign: mk_elementwise(Math.sign, Float64Array),
+  sqrt: mk_elementwise(Math.sqrt, Float64Array),
+  square: mk_elementwise((a) => a * a, Float64Array),
+  exp: mk_elementwise(Math.exp, Float64Array),
+  log: mk_elementwise(Math.log, Float64Array),
+  log2: mk_elementwise(Math.log2, Float64Array),
+  log10: mk_elementwise(Math.log10, Float64Array),
+  log1p: mk_elementwise(Math.log1p, Float64Array),
+  sin: mk_elementwise(Math.sin, Float64Array),
+  cos: mk_elementwise(Math.cos, Float64Array),
+  tan: mk_elementwise(Math.tan, Float64Array),
+  asin: mk_elementwise(Math.asin, Float64Array),
+  acos: mk_elementwise(Math.acos, Float64Array),
+  atan: mk_elementwise(Math.atan, Float64Array),
+  cosh: mk_elementwise(Math.cosh, Float64Array),
+  sinh: mk_elementwise(Math.sinh, Float64Array),
+  tanh: mk_elementwise(Math.tanh, Float64Array),
+  acosh: mk_elementwise(Math.acosh, Float64Array),
+  asinh: mk_elementwise(Math.asinh, Float64Array),
+  atanh: mk_elementwise(Math.atanh, Float64Array),
+  floor: mk_elementwise(Math.floor, Float64Array),
+  ceil: mk_elementwise(Math.ceil, Float64Array),
+  isfinite: mk_elementwise(isFinite, Uint8Array),
+  isnan: mk_elementwise(isNaN, Uint8Array),
 }
+
 
 export const kw_funcs = {
   sign: Func_a_out.defaultDecorator(funcs.sign),
@@ -72,6 +93,7 @@ export const kw_funcs = {
   atanh: Func_a_out.defaultDecorator(funcs.atanh),
   floor: Func_a_out.defaultDecorator(funcs.floor),
   ceil: Func_a_out.defaultDecorator(funcs.ceil),
+
   isfinite: Func_a_out.defaultDecorator(funcs.isfinite),
   isnan: Func_a_out.defaultDecorator(funcs.isnan),
 }
@@ -80,14 +102,14 @@ export const kw_funcs = {
 const _ops = {
   // Unary operators:
   round: function round(arr: NDArray, decimals: number, out: NDArray = null) {
-    if (decimals == 0) elementwise(arr, Math.round, Number, out);
-    return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Number, out);
+    if (decimals == 0) elementwise(arr, Math.round, Float64Array, out);
+    return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Float64Array, out);
   },
-  negative: mk_elementwise(x => -x, Number),
-  bitwise_not: mk_elementwise(x => ~x, Number),
-  logical_not: mk_elementwise(x => !x, Boolean),
-  valueOf: mk_elementwise(x => +x, Number),
-  abs: mk_elementwise(Math.abs, Number),
+  negative: mk_elementwise(x => -x, Float64Array),
+  bitwise_not: mk_elementwise(x => ~x, Float64Array),
+  logical_not: mk_elementwise(x => !x, Uint8Array),
+  valueOf: mk_elementwise(x => +x, Float64Array),
+  abs: mk_elementwise(Math.abs, Float64Array),
 };
 export const ops = {
   ..._ops,

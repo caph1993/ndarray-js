@@ -57,6 +57,9 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
     console.error(expected && np.array(expected));
     console.error('OBTAINED:');
     console.error(obtained && np.array(obtained));
+    // console.error(np.nonzero(np.isclose(obtained, expected).logical_not()));
+    // console.error(np.array(obtained).index(313));
+    // console.error(np.array(expected).index(313));
     throw new Error(`Mismatch for ${str}`);
   }
   console.log(obtained && np.array(obtained).toString());
@@ -65,6 +68,13 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 
 // Unit tests:
+
+npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )`
+npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ]`
+npTest`np.ravel(np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ])`
+npTest`np.ravel(np.reshape( np.arange(120), ${[2, 3, 4, 5]} )[ :, 0, ${[1, 2]}, : ])`
+
+npTest`np.sin(np.linspace(0,10,1000))`
 
 np`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 5)).mean(axis=0)`
 

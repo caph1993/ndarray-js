@@ -1,7 +1,7 @@
 //@ts-check
 import type NDArray from "../NDArray";
-import { DType } from "../NDArray";
 import { GLOBALS } from '../_globals';
+import { TypedArrayConstructor } from "../dtypes";
 const { np, NDArray: __NDArray } = GLOBALS;
 if (!__NDArray) throw new Error(`Programming error: NDArray not defined`);
 
@@ -13,23 +13,25 @@ export function isarray(A: any): A is NDArray {
   return A instanceof _NDArray;
 }
 
-export const new_NDArray = (flat: number[], shape: number[], dtype: DType) => new _NDArray(flat, shape, dtype);
-
-export function asarray(A): NDArray {
-  if (isarray(A)) return A;
-  else return np.fromlist(A);
+export function new_NDArray<T extends TypedArrayConstructor>(flat: InstanceType<T>, shape: number[]) {
+  return new _NDArray<T>(flat, shape);
 }
 
-export function array(A) {
-  if (isarray(A)) { // shallow copy of A
-    let flat = A._simpleIndexes == null ? [...A.flat] : A.flat;
-    return new_NDArray(flat, A.shape, A.dtype);
+export function asarray<T extends TypedArrayConstructor = any>(A: NDArray<T> | any) {
+  if (isarray(A)) return A as NDArray<T>;
+  else return np.fromlist(A) as NDArray<T>;
+}
+
+export function array(A: NDArray<any> | any) {
+  if (isarray(A)) { // copy if it's a view
+    let flat = A._simpleIndexes == null ? A.dtype.from(A.flat) : A.flat;
+    return new_NDArray(flat, A.shape);
   }
   else return asarray(A);
 }
 
 
-export function broadcast_shapes(shapeA, shapeB) {
+export function broadcast_shapes(shapeA: number[], shapeB: number[]) {
   const shape = [];
   const maxDim = Math.max(shapeA.length, shapeB.length);
   shapeA = [...Array.from({ length: maxDim - shapeA.length }, () => 1), ...shapeA];

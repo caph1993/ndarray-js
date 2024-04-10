@@ -1,9 +1,11 @@
 //@ts-check
 import { np, nd_modules } from "./_globals";
+import { TypedArray, new_buffer } from "../dtypes";
+import type NDArray from "../NDArray";
 
 
 export function random(shape) {
-  return nd_modules.basic.new_from(shape, (_) => Math.random(), Number)
+  return nd_modules.basic.new_from(shape, (_) => Math.random(), Float64Array)
 };
 export function uniform(a, b, shape) {
   return random(shape).multiply(b - a).add(a);
@@ -12,25 +14,24 @@ export function exponential(mean, shape) {
   return np.multiply(mean, np.subtract(0, np.log(random(shape))));
 };
 
-/** @param {number} n */
-export function __normal(n) {
-  const out: number[] = [];
-  while (out.length < n) {
+export function _normal_buffer(n: number) {
+  const out = new_buffer(n);
+  let i = 0;
+  while (i < n) {
     let u = Math.random() * 2 - 1;
     let v = Math.random() * 2 - 1;
     let s = u * u + v * v;
     if (s > 1) continue;
     let x = Math.sqrt(-2 * Math.log(s) / s) * u;
     let y = Math.sqrt(-2 * Math.log(s) / s) * v;
-    out.push(x);
-    out.push(y);
+    out[i++] = x;
+    if (i < n) out[i++] = y;
   }
-  if (out.length > n) out.pop();
   return out;
 }
-export function randn(shape) {
-  const flat = __normal(np.prod(shape));
-  return new np.NDArray(flat, shape, Number);
+export function randn(shape: number[]) {
+  const flat = _normal_buffer(shape.reduce((a, b) => a * b, 1));
+  return new np.NDArray(flat, shape);
 };
 export function normal(mean, std, shape) {
   return randn(shape).multiply(std).add(mean);
@@ -47,29 +48,24 @@ export function _shuffle(list) {
   }
 }
 
-/** @param {any[]} list */
-export function _shuffled(list) {
-  const out = [...list];
+export function _shuffled<T>(list: T) {
+  const out = (list as any).slice();
   _shuffle(out);
   return out;
 }
 
-/** @param {NDArray} arr  @returns {NDArray} */
-export function shuffled(arr) {
+export function shuffled(arr: NDArray) {
   if (arr.shape.length == 0) return arr;
   if (arr.shape.length == 1) {
     const flat = _shuffled(arr.flat)
-    return new np.NDArray(flat, arr.shape, arr.dtype);
+    return new np.NDArray(flat, arr.shape);
   }
   const perm = _shuffled(Array.from({ length: arr.length }, (_, i) => i));
-  const out = np.empty(arr.shape, arr.dtype);
+  const out = np.empty(arr.shape);
   for (let i = 0; i < arr.length; i++) out.assign(arr.index(perm[i]), i);
   return out;
 }
 
-/**
- * @param {NDArray} arr
- */
-export function shuffle(arr) {
+export function shuffle(arr: NDArray) {
   arr.assign(shuffled(arr));
 }

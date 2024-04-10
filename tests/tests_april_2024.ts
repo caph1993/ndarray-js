@@ -58,6 +58,7 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
     console.error(expected && np.array(expected));
     console.error('OBTAINED:');
     console.error(obtained && np.array(obtained));
+    // console.error(obtained);
     throw new Error(`Mismatch for ${str}`);
   }
   console.log(obtained && np.array(obtained).toString());
@@ -65,11 +66,15 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 }
 
 
-console.log(np.apply_along_axis(np.ones([2, 5]), 0, (arr) => {
-  return np.ones(10).tolist();
-}));
+// console.log(np.apply_along_axis(np.ones([2, 5]), 0, (arr) => {
+//   return np.ones(10).tolist();
+// }));
+
+
 
 // Unit tests:
+npTest`np.linspace(0,1,10).reshape(5, 2)`;
+
 for (let q of np.linspace(0, 1, 11).tolist()) {
   npTest`np.quantile(np.linspace(0,1,100).reshape(5, 10, 2), ${q}, axis=1)`;
   npTest`np.quantile(np.linspace(0,1,100).reshape(5, 2, 10), ${q}, axis=1)`;

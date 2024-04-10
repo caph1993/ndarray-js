@@ -1,6 +1,6 @@
 //@ts-check
 import type NDArray from "../NDArray";
-import { DType } from "../NDArray";
+import type { TypedArrayConstructor, TypedArray } from "../dtypes";
 import { isarray, asarray, array, new_NDArray, _NDArray } from "./_globals";
 
 export {
@@ -20,7 +20,7 @@ export {
  * (1) all functions requiring arrays work with numbers as well because they call asarray,
  * and (2) semantically, a constant is an array.
  */
-export function number_collapse(arr: NDArray, expect = false): NDArray | number {
+export function number_collapse(arr: NDArray<any>, expect = false): NDArray | number {
   if (!arr.shape.length) return arr.flat[0];
   if (expect) throw new Error(`Expected constant. Got array with shape ${arr.shape}`);
   return arr;
@@ -60,7 +60,7 @@ export function parse_shape(list: Shape) {
     if (list.shape.length > 1) {
       throw new Error(`Expected flat list. Got array with shape ${list.shape}`);
     }
-    return list.flat;
+    return [...list.flat];
   }
   if (Array.isArray(list)) return list;
   throw new Error(`Expected list. Got ${list}`);
@@ -87,11 +87,11 @@ export function reshape(A: NDArray, shape_or_first: Shape, ...more_shape: number
       throw new Error(`Invalid target shape [${shape}] from source [${A.shape}]. Expected size ${n}. Found ${m}.`);
     }
   }
-  return new_NDArray(A.flat, shape, A.dtype);
+  return new_NDArray(A.flat, shape);
 };
 export function ravel(A: NDArray) {
   A = asarray(A);
-  return new_NDArray(A.flat, [A.size], A.dtype);
+  return new_NDArray(A.flat, [A.size]);
 };
 
 
@@ -99,18 +99,19 @@ export function ravel(A: NDArray) {
 // Constructors
 // ====================
 
-export function new_from(shape: Shape, f: any = undefined, dtype: DType = Number) {
+export function new_from(shape: Shape, f: any = undefined, dtype: TypedArrayConstructor = Float32Array) {
   shape = parse_shape(shape);
   const size = shape.reduce((a, b) => a * b, 1);
-  const flat: number[] = Array.from({ length: size }, f);
-  return new_NDArray(flat, shape, dtype);
+  //@ts-ignore
+  const buffer = f === undefined ? new dtype(size) : dtype.from({ length: size }, f)
+  return new_NDArray(buffer, shape);
 };
 
-export function empty(shape: Shape, dtype: DType = Number) {
-  return new_from(shape, (_) => undefined, dtype)
+export function empty(shape: Shape, dtype: TypedArrayConstructor = Float32Array) {
+  return new_from(shape, undefined, dtype)
 };
 
 export function copy(A: NDArray) {
-  return new_NDArray([...A.flat], A.shape, A.dtype);
+  return new_NDArray(A.dtype.from(A.flat), A.shape);
 }
 

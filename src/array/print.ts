@@ -3,6 +3,7 @@
 import { ops as ew_ops } from './elementwise';
 import { tolist } from './js-interface';
 import type NDArray from "../NDArray";
+import { dtype_is_float } from '../dtypes';
 
 const round = ew_ops.round;
 
@@ -34,7 +35,7 @@ export function humanReadable(arr: NDArray) {
   while (rLimit > 0 && arr.shape[rLimit] == 1) {
     rLimit--;
   }
-  if (arr.dtype == Number) arr = round(arr, 2);
+  if (dtype_is_float(arr.dtype)) arr = round(arr, 2);
   let list = tolist(arr);
 
   function str(list, indent = 0, depth = 0) {

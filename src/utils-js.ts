@@ -73,7 +73,7 @@ export function allEq(A, B, nan_equal = false) {
 export function allClose(A, B, rtol = 1.e-5, atol = 1.e-8, nan_equal = false,) {
   const func = (a, b) => { //copied from isclose
     if (Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b) <= atol + rtol * Math.abs(b);
-    return (a === b) || (nan_equal && Number.isNaN(a) && Number.isNaN(b));
+    return (a == b) || (nan_equal && Number.isNaN(a) && Number.isNaN(b));
   }
   const different = new Error('');
   const wrapper = (a, b) => {

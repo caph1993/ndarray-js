@@ -4,27 +4,35 @@ import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shi
 import { tolist } from './js-interface';
 
 import type NDArray from "../NDArray";
-import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorator, kwDecorators, AssignmentOperatorParsedKwargs, AssignmentOperatorMethod, AxisArg } from './kwargs';
+import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, kwDecorator, kwDecorators, AssignmentOperatorParsedKwargs, AssignmentOperatorMethod } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
 import { broadcast_n_shapes, broadcast_shapes } from './_globals';
+import { TypedArrayConstructor, new_buffer } from '../dtypes';
 
-export type ArrayOrConstant = NDArray | number | boolean;
+export type ArrayOrConstant = NDArray<any> | number | boolean;
 type Index = indexes.Where;
 
 
 
 
 
-export function binary_operation(A: ArrayOrConstant, B: ArrayOrConstant, func: any, dtype: any, out: NDArray | null = null): ArrayOrConstant {
+export function binary_operation<
+  T extends TypedArrayConstructor = Float64ArrayConstructor,
+>(A: ArrayOrConstant, B: ArrayOrConstant, func: any, dtype: T, out: NDArray<T> | null = null): NDArray<T> {
 
   if (isarray(this)) return func.bind(_NDArray.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
   A = asarray(A);
   B = asarray(B);
   const [shape, shapeA, shapeB] = broadcast_shapes(A.shape, B.shape);
-  if (out == null) out = new_from(shape, (_) => undefined, dtype);
+
+  //@ts-ignore
+  if (out) dtype = out.dtype;
+  //@ts-ignore
+  if (out == null) out = new_from(shape, undefined, dtype);
+
   else if (!(isarray(out))) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
   const flatOut = [];
@@ -41,14 +49,16 @@ export function binary_operation(A: ArrayOrConstant, B: ArrayOrConstant, func: a
     }
     flatOut.push(func(flatA[idxA], flatB[idxB]));
   };
-  out.flat = flatOut;
+  out.flat = new_buffer(flatOut, dtype);
   return out;
 }
 
 
-export function __make_operator(dtype, func): BinaryOperator {
+export function __make_operator<
+  T extends TypedArrayConstructor = Float64ArrayConstructor,
+>(dtype: T, func): BinaryOperator {
   function operator(A: ArrayOrConstant, B: ArrayOrConstant, out = null) {
-    return binary_operation(A, B, func, dtype, out);
+    return binary_operation<T>(A, B, func, dtype, out);
   };
   //@ts-ignore
   return operator;
@@ -59,47 +69,34 @@ export type BinaryOperator = (A: ArrayOrConstant, B: ArrayOrConstant, out?: NDAr
 export type SelfBinaryOperator = (other: ArrayOrConstant, out?: NDArray | null) => NDArray
 
 
-export function __make_operator_special(funcNum, funcBool): BinaryOperator {
-  function operator(arr: NDArray, other: NDArray, out: NDArray | null = null) {
-    arr = asarray(arr);
-    other = asarray(other);
-    let dtype = arr.dtype, func;
-    if (arr.dtype != other.dtype) console.warn(`Warning: operating arrays of different dtypes. Using ${dtype}`);
-    if (dtype == Boolean) func = funcBool;
-    else func = funcNum;
-    return binary_operation(arr, other, func, dtype, out);
-  };
-  //@ts-ignore
-  return operator;
-}
 
 export const op_binary = {
 
-  "+": __make_operator(Number, (a, b) => a + b),
-  "-": __make_operator(Number, (a, b) => a - b),
-  "*": __make_operator(Number, (a, b) => a * b),
-  "/": __make_operator(Number, (a, b) => a / b),
-  "%": __make_operator(Number, (a, b) => (a % b)),
-  "|": __make_operator(Number, (a, b) => a | b),
-  "&": __make_operator(Number, (a, b) => a & b),
-  "^": __make_operator(Number, (a, b) => a ^ b),
-  "<<": __make_operator(Number, (a, b) => a << b),
-  ">>": __make_operator(Number, (a, b) => a >> b),
-  "**": __make_operator(Number, (a, b) => Math.pow(a, b)),
-  "//": __make_operator(Number, (a, b) => Math.floor(a / b)),
+  "+": __make_operator(Float64Array, (a, b) => a + b),
+  "-": __make_operator(Float64Array, (a, b) => a - b),
+  "*": __make_operator(Float64Array, (a, b) => a * b),
+  "/": __make_operator(Float64Array, (a, b) => a / b),
+  "%": __make_operator(Float64Array, (a, b) => (a % b)),
+  "|": __make_operator(Float64Array, (a, b) => a | b),
+  "&": __make_operator(Float64Array, (a, b) => a & b),
+  "^": __make_operator(Float64Array, (a, b) => a ^ b),
+  "<<": __make_operator(Float64Array, (a, b) => a << b),
+  ">>": __make_operator(Float64Array, (a, b) => a >> b),
+  "**": __make_operator(Float64Array, (a, b) => Math.pow(a, b)),
+  "//": __make_operator(Float64Array, (a, b) => Math.floor(a / b)),
 
-  "<": __make_operator(Boolean, (a, b) => a < b),
-  ">": __make_operator(Boolean, (a, b) => a > b),
-  ">=": __make_operator(Boolean, (a, b) => a >= b),
-  "<=": __make_operator(Boolean, (a, b) => a <= b),
-  "==": __make_operator(Boolean, (a, b) => a == b),
-  "!=": __make_operator(Boolean, (a, b) => a != b),
+  "<": __make_operator(Uint8Array, (a, b) => a < b),
+  ">": __make_operator(Uint8Array, (a, b) => a > b),
+  ">=": __make_operator(Uint8Array, (a, b) => a >= b),
+  "<=": __make_operator(Uint8Array, (a, b) => a <= b),
+  "==": __make_operator(Uint8Array, (a, b) => a == b),
+  "!=": __make_operator(Uint8Array, (a, b) => a != b),
   // Operators with custom ascii identifiers:
-  "or": __make_operator(Boolean, (a, b) => a || b),
-  "and": __make_operator(Boolean, (a, b) => a && b),
-  "xor": __make_operator(Boolean, (a, b) => (!a) != (!b)),
-  "max": __make_operator(Number, (a, b) => Math.max(a, b)),
-  "min": __make_operator(Number, (a, b) => Math.min(a, b)),
+  "or": __make_operator(Uint8Array, (a, b) => a || b),
+  "and": __make_operator(Uint8Array, (a, b) => a && b),
+  "xor": __make_operator(Uint8Array, (a, b) => (!a) != (!b)),
+  "max": __make_operator(Float64Array, (a, b) => Math.max(a, b)),
+  "min": __make_operator(Float64Array, (a, b) => Math.min(a, b)),
   // "approx": ,
 }
 
@@ -111,15 +108,17 @@ op_binary["≥"] = op_binary["geq"];
 op_binary["≠"] = op_binary["neq"];
 
 
-export function assign_operation(tgt: NDArray, src: ArrayOrConstant, where: Index, func, dtype) {
+export function assign_operation<
+  T extends TypedArrayConstructor = Float64ArrayConstructor,
+>(tgt: NDArray<T>, src: ArrayOrConstant, where: Index, func) {
 
   if (tgt['__warnAssignment']) {
     console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other) or source.op(['::3', -1, '...', [5,4]], '*=', other).\n`);
     delete tgt['__warnAssignment'];
   }
-  if (!(isarray(tgt))) return _assign_operation_toJS(/**@type {*}*/(tgt), src, where, func, dtype)
+  if (!(isarray(tgt))) return _assign_operation_toJS(tgt as any, src, where, func)
   if (!where) {
-    binary_operation(tgt, src, func, dtype, tgt);
+    binary_operation(tgt, src, func, tgt.dtype, tgt);
   } else {
     src = asarray(src);
     let { indices } = indexes.AxesIndex.prototype.parse(tgt.shape, where);
@@ -131,19 +130,19 @@ export function assign_operation(tgt: NDArray, src: ArrayOrConstant, where: Inde
     } else {
       tmpTgt = asarray(indices.map(i => tgt._flat[i]));
     }
-    binary_operation(tmpTgt, ravel(src), func, dtype, tmpTgt);
-    for (let i of indices) tgt._flat[i] = tmpTgt._flat[i];
+    binary_operation(tmpTgt, ravel(src), func, tgt.dtype, tmpTgt);
+    for (let i in indices) tgt._flat[indices[i]] = tmpTgt._flat[i];
   }
 };
 
 
 
-export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, func: any, dtype: any) {
+export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, func: any) {
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);
   console.warn('Assignment to JS array is experimental and slow.')
   // Parse the whole array
   const cpy = asarray(tgtJS);
-  assign_operation(cpy, src, where, func, dtype);
+  assign_operation(cpy, src, where, func);
   // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
   const outJS = tolist(cpy);
   while (tgtJS.length) tgtJS.pop();
@@ -156,34 +155,36 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, fun
 // export type SelfAssignmentOperator = { (other: ArrayOrConstant): NDArray; (where: Index, other: ArrayOrConstant): NDArray; }
 
 
-export function __make_assignment_operator(dtype, func) {
-  return function operator(a: NDArray, values: NDArray, where: Where) {
+export function __make_assignment_operator(func) {
+  return function operator<
+    T extends TypedArrayConstructor,
+  >(a: NDArray<T>, values: NDArray, where: Where) {
     // console.log(`where=${JSON.stringify(where)}`)
     if (where.length === 1 && where[0] === false) return a;
     if (where.length === 1 && where[0] === true) where = [];
-    return assign_operation(a, values, where, func, dtype);
+    return assign_operation<T>(a, values, where, func);
   }
 }
 
 export const op_assign = {
-  "=": __make_assignment_operator(Number, (a, b) => b),
-  "+=": __make_assignment_operator(Number, (a, b) => a + b),
-  "-=": __make_assignment_operator(Number, (a, b) => a - b),
-  "*=": __make_assignment_operator(Number, (a, b) => a * b),
-  "/=": __make_assignment_operator(Number, (a, b) => a / b),
-  "%=": __make_assignment_operator(Number, (a, b) => (a % b)),
-  "//=": __make_assignment_operator(Number, (a, b) => Math.floor(a / b)),
-  "**=": __make_assignment_operator(Number, (a, b) => Math.pow(a, b)),
-  "|=": __make_assignment_operator(Number, (a, b) => a | b),
-  "&=": __make_assignment_operator(Number, (a, b) => a & b),
-  "^=": __make_assignment_operator(Number, (a, b) => a ^ b),
-  "<<=": __make_assignment_operator(Number, (a, b) => a << b),
-  ">>=": __make_assignment_operator(Number, (a, b) => a >> b),
+  "=": __make_assignment_operator((a, b) => b),
+  "+=": __make_assignment_operator((a, b) => a + b),
+  "-=": __make_assignment_operator((a, b) => a - b),
+  "*=": __make_assignment_operator((a, b) => a * b),
+  "/=": __make_assignment_operator((a, b) => a / b),
+  "%=": __make_assignment_operator((a, b) => (a % b)),
+  "//=": __make_assignment_operator((a, b) => Math.floor(a / b)),
+  "**=": __make_assignment_operator((a, b) => Math.pow(a, b)),
+  "|=": __make_assignment_operator((a, b) => a | b),
+  "&=": __make_assignment_operator((a, b) => a & b),
+  "^=": __make_assignment_operator((a, b) => a ^ b),
+  "<<=": __make_assignment_operator((a, b) => a << b),
+  ">>=": __make_assignment_operator((a, b) => a >> b),
   // Operators with custom ascii identifiers:
-  "max=": __make_assignment_operator(Number, (a, b) => Math.max(a, b)),
-  "min=": __make_assignment_operator(Number, (a, b) => Math.min(a, b)),
-  "or=": __make_assignment_operator(Boolean, (a, b) => a || b),
-  "and=": __make_assignment_operator(Boolean, (a, b) => a && b),
+  "max=": __make_assignment_operator((a, b) => Math.max(a, b)),
+  "min=": __make_assignment_operator((a, b) => Math.min(a, b)),
+  "or=": __make_assignment_operator((a, b) => a || b),
+  "and=": __make_assignment_operator((a, b) => a && b),
 };
 
 
@@ -196,10 +197,12 @@ export const op_assign = {
 export function isclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   ({ rtol, atol, equal_nan } = Object.assign({ rtol, atol, equal_nan }, this));
   const func = (a, b) => {
+    if (a == b) return true; // shortcut for equality
     if (Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b) <= atol + rtol * b;
+    console.log('NOT FINITE', a, b)
     return (a == b) || (equal_nan && Number.isNaN(a) && Number.isNaN(b));
   }
-  return binary_operation(A, B, func, Boolean)
+  return binary_operation(A, B, func, Uint8Array)
 }
 
 export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
@@ -214,7 +217,7 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
     if (!func(a, b)) throw different;
     return 0;
   }
-  try { binary_operation(A, B, wrapper, Number) }
+  try { binary_operation(A, B, wrapper, Float64Array) }
   catch (err) {
     if (err === different) return false;
     else throw err;
@@ -245,7 +248,6 @@ export const kw_op_binary = {
   ">=": mk_kw_operator(op_binary[">="]),
   "<=": mk_kw_operator(op_binary["<="]),
   "==": mk_kw_operator(op_binary["=="]),
-  "!=": mk_kw_operator(op_binary["!="]),
   "|": mk_kw_operator(op_binary["|"]),
   "&": mk_kw_operator(op_binary["&"]),
   "^": mk_kw_operator(op_binary["^"]),
@@ -260,7 +262,7 @@ export const kw_op_binary = {
 
 export const atan2 = kwDecorator<(y: NDArray, x: NDArray, out?: NDArray | null) => NDArray, any>({
   defaults: [["y", undefined, asarray], ["x", undefined, asarray], ["out", null]],
-  func: __make_operator(Number, (y, x) => Math.atan2(y, x)),
+  func: __make_operator(Float64Array, (y, x) => Math.atan2(y, x)),
 });
 
 

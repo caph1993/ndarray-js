@@ -162,7 +162,7 @@ export const __makeSemantics = () => {
       let name = $name.sourceString + $names.sourceString;
       if (name.slice(0, 3) == "np.") name = name.slice(3);
       const func = name.split('.').reduce((obj, name) => obj[name], np);
-      if (func === undefined) throw new Error(`Unrecognized function ${name}`)
+      if (func === undefined) throw new Error(`Unrecognized function ${name}`);
       const { args, kwArgs } = $callArgs.parse();
       return Object.keys(kwArgs).length == 0 ? func(...args) : func(...args, kwArgs);
       // return func.bind(kwArgs)(...args); // Old version

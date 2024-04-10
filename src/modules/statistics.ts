@@ -10,7 +10,7 @@ import { np } from "./_globals";
 /**
  * Compute the q-th percentile of the data along the specified axis.
  */
-export function percentile(a: NDArray, q: NDArray | number, axis: AxisArg | null) {
+export function percentile(a: NDArray<any>, q: NDArray<any> | number, axis: AxisArg | null) {
   q = np.divide(q, 100);
   return quantile(a, q, axis);
 }
@@ -37,7 +37,7 @@ function js_quantile_a_1D_q_01D(
 /**
  * Compute the q-th quantile of the data along the specified axis.
  */
-export function quantile(a: NDArray, q: NDArray | number, axis: number, _nan_handling = false) {
+export function quantile(a: NDArray<any>, q: NDArray<any> | number, axis: number, _nan_handling = false) {
   q = asarray(q);
   if (axis != a.shape.length - 1) { a = swapAxes(a, axis, -1); }
   const outer_shape = q.shape;
@@ -45,17 +45,19 @@ export function quantile(a: NDArray, q: NDArray | number, axis: number, _nan_han
   a = a.reshape(-1, a.shape.at(-1));
   q = q.reshape(-1);
   const [nrows, ncols] = a.shape;
+  const a_flat = a.flat;
+  const q_flat = q.flat;
   const out = new Float64Array(q.size * nrows);
   for (let i = 0; i < nrows; i++) {
-    const row = a.flat.slice(i * ncols, (i + 1) * ncols);
-    const values = js_quantile_a_1D_q_01D(row, q.flat, _nan_handling);
+    const row = a_flat.slice(i * ncols, (i + 1) * ncols);
+    const values = js_quantile_a_1D_q_01D(row, q_flat, _nan_handling);
     let j = i;
     for (let k in values) {
       out[j] = values[k];
       j += nrows;
     }
   }
-  return new_NDArray([...out], [...outer_shape, ...inner_shape], Number);
+  return new_NDArray(out, [...outer_shape, ...inner_shape]);
 
   // a = np.sort(a, { axis: null });
   // const n = _nan_handling ? np.isnan(a).logical_not().sum(0) : a.shape[0];

@@ -3,10 +3,10 @@
 import { isarray, number_collapse, new_NDArray, _NDArray } from './basic';
 
 
-export function fromlist(arr: any, dtype = null) {
+export function fromlist(arr: any, dtype = Float64Array) {
   if (isarray(arr)) return arr;
-  if (typeof arr === "number") return new_NDArray([arr], [], Number);
-  if (typeof arr === "boolean") return new_NDArray([arr ? 1 : 0], [], Boolean);
+  if (typeof arr === "number") return new_NDArray(new Float32Array([arr]), []);
+  if (typeof arr === "boolean") return new_NDArray(new Uint8Array([arr ? 1 : 0]), []);
   if (arr === _NDArray.prototype) throw new Error(`Programming error`);
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
   const shape: number[] = [];
@@ -16,7 +16,6 @@ export function fromlist(arr: any, dtype = null) {
     root = root[0];
     if (shape.length > 256) throw new Error(`Circular reference or excessive array depth`);
   }
-  dtype = dtype !== null ? dtype : typeof root === "boolean" ? Boolean : Number;
   const flat: number[] = [];
   const pushToFlat = (arr, axis) => {
     // Check consistency
@@ -36,7 +35,8 @@ export function fromlist(arr: any, dtype = null) {
     }
   }
   pushToFlat(arr, 0);
-  return new_NDArray(flat, shape, dtype)
+  const buffer = new dtype(flat);
+  return new_NDArray(buffer, shape)
 }
 
 export function tolist(arr) {

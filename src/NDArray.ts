@@ -1,26 +1,36 @@
 //@ts-check
 
-/** @ignore */
-export type DType = NumberConstructor | BooleanConstructor;
+import { TypedArray, TypedArrayConstructor, new_buffer } from './dtypes';
 /** @ignore */
 export type ArrayOrConstant = NDArray | number | boolean;
 
 
+
+export namespace NDArray_method_other_out {
+  export type Kwargs = { other?: NDArray<any>, out?: NDArray<any> | null };
+  export type Wrapper = (other: NDArray<any> | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+}
+
 /**
  * Multi dimensional array.
  */
-class NDArray {
+class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
+
 
   /** @ignore */
-  _flat: number[];
+  _flat: InstanceType<T>;
 
   /** @category Attributes @readonly */
   shape: number[];
+
   /** @category Attributes @readonly */
-  dtype: DType;
+  get dtype(): T {
+    //@ts-ignore
+    return this._flat.constructor;
+  }
 
   /** @category Indexing / slicing */
-  index: (...where: Where) => NDArray;
+  index: (...where: Where) => NDArray<T>;
 
   /** @ignore */
   modules: typeof import("./array").modules;
@@ -41,9 +51,9 @@ class NDArray {
   argmax: ReduceSignature;
   /** @category Reducers */
   argmin: ReduceSignature;
+
   /** @category Reducers */
   mean: ReduceSignature;
-
   /** @category Reducers */
   var: ReduceSignature;
   /** @category Reducers */
@@ -94,9 +104,9 @@ class NDArray {
   /** @category Comparison operators */
   equal: BinaryOperatorMethod;
   /** @category Comparison operators */
-  not_equal: BinaryOperatorMethod;
+  not_equal: NDArray_method_other_out.Wrapper;
   /** @category Comparison operators */
-  isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
+  isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray<T>;
   /** @category Comparison operators */
   allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
 
@@ -145,28 +155,27 @@ class NDArray {
   logical_and_assign: AssignmentOperatorMethod;
 
   /** @category Transformations */
-  ravel: () => NDArray;
+  ravel: () => NDArray<T>;
   /** @category Transformations */
-  reshape: (shape: any, ...more_shape: any[]) => NDArray;
+  reshape: (shape: any, ...more_shape: any[]) => NDArray<T>;
   /** @category Transformations */
-  sort: (axis?: number) => NDArray;
+  sort: (axis?: number) => NDArray<T>;
   /** @category Transformations */
-  transpose: (axes?: number[]) => NDArray;
+  transpose: (axes?: number[]) => NDArray<T>;
 
 
   /** @category Casting */
   tolist: () => any;
-  // fromJS: (A: any) => NDArray;
+  // fromJS: (A: any) => NDArray<T>;
 
   /**
    * Generic operator function. See {@link GenericOperatorFunction} for details.
    */
   op: GenericOperatorFunction;
 
-  constructor(flat: number[], shape: number[], dtype: any = Number) {
-    this.shape = shape; // invariant: immutable
+  constructor(flat: InstanceType<T>, shape?: number[]) {
+    this.shape = shape || [flat.length]; // invariant: immutable
     this._flat = flat;
-    this.dtype = dtype;
     this._simpleIndexes = null;
   }
 
@@ -178,11 +187,14 @@ class NDArray {
     return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;
   }
   /** @category Attributes @readonly */
-  get flat() {
+  get flat(): InstanceType<T> {
     if (this._simpleIndexes == null) return this._flat;
     const indices = this._simpleIndexes.indices;
-    return indices.map(i => this._flat[i]);
+    //@ts-ignore
+    return new_buffer(indices.length, this.dtype).map((_: any, i: number) => this._flat[indices[i]]);
   }
+
+
   /** @internal */
   set flat(list) {
     if (list.length != this.size)
@@ -218,11 +230,11 @@ class NDArray {
   }
 
   /** @category Transformations */
-  copy: () => NDArray;
+  copy: () => NDArray<T>;
   /** @category Casting */
   item() {
     if (this.size != 1) throw new Error(`Can't convert array of size ${this.size} to scalar`);
-    return this._flat[0];
+    return this.dtype == Uint8Array ? !!this._flat[0] : this._flat[0];
   }
 }
 
@@ -231,12 +243,12 @@ GLOBALS.NDArray = NDArray;
 
 import { modules } from "./array";
 // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-import { AxisArg, BinaryOperatorMethod, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature, UnaryOperatorMethod, AssignmentOperatorMethod } from './array/kwargs';
+import { AxisArg, BinaryOperatorMethod, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature, UnaryOperatorMethod, AssignmentOperatorMethod, Method_other_out } from './array/kwargs';
 NDArray.prototype.modules = modules;
 
 
 
-
+// const a = new NDArray(new Int32Array(20), [], Number)
 
 // ==============================
 //    Basic methods
@@ -299,7 +311,7 @@ NDArray.prototype.norm = modules.reduce.kw_reducers.norm.as_method;
 // ==============================
 //       Operators: Binary operations, assignment operations and unary boolean_not
 // ==============================
-
+import { Func_a_other_out } from "./array/kwargs";
 
 NDArray.prototype.add = modules.operators.kw_op_binary["+"].as_method;
 NDArray.prototype.subtract = modules.operators.kw_op_binary["-"].as_method;
@@ -327,7 +339,7 @@ NDArray.prototype.less = modules.operators.kw_op_binary["<"].as_method;
 NDArray.prototype.greater_equal = modules.operators.kw_op_binary[">="].as_method;
 NDArray.prototype.less_equal = modules.operators.kw_op_binary["<="].as_method;
 NDArray.prototype.equal = modules.operators.kw_op_binary["=="].as_method;
-NDArray.prototype.not_equal = modules.operators.kw_op_binary["!="].as_method;
+NDArray.prototype.not_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["!="]);
 
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless

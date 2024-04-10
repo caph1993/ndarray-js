@@ -1,6 +1,7 @@
 //@ts-check
 import { isarray, asarray, new_NDArray, shape_shifts } from './basic';
 import type NDArray from "../NDArray";
+import { dtype_is_boolean, dtype_is_float, dtype_is_integer } from '../dtypes';
 
 
 export type RangeSpec = string;
@@ -23,14 +24,14 @@ export function index(arr: NDArray, where: Where) {
     return arr.flat[index] as any as NDArray;
   } else if (axesIndex.isSimple) {
     const composition = __compose_simpleIndexes(arr._simpleIndexes, axesIndex);
-    const out = new_NDArray(arr._flat, axesIndex.shape, arr.dtype);
+    const out = new_NDArray(arr._flat, axesIndex.shape);
     out._simpleIndexes = composition;
     if (arr['__warnAssignments']) out['__warnAssignments'] = true;
     return copy ? out.copy() : out;
   } else {
     const src_flat = arr.flat;
-    const flat = axesIndex.indices.map(i => src_flat[i]);
-    const out = new_NDArray(flat, axesIndex.shape, arr.dtype);
+    const buffer = arr.dtype.from(axesIndex.indices.map(i => src_flat[i]));
+    const out = new_NDArray(buffer, axesIndex.shape);
     if (!copy) out['__warnAssignments'] = true;
     return out;
   }
@@ -197,7 +198,6 @@ export class AxisIndex {
 
   /**
    * Invariant: Immutable
-   * @param {AxisIndexSpec} spec
    */
   constructor(spec: AxisIndexSpec) {
     this.spec = spec;
@@ -289,7 +289,11 @@ AxisIndex.prototype.parse = function (indexSpec: IndexSpec | undefined, size) {
   let spec: AxisIndexSpec;
   let span = 1;
 
-  if (isarray(indexSpec) && indexSpec.shape.length == 0) indexSpec = indexSpec.flat[0]; // Unwrap scalar
+  if (isarray(indexSpec) && indexSpec.shape.length == 0) {
+    // Unwrap scalar
+    //@ts-ignore
+    indexSpec = indexSpec.item();
+  }
 
   if (indexSpec == ':' || indexSpec === undefined) {
     spec = { type: ':', size: size };
@@ -303,22 +307,27 @@ AxisIndex.prototype.parse = function (indexSpec: IndexSpec | undefined, size) {
   else if (isarray(indexSpec) || Array.isArray(indexSpec)) {
     let arr = asarray(indexSpec);
     let indices;
-    if (arr.dtype == Number) {
-      // Array of indices
-      if (arr.shape.length > 1) throw new Error(
-        `Expected 1D array of indices or nD array of booleans. ` +
-        `Found shape=${arr.shape} and dtype=${arr.dtype}`
-      );
-      indices = arr.flat;
-    } else {
+    if (dtype_is_boolean(arr.dtype)) {
       // Boolean mask
       indices = [];
       arr.flat.forEach((if_value, i) => if_value && indices.push(i));
       // Next lines: the boolean mask spans over more than 1 axis
       span = Math.max(1, arr.shape.length);
       // Multiply the (possibly inverted) interval
+    } else {
+      // Array of indices
+      indices = arr.flat;
+      if (!dtype_is_integer(arr.dtype) && arr.size > 0) {
+        // If the array is not integer, we should throw an error. Manual check
+        const new_indices = new Int32Array(indices);
+        if (new_indices.some((v, i) => v != indices[i])) throw new Error(
+          `Expected 1D array of indices or nD array of booleans. ` +
+          `Found shape=${arr.shape} and dtype=${arr.dtype}`
+        );
+        indices = new_indices;
+      }
     }
-    spec = { type: 'array', indices };
+    spec = { type: "array", indices };
   }
   else if (typeof indexSpec == "string") {
     let { start, stop, step } = AxisIndex.prototype.parse_range_spec(indexSpec);

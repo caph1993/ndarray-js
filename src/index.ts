@@ -100,6 +100,8 @@ np.concatenate = transform.concatenate;
 /** @category Transformations */
 np.stack = transform.stack;
 
+import { Func_a_other_out } from './array/kwargs';
+
 const operators = NDArray.prototype.modules.operators;
 
 /** @category Binary operators */
@@ -137,7 +139,7 @@ np.less_equal = operators.kw_op_binary["<="].as_function;
 /** @category Binary operators */
 np.equal = operators.kw_op_binary["=="].as_function;
 /** @category Binary operators */
-np.not_equal = operators.kw_op_binary["!="].as_function;
+np.not_equal = Func_a_other_out.defaultDecorator(operators.op_binary["!="]);
 /** @category Binary operators */
 np.maximum = operators.kw_op_binary["max"].as_function;
 /** @category Binary operators */
@@ -246,6 +248,7 @@ np.geomspace = np.modules.constructors.geomspace;
 
 np.take = np.modules.indexing.take;
 np.where = np.modules.indexing.where;
+np.nonzero = np.modules.indexing.nonzero;
 np.quantile = np.modules.statistics.kw_exported.quantile;
 np.nanquantile = np.modules.statistics.kw_exported.nanquantile;
 // np.percentile = np.modules.statistics.kw_exported.percentile;
