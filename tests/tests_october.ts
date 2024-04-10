@@ -68,6 +68,22 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
 
 
 // Unit tests:
+var XY = np.random.randn([500000, 2])
+var norm = np.norm(XY, { axis: -1, keepdims: true });
+console.log(np.allclose(norm, XY.pow(2).sum(-1).index('...', 'None').pow(0.5)));
+
+var XY_unit = XY.op('/', norm);
+var angle = 45; // <-- rotate me
+var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180 / np.pi).add(90 - angle).abs().greater(90);
+np.stack([norm.index(':', 0), XY_unit.norm({ axis: -1 })], -1).index(`0:5`);
+
+
+npTest`np.sin(np.linspace(0,10,1000))`
+
+npTest`np.linspace(0, 1, 100).reshape(5, 4, 5)`
+npTest`np.exp(np.linspace(0, 1, 100).reshape(5, 4, 5))`
+npTest`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 5)).mean(axis=0)`
+npTest`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 5)).mean(axis=0)`
 
 npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )`
 npTest`np.reshape( np.arange(120), [2, 3, 4, 5] )[ :, 0, [1, 2], : ]`
@@ -77,14 +93,6 @@ npTest`np.ravel(np.reshape( np.arange(120), ${[2, 3, 4, 5]} )[ :, 0, ${[1, 2]}, 
 npTest`np.sin(np.linspace(0,10,1000))`
 
 np`np.exp(0.5 * np.linspace(0, 1, 100).reshape(5, 4, 5)).mean(axis=0)`
-
-var XY = np.random.randn([500000, 2])
-var norm = np.norm(XY, { axis: -1, keepdims: true });
-console.log(np.allclose(norm, XY.pow(2).sum(-1).index('...', 'None').pow(0.5)));
-var XY_unit = XY.op('/', norm);
-var angle = 45; // <-- rotate me
-var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180 / np.pi).add(90 - angle).abs().greater(90);
-np.stack([norm.index(':', 0), XY_unit.norm(-1)], -1).index(`0:5`);
 
 
 

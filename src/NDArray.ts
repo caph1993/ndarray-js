@@ -6,10 +6,7 @@ export type ArrayOrConstant = NDArray | number | boolean;
 
 
 
-export namespace NDArray_method_other_out {
-  export type Kwargs = { other?: NDArray<any>, out?: NDArray<any> | null };
-  export type Wrapper = (other: NDArray<any> | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
-}
+
 
 /**
  * Multi dimensional array.
@@ -36,123 +33,123 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
   modules: typeof import("./array").modules;
 
   /** @category Reducers */
-  any: ReduceSignatureBool;
+  any: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
   /** @category Reducers */
-  all: ReduceSignatureBool;
+  all: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
   /** @category Reducers */
-  sum: ReduceSignature;
+  sum: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  product: ReduceSignature;
+  product: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  max: ReduceSignature;
+  max: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  min: ReduceSignature;
+  min: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  argmax: ReduceSignature;
+  argmax: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  argmin: ReduceSignature;
+  argmin: Method_a_axis_keepdims.Wrapper;
 
   /** @category Reducers */
-  mean: ReduceSignature;
+  mean: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  var: ReduceSignature;
+  var: Method_a_axis_ddof_keepdims.Wrapper;
   /** @category Reducers */
-  std: ReduceStdSignature;
+  std: Method_a_axis_ddof_keepdims.Wrapper;
   /** @category Reducers */
-  norm: ReduceNormSignature;
+  norm: Method_a_ord_axis_keepdims.Wrapper;
 
   /** @category Binary operators */
-  add: BinaryOperatorMethod;
+  add: Method_other_out.Wrapper;
   /** @category Binary operators */
-  subtract: BinaryOperatorMethod;
+  subtract: Method_other_out.Wrapper;
   /** @category Binary operators */
-  multiply: BinaryOperatorMethod;
+  multiply: Method_other_out.Wrapper;
   /** @category Binary operators */
-  divide: BinaryOperatorMethod;
+  divide: Method_other_out.Wrapper;
   /** @category Binary operators */
-  mod: BinaryOperatorMethod;
+  mod: Method_other_out.Wrapper;
   /** @category Binary operators */
-  divide_int: BinaryOperatorMethod;
+  divide_int: Method_other_out.Wrapper;
   /** @category Binary operators */
-  pow: BinaryOperatorMethod;
+  pow: Method_other_out.Wrapper;
   /** @category Binary operators */
-  maximum: BinaryOperatorMethod;
+  maximum: Method_other_out.Wrapper;
   /** @category Binary operators */
-  minimum: BinaryOperatorMethod;
+  minimum: Method_other_out.Wrapper;
   /** @category Binary operators */
-  bitwise_or: BinaryOperatorMethod;
+  bitwise_or: Method_other_out.Wrapper;
   /** @category Binary operators */
-  bitwise_and: BinaryOperatorMethod;
+  bitwise_and: Method_other_out.Wrapper;
   /** @category Binary operators */
-  bitwise_shift_right: BinaryOperatorMethod;
+  bitwise_shift_right: Method_other_out.Wrapper;
 
   /** @category Binary logical operators */
-  logical_xor: BinaryOperatorMethod<boolean>;
+  logical_xor: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Binary logical operators */
-  logical_or: BinaryOperatorMethod<boolean>;
+  logical_or: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Binary logical operators */
-  logical_and: BinaryOperatorMethod<boolean>;
+  logical_and: Method_other_out.Wrapper<Uint8ArrayConstructor>;
 
   /** @category Comparison operators */
-  greater: BinaryOperatorMethod;
+  greater: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Comparison operators */
-  less: BinaryOperatorMethod;
+  less: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Comparison operators */
-  greater_equal: BinaryOperatorMethod;
+  greater_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Comparison operators */
-  less_equal: BinaryOperatorMethod;
+  less_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Comparison operators */
-  equal: BinaryOperatorMethod;
+  equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Comparison operators */
-  not_equal: NDArray_method_other_out.Wrapper;
+  not_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Comparison operators */
   isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray<T>;
   /** @category Comparison operators */
   allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
 
   /** @category Unary operators */
-  round: RoundSignature;
+  round: Method_a_decimals_out.Wrapper;
   /** @category Unary operators */
-  abs: UnaryOperatorMethod;
+  abs: Method_out.Wrapper;
   /** @category Unary operators */
-  negative: UnaryOperatorMethod;
+  negative: Method_out.Wrapper;
   /** @category Unary operators */
-  bitwise_not: UnaryOperatorMethod;
+  bitwise_not: Method_out.Wrapper<Uint8ArrayConstructor>;
   /** @category Unary logical operators */
-  logical_not: UnaryOperatorMethod;
+  logical_not: Method_out.Wrapper<Uint8ArrayConstructor>;
 
   /** @category Operators with assignment */
-  assign: AssignmentOperatorMethod;
+  assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  add_assign: AssignmentOperatorMethod;
+  add_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  subtract_assign: AssignmentOperatorMethod;
+  subtract_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  multiply_assign: AssignmentOperatorMethod;
+  multiply_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  divide_assign: AssignmentOperatorMethod;
+  divide_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  mod_assign: AssignmentOperatorMethod;
+  mod_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  pow_assign: AssignmentOperatorMethod;
+  pow_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  divide_int_assign: AssignmentOperatorMethod;
+  divide_int_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  maximum_assign: AssignmentOperatorMethod;
+  maximum_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  minimum_assign: AssignmentOperatorMethod;
+  minimum_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  bitwise_and_assign: AssignmentOperatorMethod;
+  bitwise_and_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  bitwise_or_assign: AssignmentOperatorMethod;
+  bitwise_or_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  logical_or_assign: AssignmentOperatorMethod;
+  logical_or_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  bitwise_shift_right_assign: AssignmentOperatorMethod;
+  bitwise_shift_right_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  bitwise_shift_left_assign: AssignmentOperatorMethod;
+  bitwise_shift_left_assign: Method_values_where.Wrapper;
   /** @category Operators with assignment */
-  logical_and_assign: AssignmentOperatorMethod;
+  logical_and_assign: Method_values_where.Wrapper;
 
   /** @category Transformations */
   ravel: () => NDArray<T>;
@@ -243,7 +240,7 @@ GLOBALS.NDArray = NDArray;
 
 import { modules } from "./array";
 // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-import { AxisArg, BinaryOperatorMethod, KwParser, ReduceKwargs, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundKwargs, RoundParsedKwargs, RoundSignature, UnaryOperatorMethod, AssignmentOperatorMethod, Method_other_out } from './array/kwargs';
+import { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
 NDArray.prototype.modules = modules;
 
 
@@ -292,20 +289,21 @@ NDArray.prototype.toString = function () {
 // ==============================
 
 
-NDArray.prototype.any = modules.reduce.kw_reducers.any.as_method;
-NDArray.prototype.all = modules.reduce.kw_reducers.all.as_method;
+NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(modules.reduce.reducers.any);
+NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(modules.reduce.reducers.all);
 
-NDArray.prototype.sum = modules.reduce.kw_reducers.sum.as_method;
-NDArray.prototype.product = modules.reduce.kw_reducers.product.as_method;
-NDArray.prototype.max = modules.reduce.kw_reducers.max.as_method;
-NDArray.prototype.min = modules.reduce.kw_reducers.min.as_method;
-NDArray.prototype.argmax = modules.reduce.kw_reducers.argmax.as_method;
-NDArray.prototype.argmin = modules.reduce.kw_reducers.argmin.as_method;
-NDArray.prototype.mean = modules.reduce.kw_reducers.mean.as_method;
+NDArray.prototype.sum = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.sum);
+NDArray.prototype.product = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.product);
+NDArray.prototype.max = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.max);
+NDArray.prototype.min = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.min);
+NDArray.prototype.argmax = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.argmax);
+NDArray.prototype.argmin = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.argmin);
+NDArray.prototype.mean = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.mean);
 
-NDArray.prototype.var = modules.reduce.kw_reducers.var.as_method;
-NDArray.prototype.std = modules.reduce.kw_reducers.std.as_method;
-NDArray.prototype.norm = modules.reduce.kw_reducers.norm.as_method;
+NDArray.prototype.var = Method_a_axis_ddof_keepdims.defaultDecorator(modules.reduce.reducers.var);
+
+NDArray.prototype.std = Method_a_axis_ddof_keepdims.defaultDecorator(modules.reduce.reducers.std);
+NDArray.prototype.norm = Method_a_ord_axis_keepdims.defaultDecorator(modules.reduce.reducers.norm);
 
 
 // ==============================
@@ -313,64 +311,64 @@ NDArray.prototype.norm = modules.reduce.kw_reducers.norm.as_method;
 // ==============================
 import { Func_a_other_out } from "./array/kwargs";
 
-NDArray.prototype.add = modules.operators.kw_op_binary["+"].as_method;
-NDArray.prototype.subtract = modules.operators.kw_op_binary["-"].as_method;
-NDArray.prototype.multiply = modules.operators.kw_op_binary["*"].as_method;
-NDArray.prototype.divide = modules.operators.kw_op_binary["/"].as_method;
-NDArray.prototype.mod = modules.operators.kw_op_binary["%"].as_method;
-NDArray.prototype.divide_int = modules.operators.kw_op_binary["//"].as_method;
-NDArray.prototype.pow = modules.operators.kw_op_binary["**"].as_method;
+NDArray.prototype.add = Method_other_out.defaultDecorator(modules.operators.op_binary["+"]);
+NDArray.prototype.subtract = Method_other_out.defaultDecorator(modules.operators.op_binary["-"]);
+NDArray.prototype.multiply = Method_other_out.defaultDecorator(modules.operators.op_binary["*"]);
+NDArray.prototype.divide = Method_other_out.defaultDecorator(modules.operators.op_binary["/"]);
+NDArray.prototype.mod = Method_other_out.defaultDecorator(modules.operators.op_binary["%"]);
+NDArray.prototype.divide_int = Method_other_out.defaultDecorator(modules.operators.op_binary["//"]);
+NDArray.prototype.pow = Method_other_out.defaultDecorator(modules.operators.op_binary["**"]);
+NDArray.prototype.maximum = Method_other_out.defaultDecorator(modules.operators.op_binary["max"]);
+NDArray.prototype.minimum = Method_other_out.defaultDecorator(modules.operators.op_binary["min"]);
 
-NDArray.prototype.maximum = modules.operators.kw_op_binary["max"].as_method;
-NDArray.prototype.minimum = modules.operators.kw_op_binary["min"].as_method;
+NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(modules.operators.op_binary["|"]);
+NDArray.prototype.bitwise_and = Method_other_out.defaultDecorator(modules.operators.op_binary["&"]);
+NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(modules.operators.op_binary["^"]);
+NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary["<<"]);
+NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary[">>"]);
 
-NDArray.prototype.bitwise_or = modules.operators.kw_op_binary["|"].as_method;
-NDArray.prototype.bitwise_and = modules.operators.kw_op_binary["&"].as_method;
-NDArray.prototype.bitwise_or = modules.operators.kw_op_binary["^"].as_method;
-NDArray.prototype.bitwise_shift_right = modules.operators.kw_op_binary["<<"].as_method;
-NDArray.prototype.bitwise_shift_right = modules.operators.kw_op_binary[">>"].as_method;
+NDArray.prototype.logical_or = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["or"]);
+NDArray.prototype.logical_and = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["and"]);
+NDArray.prototype.logical_xor = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["xor"]);
 
-NDArray.prototype.logical_or = modules.operators.kw_op_binary["or"].as_method;
-NDArray.prototype.logical_and = modules.operators.kw_op_binary["and"].as_method;
-NDArray.prototype.logical_xor = modules.operators.kw_op_binary["xor"].as_method;
-
-NDArray.prototype.greater = modules.operators.kw_op_binary[">"].as_method;
-NDArray.prototype.less = modules.operators.kw_op_binary["<"].as_method;
-NDArray.prototype.greater_equal = modules.operators.kw_op_binary[">="].as_method;
-NDArray.prototype.less_equal = modules.operators.kw_op_binary["<="].as_method;
-NDArray.prototype.equal = modules.operators.kw_op_binary["=="].as_method;
-NDArray.prototype.not_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["!="]);
+NDArray.prototype.greater = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary[">"]);
+NDArray.prototype.less = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["<"]);
+NDArray.prototype.greater_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary[">="]);
+NDArray.prototype.less_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["<="]);
+NDArray.prototype.equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["=="]);
+NDArray.prototype.not_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["!="]);
 
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_not = modules.elementwise.kw_ops.bitwise_not.as_method;
-NDArray.prototype.logical_not = modules.elementwise.kw_ops.logical_not.as_method;
-NDArray.prototype.negative = modules.elementwise.kw_ops.negative.as_method;
-NDArray.prototype.abs = modules.elementwise.kw_ops.abs.as_method;
+NDArray.prototype.bitwise_not = Method_out.defaultDecorator(modules.elementwise.funcs.bitwise_not);
+NDArray.prototype.logical_not = Method_out.defaultDecorator(modules.elementwise.funcs.logical_not);
+NDArray.prototype.negative = Method_out.defaultDecorator(modules.elementwise.funcs.negative);
+NDArray.prototype.abs = Method_out.defaultDecorator(modules.elementwise.funcs.abs);
+
 
 NDArray.prototype.isclose = modules.operators.isclose;
 NDArray.prototype.allclose = modules.operators.allclose;
 
 
-NDArray.prototype.assign = modules.operators.kw_op_assign["="].as_method;
-NDArray.prototype.add_assign = modules.operators.kw_op_assign["+="].as_method;
-NDArray.prototype.subtract_assign = modules.operators.kw_op_assign["-="].as_method;
-NDArray.prototype.multiply_assign = modules.operators.kw_op_assign["*="].as_method;
-NDArray.prototype.divide_assign = modules.operators.kw_op_assign["/="].as_method;
-NDArray.prototype.mod_assign = modules.operators.kw_op_assign["%="].as_method;
-NDArray.prototype.divide_int_assign = modules.operators.kw_op_assign["//="].as_method;
-NDArray.prototype.pow_assign = modules.operators.kw_op_assign["**="].as_method;
+NDArray.prototype.assign = Method_values_where.defaultDecorator(modules.operators.op_assign["="]);
+NDArray.prototype.add_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["+="]);
+NDArray.prototype.subtract_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["-="]);
+NDArray.prototype.multiply_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["*="]);
+NDArray.prototype.divide_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["/="]);
+NDArray.prototype.mod_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["%="]);
+NDArray.prototype.divide_int_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["//="]);
+NDArray.prototype.pow_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["**="]);
 
-NDArray.prototype.maximum_assign = modules.operators.kw_op_assign["max="].as_method;
-NDArray.prototype.minimum_assign = modules.operators.kw_op_assign["min="].as_method;
+NDArray.prototype.maximum_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["max="]);
+NDArray.prototype.minimum_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["min="]);
 
-NDArray.prototype.bitwise_or_assign = modules.operators.kw_op_assign["|="].as_method;
-NDArray.prototype.bitwise_and_assign = modules.operators.kw_op_assign["&="].as_method;
-NDArray.prototype.bitwise_shift_left_assign = modules.operators.kw_op_assign["<<="].as_method;
-NDArray.prototype.bitwise_shift_right_assign = modules.operators.kw_op_assign[">>="].as_method;
+NDArray.prototype.bitwise_or_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["|="]);
+NDArray.prototype.bitwise_and_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["&="]);
+NDArray.prototype.bitwise_shift_left_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["<<="]);
+NDArray.prototype.bitwise_shift_right_assign = Method_values_where.defaultDecorator(modules.operators.op_assign[">>="]);
 
-NDArray.prototype.logical_or_assign = modules.operators.kw_op_assign["or="].as_method;
-NDArray.prototype.logical_and_assign = modules.operators.kw_op_assign["and="].as_method;
+NDArray.prototype.logical_or_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["or="]);
+NDArray.prototype.logical_and_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["and="]);
 
 
 
@@ -389,7 +387,7 @@ NDArray.prototype.tolist = function () {
 //    elementwise methods
 // ==============================
 
-NDArray.prototype.round = modules.elementwise.kw_ops.round.as_method;
+NDArray.prototype.round = Method_a_decimals_out.defaultDecorator(modules.elementwise.funcs.round);
 
 // ==============================
 //    transform methods

@@ -19,143 +19,154 @@ declare const np: {
     /** @category Casting and reshaping */
     asarray: typeof import("./array/_globals").asarray;
     /** @category Reducers */
-    sum: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    sum: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
     /** @category Reducers */
-    product: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    product: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
     /** @category Reducers */
-    prod: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    prod: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
     /** @category Reducers */
-    any: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    any: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
     /** @category Reducers */
-    all: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    all: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
     /** @category Reducers */
-    max: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    max: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
     /** @category Reducers */
-    min: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    min: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
     /** @category Reducers */
-    argmax: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    argmax: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Int32ArrayConstructor>;
     /** @category Reducers */
-    argmin: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    argmin: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Int32ArrayConstructor>;
     /** @category Reducers */
-    mean: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    mean: import("./array/kwargs").Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
     /** @category Reducers */
-    norm: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceNormKwargs, keepdims?: boolean | import("./array/kwargs").ReduceNormKwargs, ord?: number | import("./array/kwargs").ReduceNormKwargs) => NDArray;
+    norm: import("./array/kwargs").Func_a_ord_axis_keepdims.Wrapper;
     /** @category Reducers */
-    var: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceKwargs, keepdims?: boolean | import("./array/kwargs").ReduceKwargs) => NDArray;
+    var: import("./array/kwargs").Func_a_axis_ddof_keepdims.Wrapper;
     /** @category Reducers */
-    std: (arr: number | boolean | NDArray, axis?: number | import("./array/kwargs").ReduceStdKwargs, keepdims?: boolean | import("./array/kwargs").ReduceStdKwargs, ddof?: number | import("./array/kwargs").ReduceStdKwargs) => NDArray;
+    std: import("./array/kwargs").Func_a_axis_ddof_keepdims.Wrapper;
     /** @category Transformations */
     transpose: typeof import("./array/transform").transpose;
     /** @category Transformations */
     apply_along_axis: typeof import("./array/transform").apply_along_axis;
     /** @category Transformations */
-    sort: typeof import("./array/transform").sort;
+    sort: import("./array/kwargs").Func_a_lastAxis.Wrapper;
     /** @category Transformations */
     concatenate: typeof import("./array/transform").concatenate;
     /** @category Transformations */
     stack: typeof import("./array/transform").stack;
     /** @category Binary operators */
-    add: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    add: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    subtract: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    subtract: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    multiply: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    multiply: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    divide: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    divide: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    mod: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    mod: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    divide_int: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    divide_int: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    pow: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    pow: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_or: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    bitwise_or: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_and: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    bitwise_and: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_xor: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    bitwise_xor: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_shift_left: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    bitwise_shift_left: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_shift_right: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    bitwise_shift_right: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    greater: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    greater: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    less: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    less: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    greater_equal: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    greater_equal: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    less_equal: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    less_equal: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    equal: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    equal: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    not_equal: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    not_equal: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    maximum: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    maximum: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    minimum: (arr: number | boolean | NDArray, other: number | NDArray, out?: NDArray) => NDArray;
+    minimum: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    logical_or: (arr: number | boolean | NDArray, other: boolean | NDArray, out?: NDArray) => NDArray;
+    logical_or: Func_a_other_out.Wrapper;
     /** @category Binary operators */
-    logical_and: (arr: number | boolean | NDArray, other: boolean | NDArray, out?: NDArray) => NDArray;
-    atan2: (y: NDArray, x: NDArray, out?: NDArray) => NDArray;
+    logical_and: Func_a_other_out.Wrapper;
+    atan2: import("./array/kwargs").Func_y_x_out.Wrapper;
+    assign: <T extends import("./dtypes").TypedArrayConstructor>(a: NDArray<T>, values: NDArray<Float64ArrayConstructor>, where: import("./array/indexes").GeneralIndexSpec[]) => NDArray<T>;
     allclose: typeof import("./array/operators").allclose;
     isclose: typeof import("./array/operators").isclose;
     /** @category Elementwise operators */
-    sign: (A: NDArray, out?: NDArray) => NDArray;
+    sign: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    sqrt: (A: NDArray, out?: NDArray) => NDArray;
+    sqrt: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    square: (A: NDArray, out?: NDArray) => NDArray;
+    square: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    exp: (A: NDArray, out?: NDArray) => NDArray;
+    exp: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    log: (A: NDArray, out?: NDArray) => NDArray;
+    log: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    log2: (A: NDArray, out?: NDArray) => NDArray;
+    log2: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    log10: (A: NDArray, out?: NDArray) => NDArray;
+    log10: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    log1p: (A: NDArray, out?: NDArray) => NDArray;
+    log1p: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    sin: (A: NDArray, out?: NDArray) => NDArray;
+    sin: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    cos: (A: NDArray, out?: NDArray) => NDArray;
+    cos: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    tan: (A: NDArray, out?: NDArray) => NDArray;
+    tan: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    asin: (A: NDArray, out?: NDArray) => NDArray;
+    asin: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    acos: (A: NDArray, out?: NDArray) => NDArray;
+    acos: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    atan: (A: NDArray, out?: NDArray) => NDArray;
+    atan: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    cosh: (A: NDArray, out?: NDArray) => NDArray;
+    cosh: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    sinh: (A: NDArray, out?: NDArray) => NDArray;
+    sinh: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    tanh: (A: NDArray, out?: NDArray) => NDArray;
+    tanh: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    acosh: (A: NDArray, out?: NDArray) => NDArray;
+    acosh: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    asinh: (A: NDArray, out?: NDArray) => NDArray;
+    asinh: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    atanh: (A: NDArray, out?: NDArray) => NDArray;
+    atanh: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    abs: (arr: number | boolean | NDArray, out?: NDArray) => NDArray;
+    floor: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    bitwise_not: (arr: number | boolean | NDArray, out?: NDArray) => NDArray;
+    ceil: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    logical_not: (arr: number | boolean | NDArray, out?: NDArray) => NDArray;
+    isnan: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    negative: (arr: number | boolean | NDArray, out?: NDArray) => NDArray;
+    isfinite: import("./array/kwargs").Func_a_out.Wrapper;
     /** @category Elementwise operators */
-    round: (arr: number | boolean | NDArray, decimals?: number) => NDArray;
+    abs: import("./array/kwargs").Func_a_out.Wrapper;
+    /** @category Elementwise operators */
+    bitwise_not: import("./array/kwargs").Func_a_out.Wrapper;
+    /** @category Elementwise operators */
+    logical_not: import("./array/kwargs").Func_a_out.Wrapper;
+    /** @category Elementwise operators */
+    negative: import("./array/kwargs").Func_a_out.Wrapper;
+    /** @category Elementwise operators */
+    round: import("./array/kwargs").Func_a_decimals_out.Wrapper;
     /** @category Main @namespace*/
     modules: {
         constructors: typeof import("./modules/constructors");
         grammar: typeof import("./modules/grammar");
         random: typeof import("./modules/random");
+        indexing: typeof import("./modules/indexing");
+        statistics: typeof import("./modules/statistics");
     };
     /** @category Modules */
     random: typeof import("./modules/random");
@@ -171,11 +182,17 @@ declare const np: {
     linspace: typeof import("./modules/constructors").linspace;
     /** @category Constructors */
     geomspace: typeof import("./modules/constructors").geomspace;
+    take: typeof import("./modules/indexing").take;
+    where: typeof import("./modules/indexing").where;
+    nonzero: typeof import("./modules/indexing").nonzero;
+    quantile: import("./array/kwargs").Func_a_q_axis.Wrapper;
+    nanquantile: import("./array/kwargs").Func_a_q_axis.Wrapper;
     /** @category Math constants */
     pi: number;
     /** @category Math constants */
     e: number;
 };
 import NDArray from './NDArray';
+import { Func_a_other_out } from './array/kwargs';
 export { np };
 //# sourceMappingURL=index.d.ts.map

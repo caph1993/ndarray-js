@@ -1,9 +1,9 @@
 import type NDArray from "../NDArray";
 export type RangeSpec = string;
-export type indexSpec = ':' | number | RangeSpec | NDArray | number[];
-export type GeneralIndexSpec = ':' | '...' | 'None' | null | indexSpec;
+export type IndexSpec = ':' | number | RangeSpec | number[] | NDArray<Float64ArrayConstructor> | NDArray<Int32ArrayConstructor> | NDArray<Uint8ArrayConstructor>;
+export type GeneralIndexSpec = '...' | 'None' | null | boolean | IndexSpec;
 export type Where = null | GeneralIndexSpec[];
-export declare function index(arr: NDArray, where: Where): NDArray;
+export declare function index(arr: NDArray, where: Where): NDArray<import("../dtypes").TypedArrayConstructor>;
 export declare class AxesIndex {
     shape: any;
     internalShape: any;
@@ -18,7 +18,7 @@ export declare class AxesIndex {
      */
     constructor(apparentShape: any, internalShape: any, axisIndexes: AxisIndex[]);
     get indices(): number[];
-    get __slices(): any[];
+    get __slices(): number[][];
     get size(): number;
 }
 export declare function __parse_sliceRange(axis_size: any, { start, stop, step }: {
@@ -42,13 +42,15 @@ export type AxisIndexSpec = {
 } | {
     type: 'array';
     indices: number[];
+} | {
+    type: false;
 };
 export declare class AxisIndex {
     spec: AxisIndexSpec;
     private _indices;
     isSimple: boolean;
     isConstant: boolean;
-    parse: (indexSpec: indexSpec | undefined, size: number) => {
+    parse: (indexSpec: IndexSpec | undefined, size: number) => {
         axisIndex: AxisIndex;
         span: number;
     };
@@ -64,10 +66,9 @@ export declare class AxisIndex {
     };
     /**
      * Invariant: Immutable
-     * @param {AxisIndexSpec} spec
      */
     constructor(spec: AxisIndexSpec);
-    get indices(): any;
+    get indices(): number[];
     get size(): number;
 }
 //# sourceMappingURL=indexes.d.ts.map

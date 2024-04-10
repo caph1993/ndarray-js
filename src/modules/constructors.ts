@@ -1,7 +1,6 @@
 //@ts-check
 import NDArray from '../NDArray';
 import { Shape, asarray } from '../array/basic';
-import { KwParser } from '../array/kwargs';
 import { TypedArrayConstructor } from '../dtypes';
 
 const { basic, elementwise } = NDArray.prototype.modules;

@@ -1,44 +1,9 @@
 import { NDArray } from '../NDArray';
+import { TypedArrayConstructor } from '../dtypes';
 import { asarray, isarray } from "./_globals";
 import { Where } from './indexes';
 
 export type AxisArg = number | null;
-
-export type ReduceKwargs = { axis?: AxisArg, keepdims?: boolean };
-export type ReduceSignature<T = number> = (axis?: AxisArg | ReduceKwargs, keepdims?: boolean | ReduceKwargs) => NDArray;
-export type ReduceSignatureBool = ReduceSignature<boolean>;
-export type ReduceParsedKwargs = [AxisArg, boolean];
-
-export type ReduceStdKwargs = { axis?: number, keepdims?: boolean, ddof?: number };
-export type ReduceStdSignature = (axis?: AxisArg | ReduceStdKwargs, keepdims?: boolean | ReduceStdKwargs, ddof?: number | ReduceStdKwargs) => NDArray;
-export type ReduceStdParsedKwargs = [AxisArg, boolean, number];
-
-export type ReduceNormKwargs = { axis?: number, keepdims?: boolean, ord?: number };
-export type ReduceNormSignature = (axis?: AxisArg | ReduceNormKwargs, keepdims?: boolean | ReduceNormKwargs, ord?: number | ReduceNormKwargs) => NDArray;
-export type ReduceNormParsedKwargs = [AxisArg, boolean, number];
-
-
-export type RoundKwargs = { decimals?: number };
-export type RoundSignature = (decimals?: number) => NDArray;
-export type RoundParsedKwargs = [number];
-
-
-export type BinaryOperatorMethod<T = number> = (other: NDArray | T, out?: NDArray | null) => NDArray;
-export type BinaryOperatorKwargs = { other: NDArray, out?: NDArray | null };
-export type BinaryOperatorParsedKwargs = [NDArray, NDArray | null];
-
-
-export type UnaryOperatorMethod = (out?: NDArray | null) => NDArray;
-export type UnaryOperatorKwargs = { out?: NDArray | null };
-export type UnaryOperatorParsedKwargs = [NDArray | null];
-
-
-
-
-export type AssignmentOperatorMethod<T = number> = (other: NDArray<any> | T, ...where: Where) => NDArray;
-export type AssignmentOperatorKwargs = { other: NDArray<any> };
-export type AssignmentOperatorParsedKwargs = [NDArray];
-
 
 // We need 2 types of wrapper on top of the implementation:
 // The implementation expects NDArray on all arguments and returns NDArray
@@ -173,19 +138,29 @@ const frequently_used_parsers = {
       throw new Error(`Invalid "${key}" argument. Expected NDArray. Found type ${typeof kwargs[key]} (${kwargs[key].prototype})`);
     }
   },
+  'is_integer_non_neg': (key: string) => (kwargs: any) => {
+    if (typeof kwargs[key] !== 'number' || kwargs[key] < 0 || kwargs[key] % 1 !== 0) {
+      throw new Error(`Invalid "${key}" argument. Expected non-negative integer. Found ${kwargs[key]}`);
+    }
+  },
+  'is_pnorm': (key: string) => (kwargs: any) => {
+    if (typeof kwargs[key] !== 'number' || kwargs[key] <= 0) {
+      throw new Error(`Invalid "${key}" argument. Expected non-negative integer. Found ${kwargs[key]}`);
+    }
+  }
 }
 
-type NDArray_ = NDArray | number | boolean;
+type NDArray_non_0D = NDArray<any> | number[];
 
 // Used in statistics.ts:
 export namespace Func_a_q_axis {
   export type Implementation = (a: NDArray<any>, q: number, axis: number) => NDArray<any>;
-  export type Kwargs = { a?: NDArray<any>, q?: number, axis?: AxisArg };
-  export type Wrapper = (a: NDArray<any> | Kwargs, q: number | Kwargs, axis?: AxisArg | Kwargs) => NDArray<any>;
+  export type Kwargs = { a?: NDArray_non_0D, q?: number, axis?: AxisArg };
+  export type Wrapper = (a: NDArray_non_0D | Kwargs, q: number | Kwargs, axis?: AxisArg | Kwargs) => NDArray<any>;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [["a", undefined], ["q", undefined], ["axis", null]];
   export const parsers = [
-    frequently_used_parsers['a_axis_flatten'],
+    frequently_used_parsers.a_axis_flatten,
     (kwargs) => { kwargs.q = asarray(kwargs.q); },
   ];
   export const defaultDecorator = (implementation: Implementation) => decorator({
@@ -193,25 +168,9 @@ export namespace Func_a_q_axis {
   })
 }
 
-
-export namespace Func_a_axis_keepdims {
-  export type Implementation = (a: NDArray<any>, axis: number, keepdims: boolean) => NDArray<any>;
-  export type Kwargs = { a?: NDArray<any>, axis?: AxisArg, keepdims?: boolean };
-  export type Wrapper = (a: NDArray<any> | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray<any>;
-  export const decorator = kwargs_decorator<Wrapper, Implementation>;
-  export const defaults: [string, any][] = [["a", undefined], ["keepdims", false], ["axis", null]];
-  export const parsers = [
-    frequently_used_parsers['a_axis_flatten'],
-    (kwargs) => { kwargs.q = asarray(kwargs.q); },
-  ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
-    defaults, implementation, parsers
-  });
-}
-
 // Used by sort:
 export namespace Func_a_lastAxis {
-  export type Implementation = (a: NDArray<any>, axis: number) => NDArray<any>;
+  export type Implementation = (a: NDArray_, axis: number) => NDArray<any>;
   export type Kwargs = { a?: NDArray_, axis?: AxisArg };
   export type Wrapper = (a: NDArray_ | Kwargs, axis?: AxisArg | Kwargs) => NDArray<any>;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
@@ -225,11 +184,11 @@ export namespace Func_a_lastAxis {
 }
 
 
-// Used by elementwise operators:
+// Used by elementwise operators and methods:
 export namespace Func_a_out {
   export type Implementation = (a: NDArray<any>, out: NDArray<any> | null) => NDArray<any>;
-  export type Kwargs = { a?: NDArray<any>, out?: NDArray<any> | null };
-  export type Wrapper = (a: NDArray<any> | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export type Kwargs = { a?: NDArray_, out?: NDArray<any> | null };
+  export type Wrapper = (a: NDArray_ | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [["a", undefined], ["out", null]];
   export const parsers = [
@@ -240,13 +199,65 @@ export namespace Func_a_out {
     defaults, implementation, parsers
   });
 }
+export namespace Method_out {
+  export type Implementation = Func_a_out.Implementation;
+  export type Kwargs = { out?: NDArray<any> | null };
+  export type Wrapper<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  > = (out?: NDArray<any> | null | Kwargs) => NDArray<T>;
+  export const defaults: [string, any][] = [["a", undefined], ["out", null]];
+  export const parsers = [
+    frequently_used_parsers.isarray('a'),
+    frequently_used_parsers.isarray_or_null('out'),
+  ];
+  export function defaultDecorator<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  >(implementation: Implementation) {
+    return kwargs_decorator<Wrapper<T>, Implementation>({
+      defaults, implementation, parsers, this_as_first_arg: true,
+    });
+  }
+}
+// Used by round
+export namespace Func_a_decimals_out {
+  export type Implementation = (a: NDArray<any>, decimals: number, out: NDArray<any> | null) => NDArray<any>;
+  export type Kwargs = { a?: NDArray_, decimals?: number, out?: NDArray<any> | null };
+  export type Wrapper = (a: NDArray_ | Kwargs, decimals: number | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["decimals", 0], ["out", null]];
+  export const parsers = [
+    frequently_used_parsers.asarray('a'),
+    frequently_used_parsers.is_integer_non_neg('decimals'),
+    frequently_used_parsers.isarray_or_null('out'),
+  ];
+  export const defaultDecorator = (implementation: Implementation) => decorator({
+    defaults, implementation, parsers
+  });
+}
+export namespace Method_a_decimals_out {
+  export type Implementation = Func_a_decimals_out.Implementation;
+  export type Kwargs = { decimals?: number, out?: NDArray<any> | null };
+  export type Wrapper = (decimals: number | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["decimals", 0], ["out", null]];
+  export const parsers = [
+    frequently_used_parsers.isarray('a'),
+    frequently_used_parsers.is_integer_non_neg('decimals'),
+    frequently_used_parsers.isarray_or_null('out'),
+  ];
+  export const defaultDecorator = (implementation: Implementation) => decorator({
+    defaults, implementation, parsers, this_as_first_arg: true,
+  });
+}
 
 
-// Used by elementwise operators:
+type NDArray_ = NDArray<any> | number | boolean;
+
+// Used by binary operators and methods:
 export namespace Func_a_other_out {
   export type Implementation = (a: NDArray<any>, other: NDArray<any>, out: NDArray<any> | null) => NDArray<any>;
-  export type Kwargs = { a: NDArray<any>, other?: NDArray<any>, out?: NDArray<any> | null };
-  export type Wrapper = (a: NDArray<any> | Kwargs, other: NDArray<any> | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export type Kwargs = { a: NDArray_, other?: NDArray_, out?: NDArray<any> | null };
+  export type Wrapper = (a: NDArray_ | Kwargs, other: NDArray_ | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [["a", undefined], ["other", undefined], ["out", null]];
   export const parsers = [
@@ -260,101 +271,171 @@ export namespace Func_a_other_out {
 }
 export namespace Method_other_out {
   export type Implementation = Func_a_other_out.Implementation;
-  export type Kwargs = { other?: NDArray<any>, out?: NDArray<any> | null };
-  export type Wrapper = (other: NDArray<any> | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
-  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export type Kwargs = { other?: NDArray_, out?: NDArray<any> | null };
+  export type Wrapper<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  > = (other: NDArray_ | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<T>;
   export const defaults: [string, any][] = [["a", undefined], ["other", undefined], ["out", null]];
   export const parsers = [
     frequently_used_parsers.isarray('a'),
     frequently_used_parsers.asarray('other'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
+  export function defaultDecorator<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  >(implementation: Implementation) {
+    return kwargs_decorator<Wrapper<T>, Implementation>({
+      defaults, implementation, parsers, this_as_first_arg: true,
+    });
+  }
+}
+
+// Used by assign operators and methods:
+export namespace Func_a_values_where {
+  export type Implementation = (a: NDArray<any>, values: NDArray<any>, where: Where) => NDArray<any>;
+  export type Kwargs = { a: NDArray<any>, values?: NDArray_, where: Where };
+  export type Wrapper = (a: NDArray<any> | Kwargs, values: NDArray_ | Kwargs, ...where: Where) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["values", undefined], ["...where", null]];
+  export const parsers = [
+    frequently_used_parsers.asarray('a'),
+    frequently_used_parsers.asarray('values'),
+  ];
+  export const defaultDecorator = (implementation: Implementation) => decorator({
+    defaults, implementation, parsers
+  });
+}
+export namespace Method_values_where {
+  export type Implementation = Func_a_values_where.Implementation;
+  export type Kwargs = { values?: NDArray_, where: Where };
+  export type Wrapper = (values: NDArray_ | Kwargs, ...where: Where) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["values", undefined], ["...where", null]];
+  export const parsers = [
+    frequently_used_parsers.isarray('a'),
+    frequently_used_parsers.asarray('values'),
+  ];
   export const defaultDecorator = (implementation: Implementation) => decorator({
     defaults, implementation, parsers, this_as_first_arg: true,
   });
 }
 
-
-
-
-// OLD VERSION:
-
-
-export function kwDecorator<Signature extends (...args: any[]) => any, Parsed extends any[]>(
-  { defaults, func }: { defaults: KwTuple[], func: (...args: Parsed) => any }) {
-  return new KwParser<Signature, Parsed>(defaults).as_function(func);
-}
-export function kwDecorators<Signature extends (...args: any[]) => any, Parsed extends any[]>(
-  { defaults, func }: { defaults: KwTuple[], func: (arr: NDArray, ...args: Parsed) => any }) {
-  return new KwParser<Signature, Parsed>(defaults).decorators(func);
-}
-
-
-export class KwParser<Signature extends (...args: any[]) => any, Parsed extends any[]> {
-  defaults: KwTuple[];
-  spreadKey: string | null;
-
-  constructor(defaults: KwTuple[]) {
-    this.defaults = defaults;
-    const last = defaults.length && defaults.slice(-1)[0];
-    if (last && last[0].startsWith('...')) {
-      this.spreadKey = last[0] = last[0].slice(3);
-    }
-  }
-
-  parse(...args: Parameters<Signature>): Parsed {
-    let defaults = this.defaults;
-    let kwargs = Object.assign(Object.fromEntries(defaults));
-    if (this.spreadKey) kwargs[this.spreadKey] = [...kwargs[this.spreadKey]]; // copy
-    for (let i = 0; i < args.length; i++) {
-      let value = args[i];
-      if (value instanceof Object && !isarray(value)) Object.assign(kwargs, value);
-      else if (value !== undefined) {
-        if (this.spreadKey && i >= defaults.length - 1) kwargs[this.spreadKey].push(value);
-        else if (i < defaults.length) kwargs[defaults[i][0]] = value;
-        else throw new Error(`Too many arguments ${args}`);
-      }
-    }
-    let sortedArgs = defaults.map((_, i) => {
-      let key = defaults[i][0];
-      let value = kwargs[key];
-      if (value === undefined) {
-        throw new Error(`Missing argument ${key} in ${args}`);
-      }
-      if (defaults[i].length === 3) {
-        value = defaults[i][2](value, kwargs);
-      }
-      return value
+// Used by reduce functions and methods:
+export namespace Func_a_axis_keepdims {
+  export type Implementation = (a: NDArray<any>, axis: number, keepdims: boolean) => NDArray<any>;
+  export type Kwargs = { a?: NDArray_, axis?: AxisArg, keepdims?: boolean };
+  export type Wrapper<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  > = (a: NDArray_ | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray<T>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["axis", null], ["keepdims", false]];
+  export const parsers = [
+    frequently_used_parsers.a_axis_flatten,
+  ];
+  export function defaultDecorator<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  >(implementation: Implementation) {
+    return kwargs_decorator<Wrapper<T>, Implementation>({
+      defaults, implementation, parsers
     });
-    return sortedArgs as Parsed;
   }
-
-  as_arr_function<F extends (arr: NDArray<any>, ...args: Parsed) => ReturnType<Signature>>(func: F): (arr: NDArray<any> | number | boolean, ...args: Parameters<Signature>) => ReturnType<Signature> {
-    let self = this;
-    return function (arr: NDArray<any>, ...args: Parameters<Signature>) {
-      const parsed = self.parse(...args);
-      return func(asarray(arr), ...parsed);
-    };
+}
+export namespace Method_a_axis_keepdims {
+  export type Implementation = Func_a_axis_keepdims.Implementation;
+  export type Kwargs = { axis?: AxisArg, keepdims?: boolean };
+  export type Wrapper<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  > = (axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray<T>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["axis", null], ["keepdims", false]];
+  export const parsers = [
+    frequently_used_parsers.isarray('a'),
+    frequently_used_parsers.a_axis_flatten,
+  ];
+  export function defaultDecorator<
+    T extends TypedArrayConstructor = Float64ArrayConstructor,
+  >(implementation: Implementation) {
+    return kwargs_decorator<Wrapper<T>, Implementation>({
+      defaults, implementation, parsers, this_as_first_arg: true,
+    });
   }
+}
 
-  as_arr_method<F extends (arr: NDArray<any>, ...args: Parsed) => ReturnType<Signature>>(func: F): (...args: Parameters<Signature>) => ReturnType<Signature> {
-    let self = this;
-    return function (...args: Parameters<Signature>) {
-      const parsed = self.parse(...args);
-      return func(this, ...parsed);
-    } as any;
+// For norm:
+export namespace Func_a_ord_axis_keepdims {
+  export type Implementation = (a: NDArray<any>, ord: number, axis: number, keepdims: boolean) => NDArray<any>;
+  export type Kwargs = { a?: NDArray_, ord?: number, axis?: AxisArg, keepdims?: boolean };
+  export type Wrapper = (a: NDArray_ | Kwargs, ord?: number | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["ord", 2], ["axis", null], ["keepdims", false]];
+  export const parsers = [
+    frequently_used_parsers.a_axis_flatten,
+    frequently_used_parsers.is_pnorm('ord'),
+  ];
+  export function defaultDecorator(implementation: Implementation) {
+    return kwargs_decorator<Wrapper, Implementation>({
+      defaults, implementation, parsers,
+    });
   }
-
-  decorators<F extends (arr: NDArray<any>, ...args: Parsed) => ReturnType<Signature>>(func: F) {
-    return { as_function: this.as_arr_function(func), as_method: this.as_arr_method(func) };
+}
+export namespace Method_a_ord_axis_keepdims {
+  export type Kwargs = { ord?: number, axis?: AxisArg, keepdims?: boolean };
+  export type Wrapper = (ord?: number | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray<any>;
+  export type Implementation = Func_a_ord_axis_keepdims.Implementation;
+  export function defaultDecorator(implementation: Implementation) {
+    return kwargs_decorator<Wrapper, Implementation>({
+      defaults: Func_a_ord_axis_keepdims.defaults,
+      parsers: Func_a_ord_axis_keepdims.parsers,
+      implementation,
+      this_as_first_arg: true,
+    });
   }
-
-  as_function<F extends (...args: Parsed) => ReturnType<Signature>>(func: F): (...args: Parameters<Signature>) => ReturnType<Signature> {
-    let self = this;
-    return function (...args: Parameters<Signature>) {
-      const parsed = self.parse(...args);
-      return func(...parsed);
-    };
+}
+// For std:
+export namespace Func_a_axis_ddof_keepdims {
+  export type Implementation = (a: NDArray<any>, axis: number, ddof: number, keepdims: boolean) => NDArray<any>;
+  export type Kwargs = { a?: NDArray_, axis?: AxisArg, ddof?: number, keepdims?: boolean };
+  export type Wrapper = (a: NDArray_ | Kwargs, axis?: AxisArg | Kwargs, ddof?: number | Kwargs, keepdims?: boolean | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["ddof", 0], ["axis", null], ["keepdims", false]];
+  export const parsers = [
+    frequently_used_parsers.a_axis_flatten,
+    frequently_used_parsers.is_integer_non_neg('ddof'),
+  ];
+  export function defaultDecorator(implementation: Implementation) {
+    return kwargs_decorator<Wrapper, Implementation>({
+      defaults, implementation, parsers,
+    });
   }
+}
+export namespace Method_a_axis_ddof_keepdims {
+  export type Implementation = Func_a_axis_ddof_keepdims.Implementation;
+  export type Kwargs = { ddof?: number, axis?: AxisArg, keepdims?: boolean };
+  export type Wrapper = (ddof?: number | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray<any>;
+  export function defaultDecorator(implementation: Implementation) {
+    return kwargs_decorator<Wrapper, Implementation>({
+      defaults: Func_a_axis_ddof_keepdims.defaults,
+      parsers: Func_a_axis_ddof_keepdims.parsers,
+      implementation,
+      this_as_first_arg: true,
+    });
+  }
+}
 
+
+// Used by atan2:
+export namespace Func_y_x_out {
+  export type Implementation = (y: NDArray_, x: NDArray_, out?: NDArray | null) => NDArray<any>;
+  export type Kwargs = { y?: NDArray_, x?: NDArray_, out?: NDArray<any> | null };
+  export type Wrapper = (y: NDArray_ | Kwargs, x: NDArray_ | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["x", undefined], ["y", undefined], ["out", null]];
+  export const parsers = [
+    frequently_used_parsers.asarray('x'),
+    frequently_used_parsers.asarray('y'),
+    frequently_used_parsers.isarray_or_null('out'),
+  ];
+  export const defaultDecorator = (implementation: Implementation) => decorator({
+    defaults, implementation, parsers
+  });
 }

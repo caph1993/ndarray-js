@@ -2,7 +2,7 @@
 
 import { asarray, new_NDArray } from './basic';
 import type NDArray from "../NDArray";
-import { KwParser, RoundParsedKwargs, RoundSignature, UnaryOperatorParsedKwargs, UnaryOperatorMethod, kwDecorators, Func_a_out } from './kwargs';
+import { Func_a_out, Func_a_decimals_out } from './kwargs';
 import { TypedArrayConstructor, dtype_leq, new_buffer } from "../dtypes";
 
 // Here, we declare only the core functions (those that are methods)
@@ -67,6 +67,23 @@ export const funcs = {
   ceil: mk_elementwise(Math.ceil, Float64Array),
   isfinite: mk_elementwise(isFinite, Uint8Array),
   isnan: mk_elementwise(isNaN, Uint8Array),
+  round: function round(arr: NDArray, decimals: number, out: NDArray = null) {
+    if (decimals == 0) elementwise(arr, Math.round, Float64Array, out);
+    return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Float64Array, out);
+  },
+  negative: mk_elementwise(x => -x, Float64Array),
+  bitwise_not: mk_elementwise(x => ~x, Float64Array),
+  logical_not: mk_elementwise(x => !x, Uint8Array),
+  valueOf: mk_elementwise(x => +x, Float64Array),
+  abs: mk_elementwise(Math.abs, Float64Array),
+}
+
+export const ops = {
+  ...funcs,
+  "~": funcs.bitwise_not,
+  "not": funcs.logical_not,
+  "+": funcs.valueOf,
+  "-": funcs.negative,
 }
 
 
@@ -93,51 +110,14 @@ export const kw_funcs = {
   atanh: Func_a_out.defaultDecorator(funcs.atanh),
   floor: Func_a_out.defaultDecorator(funcs.floor),
   ceil: Func_a_out.defaultDecorator(funcs.ceil),
+  negative: Func_a_out.defaultDecorator(funcs.negative),
+  bitwise_not: Func_a_out.defaultDecorator(funcs.bitwise_not),
+  logical_not: Func_a_out.defaultDecorator(funcs.logical_not),
+  valueOf: Func_a_out.defaultDecorator(funcs.valueOf),
+  abs: Func_a_out.defaultDecorator(funcs.abs),
 
   isfinite: Func_a_out.defaultDecorator(funcs.isfinite),
   isnan: Func_a_out.defaultDecorator(funcs.isnan),
-}
 
-
-const _ops = {
-  // Unary operators:
-  round: function round(arr: NDArray, decimals: number, out: NDArray = null) {
-    if (decimals == 0) elementwise(arr, Math.round, Float64Array, out);
-    return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Float64Array, out);
-  },
-  negative: mk_elementwise(x => -x, Float64Array),
-  bitwise_not: mk_elementwise(x => ~x, Float64Array),
-  logical_not: mk_elementwise(x => !x, Uint8Array),
-  valueOf: mk_elementwise(x => +x, Float64Array),
-  abs: mk_elementwise(Math.abs, Float64Array),
-};
-export const ops = {
-  ..._ops,
-  "~": _ops.bitwise_not,
-  "not": _ops.logical_not,
-  "+": _ops.valueOf,
-  "-": _ops.negative,
-}
-
-export const kw_ops = {
-  bitwise_not: kwDecorators<UnaryOperatorMethod, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: ops.bitwise_not,
-  }),
-  logical_not: kwDecorators<UnaryOperatorMethod, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: ops.logical_not,
-  }),
-  negative: kwDecorators<UnaryOperatorMethod, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: ops.negative,
-  }),
-  abs: kwDecorators<UnaryOperatorMethod, UnaryOperatorParsedKwargs>({
-    defaults: [["out", null]],
-    func: ops.abs,
-  }),
-  round: kwDecorators<RoundSignature, RoundParsedKwargs>({
-    defaults: [["decimals", 0], ["out", null]],
-    func: ops.round,
-  }),
+  round: Func_a_decimals_out.defaultDecorator(funcs.round),
 }

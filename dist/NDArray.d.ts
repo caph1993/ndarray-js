@@ -1,176 +1,174 @@
-/** @ignore */
-export type DType = NumberConstructor | BooleanConstructor;
+import { TypedArrayConstructor } from './dtypes';
 /** @ignore */
 export type ArrayOrConstant = NDArray | number | boolean;
 /**
  * Multi dimensional array.
  */
-declare class NDArray {
+declare class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
     /** @ignore */
-    _flat: number[];
+    _flat: InstanceType<T>;
     /** @category Attributes @readonly */
     shape: number[];
     /** @category Attributes @readonly */
-    dtype: DType;
+    get dtype(): T;
     /** @category Indexing / slicing */
-    index: (...where: Where) => NDArray;
+    index: (...where: Where) => NDArray<T>;
     /** @ignore */
     modules: typeof import("./array").modules;
     /** @category Reducers */
-    any: ReduceSignatureBool;
+    any: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
     /** @category Reducers */
-    all: ReduceSignatureBool;
+    all: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
     /** @category Reducers */
-    sum: ReduceSignature;
+    sum: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    product: ReduceSignature;
+    product: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    max: ReduceSignature;
+    max: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    min: ReduceSignature;
+    min: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    argmax: ReduceSignature;
+    argmax: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    argmin: ReduceSignature;
+    argmin: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    mean: ReduceSignature;
+    mean: Method_a_axis_keepdims.Wrapper;
     /** @category Reducers */
-    var: ReduceSignature;
+    var: Method_a_axis_ddof_keepdims.Wrapper;
     /** @category Reducers */
-    std: ReduceStdSignature;
+    std: Method_a_axis_ddof_keepdims.Wrapper;
     /** @category Reducers */
-    norm: ReduceNormSignature;
+    norm: Method_a_ord_axis_keepdims.Wrapper;
     /** @category Binary operators */
-    add: BinaryOperatorMethod;
+    add: Method_other_out.Wrapper;
     /** @category Binary operators */
-    subtract: BinaryOperatorMethod;
+    subtract: Method_other_out.Wrapper;
     /** @category Binary operators */
-    multiply: BinaryOperatorMethod;
+    multiply: Method_other_out.Wrapper;
     /** @category Binary operators */
-    divide: BinaryOperatorMethod;
+    divide: Method_other_out.Wrapper;
     /** @category Binary operators */
-    mod: BinaryOperatorMethod;
+    mod: Method_other_out.Wrapper;
     /** @category Binary operators */
-    divide_int: BinaryOperatorMethod;
+    divide_int: Method_other_out.Wrapper;
     /** @category Binary operators */
-    pow: BinaryOperatorMethod;
+    pow: Method_other_out.Wrapper;
     /** @category Binary operators */
-    maximum: BinaryOperatorMethod;
+    maximum: Method_other_out.Wrapper;
     /** @category Binary operators */
-    minimum: BinaryOperatorMethod;
+    minimum: Method_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_or: BinaryOperatorMethod;
+    bitwise_or: Method_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_and: BinaryOperatorMethod;
+    bitwise_and: Method_other_out.Wrapper;
     /** @category Binary operators */
-    bitwise_shift_right: BinaryOperatorMethod;
+    bitwise_shift_right: Method_other_out.Wrapper;
     /** @category Binary logical operators */
-    logical_xor: BinaryOperatorMethod<boolean>;
+    logical_xor: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Binary logical operators */
-    logical_or: BinaryOperatorMethod<boolean>;
+    logical_or: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Binary logical operators */
-    logical_and: BinaryOperatorMethod<boolean>;
+    logical_and: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    greater: BinaryOperatorMethod;
+    greater: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    less: BinaryOperatorMethod;
+    less: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    greater_equal: BinaryOperatorMethod;
+    greater_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    less_equal: BinaryOperatorMethod;
+    less_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    equal: BinaryOperatorMethod;
+    equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    not_equal: BinaryOperatorMethod;
+    not_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Comparison operators */
-    isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
+    isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray<T>;
     /** @category Comparison operators */
     allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
     /** @category Unary operators */
-    round: RoundSignature;
+    round: Method_a_decimals_out.Wrapper;
     /** @category Unary operators */
-    abs: UnaryOperatorMethod;
+    abs: Method_out.Wrapper;
     /** @category Unary operators */
-    negative: UnaryOperatorMethod;
+    negative: Method_out.Wrapper;
     /** @category Unary operators */
-    bitwise_not: UnaryOperatorMethod;
+    bitwise_not: Method_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Unary logical operators */
-    logical_not: UnaryOperatorMethod;
+    logical_not: Method_out.Wrapper<Uint8ArrayConstructor>;
     /** @category Operators with assignment */
-    assign: SelfAssignmentOperator;
+    assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    add_assign: SelfAssignmentOperator;
+    add_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    subtract_assign: SelfAssignmentOperator;
+    subtract_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    multiply_assign: SelfAssignmentOperator;
+    multiply_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    divide_assign: SelfAssignmentOperator;
+    divide_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    mod_assign: SelfAssignmentOperator;
+    mod_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    pow_assign: SelfAssignmentOperator;
+    pow_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    divide_int_assign: SelfAssignmentOperator;
+    divide_int_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    maximum_assign: SelfAssignmentOperator;
+    maximum_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    minimum_assign: SelfAssignmentOperator;
+    minimum_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    bitwise_and_assign: SelfAssignmentOperator;
+    bitwise_and_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    bitwise_or_assign: SelfAssignmentOperator;
+    bitwise_or_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    logical_or_assign: SelfAssignmentOperator;
+    logical_or_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    bitwise_shift_right_assign: SelfAssignmentOperator;
+    bitwise_shift_right_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    bitwise_shift_left_assign: SelfAssignmentOperator;
+    bitwise_shift_left_assign: Method_values_where.Wrapper;
     /** @category Operators with assignment */
-    logical_and_assign: SelfAssignmentOperator;
+    logical_and_assign: Method_values_where.Wrapper;
     /** @category Transformations */
-    ravel: () => NDArray;
+    ravel: () => NDArray<T>;
     /** @category Transformations */
-    reshape: (shape: any, ...more_shape: any[]) => any;
+    reshape: (shape: any, ...more_shape: any[]) => NDArray<T>;
     /** @category Transformations */
-    sort: (axis?: number) => NDArray;
+    sort: (axis?: number) => NDArray<T>;
     /** @category Transformations */
-    transpose: (axes?: number[]) => NDArray;
+    transpose: (axes?: number[]) => NDArray<T>;
     /** @category Casting */
     tolist: () => any;
     /**
      * Generic operator function. See {@link GenericOperatorFunction} for details.
      */
     op: GenericOperatorFunction;
-    constructor(flat: number[], shape: number[], dtype?: any);
+    constructor(flat: InstanceType<T>, shape?: number[]);
     /** @ignore */
     _simpleIndexes: import("./array/indexes").AxesIndex | null;
     /** @category Attributes @readonly */
     get size(): number;
     /** @category Attributes @readonly */
-    get flat(): number[];
+    get flat(): InstanceType<T>;
     /** @internal */
-    set flat(list: number[]);
+    set flat(list: InstanceType<T>);
     /**
      * @category Transformations
      * Transpose.
     */
-    get T(): NDArray;
+    get T(): NDArray<T>;
     /**
      * Iterator over the first axis.
      * For 1D arrays, yields numbers.
      * For multidimensional arrays, yields array views.
      */
-    [Symbol.iterator](): Generator<NDArray, void, unknown>;
+    [Symbol.iterator](): Generator<NDArray<T>, void, unknown>;
     /** @category Attributes @readonly */
     get length(): number;
     /** @category Transformations */
-    copy: () => NDArray;
+    copy: () => NDArray<T>;
     /** @category Casting */
-    item(): number;
+    item(): number | boolean;
 }
-import { SelfAssignmentOperator } from './array/operators';
-import { BinaryOperatorMethod, ReduceNormSignature, ReduceSignature, ReduceSignatureBool, ReduceStdSignature, RoundSignature, UnaryOperatorMethod } from './array/kwargs';
+import { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
 type BinaryOpSymbol = "+" | "-" | "*" | "/" | "%" | "//" | "**" | "<" | ">" | ">=" | "<=" | "==" | "!=" | " | " | "&" | "^" | "<<" | ">>" | "or" | "and" | "xor" | "max" | "min";
 type AssignmentOpSymbol = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "//=" | "**=" | "|=" | "&=" | "^=" | "<<=" | ">>=" | "max=" | "min=" | "or=" | "and=";
 type Where = import("./array/indexes").Where;

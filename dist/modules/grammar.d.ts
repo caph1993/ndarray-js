@@ -20,6 +20,7 @@ export declare const __makeSemantics: () => {
         number: (arg1: any, arg2: any, arg3: any, arg4: any, arg5: any, arg6: any, arg7: any) => number;
         Arr_slice($arr: any, _open: any, $where: any, _close: any): any;
         SliceTerm_constant($x: any): any;
+        SliceTerm_boolean_constant($x: any): boolean;
         Arr_call($name: any, $names: any, _: any, $callArgs: any): any;
         Arr_method($arr: any, _dot: any, $name: any, $callArgs: any): any;
         Parenthesis(_: any, $arr: any, __: any): any;
@@ -62,6 +63,7 @@ export declare const __parser_pool: {
         number: (arg1: any, arg2: any, arg3: any, arg4: any, arg5: any, arg6: any, arg7: any) => number;
         Arr_slice($arr: any, _open: any, $where: any, _close: any): any;
         SliceTerm_constant($x: any): any;
+        SliceTerm_boolean_constant($x: any): boolean;
         Arr_call($name: any, $names: any, _: any, $callArgs: any): any;
         Arr_method($arr: any, _dot: any, $name: any, $callArgs: any): any;
         Parenthesis(_: any, $arr: any, __: any): any;

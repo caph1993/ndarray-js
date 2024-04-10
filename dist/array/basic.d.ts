@@ -1,5 +1,5 @@
 import type NDArray from "../NDArray";
-import { DType } from "../NDArray";
+import type { TypedArrayConstructor } from "../dtypes";
 import { isarray, asarray, array, new_NDArray, _NDArray } from "./_globals";
 export { isarray, asarray, array, new_NDArray, _NDArray };
 /**
@@ -9,14 +9,15 @@ export { isarray, asarray, array, new_NDArray, _NDArray };
  * (1) all functions requiring arrays work with numbers as well because they call asarray,
  * and (2) semantically, a constant is an array.
  */
-export declare function number_collapse(arr: NDArray, expect?: boolean): NDArray | number;
+export declare function number_collapse(arr: NDArray<any>, expect?: boolean): NDArray | number;
 export declare function as_boolean(obj: any): boolean;
 export declare function as_number(obj: any): number;
 export declare function shape_shifts(shape: any): number[];
-export declare function parse_shape(list: number | number[] | NDArray): number[];
-export declare function reshape(A: NDArray, shape_or_first: number | number[], ...more_shape: number[]): NDArray;
-export declare function ravel(A: NDArray): NDArray;
-export declare function new_from(shape: any, f?: any, dtype?: DType): NDArray;
-export declare function empty(shape: any, dtype?: DType): NDArray;
-export declare function copy(A: NDArray): NDArray;
+export type Shape = number | number[] | NDArray;
+export declare function parse_shape(list: Shape): number[];
+export declare function reshape(A: NDArray, shape_or_first: Shape, ...more_shape: number[]): NDArray<TypedArrayConstructor>;
+export declare function ravel(A: NDArray): NDArray<TypedArrayConstructor>;
+export declare function new_from(shape: Shape, f?: any, dtype?: TypedArrayConstructor): NDArray<TypedArrayConstructor>;
+export declare function empty(shape: Shape, dtype?: TypedArrayConstructor): NDArray<TypedArrayConstructor>;
+export declare function copy(A: NDArray): NDArray<TypedArrayConstructor>;
 //# sourceMappingURL=basic.d.ts.map

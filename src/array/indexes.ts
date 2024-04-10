@@ -1,15 +1,12 @@
 //@ts-check
 import { isarray, asarray, new_NDArray, shape_shifts } from './basic';
 import type NDArray from "../NDArray";
-import { dtype_is_boolean, dtype_is_float, dtype_is_integer } from '../dtypes';
-
+import { dtype_is_boolean, dtype_is_integer } from '../dtypes';
 
 export type RangeSpec = string;
-export type IndexSpec = ':' | number | RangeSpec | NDArray | number[];
+export type IndexSpec = ':' | number | RangeSpec | number[] | NDArray<Float64ArrayConstructor> | NDArray<Int32ArrayConstructor> | NDArray<Uint8ArrayConstructor>;
 export type GeneralIndexSpec = '...' | 'None' | null | boolean | IndexSpec;
 export type Where = null | GeneralIndexSpec[];
-
-
 
 export function index(arr: NDArray, where: Where) {
   // This can result either in a value, a view, a copy.

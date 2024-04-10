@@ -59,31 +59,31 @@ np.asarray = NDArray.prototype.modules.basic.asarray;
 
 const reduce = NDArray.prototype.modules.reduce;
 /** @category Reducers */
-np.sum = reduce.kw_reducers.sum.as_function;
+np.sum = reduce.kw_reducers.sum;
 /** @category Reducers */
-np.product = reduce.kw_reducers.product.as_function;
+np.product = reduce.kw_reducers.product;
 /** @category Reducers */
 np.prod = np.product;
 /** @category Reducers */
-np.any = reduce.kw_reducers.any.as_function;
+np.any = reduce.kw_reducers.any;
 /** @category Reducers */
-np.all = reduce.kw_reducers.all.as_function;
+np.all = reduce.kw_reducers.all;
 /** @category Reducers */
-np.max = reduce.kw_reducers.max.as_function;
+np.max = reduce.kw_reducers.max;
 /** @category Reducers */
-np.min = reduce.kw_reducers.min.as_function;
+np.min = reduce.kw_reducers.min;
 /** @category Reducers */
-np.argmax = reduce.kw_reducers.argmax.as_function;
+np.argmax = reduce.kw_reducers.argmax;
 /** @category Reducers */
-np.argmin = reduce.kw_reducers.argmin.as_function;
+np.argmin = reduce.kw_reducers.argmin;
 /** @category Reducers */
-np.mean = reduce.kw_reducers.mean.as_function;
+np.mean = reduce.kw_reducers.mean;
 /** @category Reducers */
-np.norm = reduce.kw_reducers.norm.as_function;
+np.norm = reduce.kw_reducers.norm;
 /** @category Reducers */
-np.var = reduce.kw_reducers.var.as_function;
+np.var = reduce.kw_reducers.var;
 /** @category Reducers */
-np.std = reduce.kw_reducers.std.as_function;
+np.std = reduce.kw_reducers.std;
 
 
 
@@ -104,50 +104,51 @@ import { Func_a_other_out } from './array/kwargs';
 
 const operators = NDArray.prototype.modules.operators;
 
+
 /** @category Binary operators */
-np.add = operators.kw_op_binary["+"].as_function;
+np.add = Func_a_other_out.defaultDecorator(operators.op_binary["+"]);
 /** @category Binary operators */
-np.subtract = operators.kw_op_binary["-"].as_function;
+np.subtract = Func_a_other_out.defaultDecorator(operators.op_binary["-"]);
 /** @category Binary operators */
-np.multiply = operators.kw_op_binary["*"].as_function;
+np.multiply = Func_a_other_out.defaultDecorator(operators.op_binary["*"]);
 /** @category Binary operators */
-np.divide = operators.kw_op_binary["/"].as_function;
+np.divide = Func_a_other_out.defaultDecorator(operators.op_binary["/"]);
 /** @category Binary operators */
-np.mod = operators.kw_op_binary["%"].as_function;
+np.mod = Func_a_other_out.defaultDecorator(operators.op_binary["%"]);
 /** @category Binary operators */
-np.divide_int = operators.kw_op_binary["//"].as_function;
+np.divide_int = Func_a_other_out.defaultDecorator(operators.op_binary["//"]);
 /** @category Binary operators */
-np.pow = operators.kw_op_binary["**"].as_function;
+np.pow = Func_a_other_out.defaultDecorator(operators.op_binary["**"]);
 /** @category Binary operators */
-np.bitwise_or = operators.kw_op_binary["|"].as_function;
+np.bitwise_or = Func_a_other_out.defaultDecorator(operators.op_binary["|"]);
 /** @category Binary operators */
-np.bitwise_and = operators.kw_op_binary["&"].as_function;
+np.bitwise_and = Func_a_other_out.defaultDecorator(operators.op_binary["&"]);
 /** @category Binary operators */
-np.bitwise_xor = operators.kw_op_binary["^"].as_function;
+np.bitwise_xor = Func_a_other_out.defaultDecorator(operators.op_binary["^"]);
 /** @category Binary operators */
-np.bitwise_shift_left = operators.kw_op_binary["<<"].as_function;
+np.bitwise_shift_left = Func_a_other_out.defaultDecorator(operators.op_binary["<<"]);
 /** @category Binary operators */
-np.bitwise_shift_right = operators.kw_op_binary[">>"].as_function;
+np.bitwise_shift_right = Func_a_other_out.defaultDecorator(operators.op_binary[">>"]);
 /** @category Binary operators */
-np.greater = operators.kw_op_binary[">"].as_function;
+np.greater = Func_a_other_out.defaultDecorator(operators.op_binary[">"]);
 /** @category Binary operators */
-np.less = operators.kw_op_binary["<"].as_function;
+np.less = Func_a_other_out.defaultDecorator(operators.op_binary["<"]);
 /** @category Binary operators */
-np.greater_equal = operators.kw_op_binary[">="].as_function;
+np.greater_equal = Func_a_other_out.defaultDecorator(operators.op_binary[">="]);
 /** @category Binary operators */
-np.less_equal = operators.kw_op_binary["<="].as_function;
+np.less_equal = Func_a_other_out.defaultDecorator(operators.op_binary["<="]);
 /** @category Binary operators */
-np.equal = operators.kw_op_binary["=="].as_function;
+np.equal = Func_a_other_out.defaultDecorator(operators.op_binary["=="]);
 /** @category Binary operators */
 np.not_equal = Func_a_other_out.defaultDecorator(operators.op_binary["!="]);
 /** @category Binary operators */
-np.maximum = operators.kw_op_binary["max"].as_function;
+np.maximum = Func_a_other_out.defaultDecorator(operators.op_binary["max"]);
 /** @category Binary operators */
-np.minimum = operators.kw_op_binary["min"].as_function;
+np.minimum = Func_a_other_out.defaultDecorator(operators.op_binary["min"]);
 /** @category Binary operators */
-np.logical_or = operators.kw_op_binary["or"].as_function;
+np.logical_or = Func_a_other_out.defaultDecorator(operators.op_binary["or"]);
 /** @category Binary operators */
-np.logical_and = operators.kw_op_binary["and"].as_function;
+np.logical_and = Func_a_other_out.defaultDecorator(operators.op_binary["and"]);
 np.atan2 = operators.atan2;
 
 
@@ -210,15 +211,15 @@ np.isnan = ew.kw_funcs.isnan;
 np.isfinite = ew.kw_funcs.isfinite;
 
 /** @category Elementwise operators */
-np.abs = ew.kw_ops.abs.as_function;
+np.abs = ew.kw_funcs.abs;
 /** @category Elementwise operators */
-np.bitwise_not = ew.kw_ops.bitwise_not.as_function;
+np.bitwise_not = ew.kw_funcs.bitwise_not;
 /** @category Elementwise operators */
-np.logical_not = ew.kw_ops.logical_not.as_function;
+np.logical_not = ew.kw_funcs.logical_not;
 /** @category Elementwise operators */
-np.negative = ew.kw_ops.negative.as_function;
+np.negative = ew.kw_funcs.negative;
 /** @category Elementwise operators */
-np.round = ew.kw_ops.round.as_function;
+np.round = ew.kw_funcs.round;
 
 
 // ==============================

@@ -144,7 +144,7 @@ var group = np.atan2(XY.index(':', 1), XY.index(':', 0)).multiply(180/np.pi).add
 // (ENTER)
 console.log(\`\\nFirst five points:\\n\${XY.index(\`0:5\`)}\`);
 console.log(\`\\nNorm of the first five points (before and after):\`);
-console.log(np.stack([norm.index(':', 0), XY_unit.norm(-1)], -1).index(\`0:5\`));
+console.log(np.stack([norm.index(':', 0), XY_unit.norm({axis:-1})], -1).index(\`0:5\`));
 // (ENTER)
 // Part 2: plots
 var svg = Plot.plot({

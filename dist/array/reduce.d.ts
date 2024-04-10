@@ -1,72 +1,33 @@
 import NDArray from "../NDArray";
-import { AxisArg } from './kwargs';
+import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims } from './kwargs';
 export declare const reducers: {
-    sum: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => any;
-    product: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => any;
-    mean: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => number | NDArray;
-    max: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => number | NDArray;
-    min: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => number | NDArray;
-    argmax: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => number | NDArray;
-    argmin: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => number | NDArray;
-    len: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => number | NDArray;
-    any: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => boolean | NDArray;
-    all: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => boolean | NDArray;
-    norm: (arr: NDArray, axis: AxisArg, keepdims: boolean, ord: number) => any;
-    var: (arr: NDArray, axis: AxisArg, keepdims: boolean) => NDArray;
-    std: (arr: NDArray, axis: AxisArg, keepdims: boolean, ddof: number) => NDArray;
+    sum: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    product: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    mean: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    max: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    min: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    argmax: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Int32ArrayConstructor>;
+    argmin: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Int32ArrayConstructor>;
+    len: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Int32ArrayConstructor>;
+    any: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Uint8ArrayConstructor>;
+    all: (arr: NDArray, axis: AxisArg | null, keepdims: boolean) => NDArray<Uint8ArrayConstructor>;
+    norm: (arr: NDArray, ord: number, axis: AxisArg, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    var: (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
+    std: (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean) => NDArray<Float64ArrayConstructor>;
 };
 export declare const kw_reducers: {
-    sum: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    product: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    mean: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    max: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    min: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    argmax: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    argmin: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    len: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    any: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    all: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    norm: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceNormKwargs, keepdims?: boolean | import("./kwargs").ReduceNormKwargs, ord?: number | import("./kwargs").ReduceNormKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceNormKwargs, keepdims?: boolean | import("./kwargs").ReduceNormKwargs, ord?: number | import("./kwargs").ReduceNormKwargs) => NDArray;
-    };
-    var: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceKwargs, keepdims?: boolean | import("./kwargs").ReduceKwargs) => NDArray;
-    };
-    std: {
-        as_function: (arr: number | boolean | NDArray, axis?: number | import("./kwargs").ReduceStdKwargs, keepdims?: boolean | import("./kwargs").ReduceStdKwargs, ddof?: number | import("./kwargs").ReduceStdKwargs) => NDArray;
-        as_method: (axis?: number | import("./kwargs").ReduceStdKwargs, keepdims?: boolean | import("./kwargs").ReduceStdKwargs, ddof?: number | import("./kwargs").ReduceStdKwargs) => NDArray;
-    };
+    sum: Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
+    product: Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
+    mean: Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
+    max: Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
+    min: Func_a_axis_keepdims.Wrapper<Float64ArrayConstructor>;
+    argmax: Func_a_axis_keepdims.Wrapper<Int32ArrayConstructor>;
+    argmin: Func_a_axis_keepdims.Wrapper<Int32ArrayConstructor>;
+    len: Func_a_axis_keepdims.Wrapper<Int32ArrayConstructor>;
+    any: Func_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
+    all: Func_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
+    norm: Func_a_ord_axis_keepdims.Wrapper;
+    var: Func_a_axis_ddof_keepdims.Wrapper;
+    std: Func_a_axis_ddof_keepdims.Wrapper;
 };
 //# sourceMappingURL=reduce.d.ts.map

@@ -3,8 +3,8 @@ import * as indexes from './indexes';
 import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shifts, new_NDArray } from './basic';
 import { tolist } from './js-interface';
 
-import type NDArray from "../NDArray";
-import { BinaryOperatorParsedKwargs, BinaryOperatorMethod, kwDecorator, kwDecorators, AssignmentOperatorParsedKwargs, AssignmentOperatorMethod } from './kwargs';
+import NDArray from "../NDArray";
+import { Func_y_x_out } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
@@ -12,7 +12,6 @@ import { broadcast_n_shapes, broadcast_shapes } from './_globals';
 import { TypedArrayConstructor, new_buffer } from '../dtypes';
 
 export type ArrayOrConstant = NDArray<any> | number | boolean;
-type Index = indexes.Where;
 
 
 
@@ -110,13 +109,15 @@ op_binary["≠"] = op_binary["neq"];
 
 export function assign_operation<
   T extends TypedArrayConstructor = Float64ArrayConstructor,
->(tgt: NDArray<T>, src: ArrayOrConstant, where: Index, func) {
+>(tgt: NDArray<T>, src: ArrayOrConstant, where: Where, func): NDArray<T> {
 
   if (tgt['__warnAssignment']) {
     console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other) or source.op(['::3', -1, '...', [5,4]], '*=', other).\n`);
     delete tgt['__warnAssignment'];
   }
-  if (!(isarray(tgt))) return _assign_operation_toJS(tgt as any, src, where, func)
+  if (!(isarray(tgt))) {
+    return _assign_operation_toJS(tgt as any, src, where, func) as any;
+  }
   if (!where) {
     binary_operation(tgt, src, func, tgt.dtype, tgt);
   } else {
@@ -133,11 +134,12 @@ export function assign_operation<
     binary_operation(tmpTgt, ravel(src), func, tgt.dtype, tmpTgt);
     for (let i in indices) tgt._flat[indices[i]] = tmpTgt._flat[i];
   }
+  return tgt;
 };
 
 
 
-export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, func: any) {
+export function _assign_operation_toJS(tgtJS: any[], src: any, where: Where, func: any) {
   if (!Array.isArray(tgtJS)) throw new Error(`Can not assign to a non-array. Found ${typeof tgtJS}: ${tgtJS}`);
   console.warn('Assignment to JS array is experimental and slow.')
   // Parse the whole array
@@ -148,11 +150,12 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Index, fun
   while (tgtJS.length) tgtJS.pop();
   // @ts-ignore
   extend(tgtJS, outJS);
+  return tgtJS;
 }
 
 
-// export type AssignmentOperator = { (tgt: NDArray, src: ArrayOrConstant): NDArray; (tgt: NDArray, where: Index, src: ArrayOrConstant): NDArray; }
-// export type SelfAssignmentOperator = { (other: ArrayOrConstant): NDArray; (where: Index, other: ArrayOrConstant): NDArray; }
+// export type AssignmentOperator = { (tgt: NDArray, src: ArrayOrConstant): NDArray; (tgt: NDArray, where: Where, src: ArrayOrConstant): NDArray; }
+// export type SelfAssignmentOperator = { (other: ArrayOrConstant): NDArray; (where: Where, other: ArrayOrConstant): NDArray; }
 
 
 export function __make_assignment_operator(func) {
@@ -228,75 +231,7 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
 
 //op_binary["≈≈"] = op[MyArray.prototype.isclose,
 
-function mk_kw_operator<T = number>(op: BinaryOperator) {
-  return kwDecorators<BinaryOperatorMethod<T>, BinaryOperatorParsedKwargs>({
-    defaults: [["other", undefined, asarray], ["out", null]],
-    func: op,
-  })
-}
-
-export const kw_op_binary = {
-  "+": mk_kw_operator(op_binary["+"]),
-  "-": mk_kw_operator(op_binary["-"]),
-  "*": mk_kw_operator(op_binary["*"]),
-  "/": mk_kw_operator(op_binary["/"]),
-  "%": mk_kw_operator(op_binary["%"]),
-  "//": mk_kw_operator(op_binary["//"]),
-  "**": mk_kw_operator(op_binary["**"]),
-  "<": mk_kw_operator(op_binary["<"]),
-  ">": mk_kw_operator(op_binary[">"]),
-  ">=": mk_kw_operator(op_binary[">="]),
-  "<=": mk_kw_operator(op_binary["<="]),
-  "==": mk_kw_operator(op_binary["=="]),
-  "|": mk_kw_operator(op_binary["|"]),
-  "&": mk_kw_operator(op_binary["&"]),
-  "^": mk_kw_operator(op_binary["^"]),
-  "<<": mk_kw_operator(op_binary["<<"]),
-  ">>": mk_kw_operator(op_binary[">>"]),
-  "max": mk_kw_operator(op_binary["max"]),
-  "min": mk_kw_operator(op_binary["min"]),
-  "or": mk_kw_operator<boolean>(op_binary["or"]),
-  "and": mk_kw_operator<boolean>(op_binary["and"]),
-  "xor": mk_kw_operator<boolean>(op_binary["xor"]),
-}
-
-export const atan2 = kwDecorator<(y: NDArray, x: NDArray, out?: NDArray | null) => NDArray, any>({
-  defaults: [["y", undefined, asarray], ["x", undefined, asarray], ["out", null]],
-  func: __make_operator(Float64Array, (y, x) => Math.atan2(y, x)),
-});
-
-
-
-
-function mk_kw_assign_operator(op) {
-  return kwDecorators<AssignmentOperatorMethod, AssignmentOperatorParsedKwargs>({
-    defaults: [["values", undefined, asarray], ['...where', []]],
-    func: op,
-  })
-}
-
-export const kw_op_assign = {
-  "=": mk_kw_assign_operator(op_assign["="]),
-  "+=": mk_kw_assign_operator(op_assign["+="]),
-  "-=": mk_kw_assign_operator(op_assign["-="]),
-  "*=": mk_kw_assign_operator(op_assign["*="]),
-  "/=": mk_kw_assign_operator(op_assign["/="]),
-  "%=": mk_kw_assign_operator(op_assign["%="]),
-  "//=": mk_kw_assign_operator(op_assign["//="]),
-  "**=": mk_kw_assign_operator(op_assign["**="]),
-  "|=": mk_kw_assign_operator(op_assign["|="]),
-  "&=": mk_kw_assign_operator(op_assign["&="]),
-  "^=": mk_kw_assign_operator(op_assign["^="]),
-  "<<=": mk_kw_assign_operator(op_assign["<<="]),
-  ">>=": mk_kw_assign_operator(op_assign[">>="]),
-  // Operators with custom ascii identifiers:
-  "max=": mk_kw_assign_operator(op_assign["max="]),
-  "min=": mk_kw_assign_operator(op_assign["min="]),
-  "or=": mk_kw_assign_operator(op_assign["or="]),
-  "and=": mk_kw_assign_operator(op_assign["and="]),
-}
-
-
+export const atan2 = Func_y_x_out.defaultDecorator(__make_operator(Float64Array, Math.atan2));
 
 
 

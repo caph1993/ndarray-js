@@ -1,11 +1,12 @@
 //@ts-check
 import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from './basic';
-import { ArrayOrConstant, op_binary } from './operators';
+import { op_binary } from './operators';
 import NDArray from "../NDArray";
-import { AxisArg, ReduceNormParsedKwargs, ReduceNormSignature, ReduceParsedKwargs, ReduceSignature, ReduceStdParsedKwargs, ReduceStdSignature, kwDecorators } from './kwargs';
+import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims } from './kwargs';
 import { TypedArray, TypedArrayConstructor, new_buffer } from '../dtypes';
 
 const multiply = op_binary["*"];
+const divide = op_binary["/"];
 const subtract = op_binary["-"];
 const pow = op_binary["**"];
 
@@ -73,77 +74,41 @@ export const reducers = {
     for (let x of arr) if (!x) return false;
     return true;
   }, Uint8Array),
-  norm: (arr: NDArray, axis: AxisArg, keepdims: boolean, ord: number) => {
+  norm: (arr: NDArray, ord: number, axis: AxisArg, keepdims: boolean) => {
     if (ord % 2 != 0) arr = arr.abs();
     if (ord == Infinity) return reducers.max(arr, axis, keepdims);
     if (ord == 1) return reducers.sum(arr, axis, keepdims);
     return pow(reducers.sum(pow(arr, ord), axis, keepdims), 1 / ord);
   },
-  var: (arr: NDArray, axis: AxisArg, keepdims: boolean) => {
+  var: (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean) => {
     arr = subtract(arr, reducers.mean(arr, axis, true));
     arr = multiply(arr, arr);
-    return arr.mean({ axis, keepdims });
+    if (ddof == 0) return reducers.mean(arr, axis, keepdims);
+    return divide(reducers.sum(arr, axis, keepdims), arr.shape[axis] - ddof);
   },
-  std: (arr: NDArray, axis: AxisArg, keepdims: boolean, ddof: number) => {
-    if (ddof == 0) return pow(arr.var(axis, keepdims), 0.5);
-    const _sum = reducers.sum(pow(arr, 2), axis, keepdims);
-    const _len = reducers.len(arr, axis, keepdims);
-    return pow(op_binary["/"](_sum, op_binary["-"](_len, ddof)), 0.5);
+  std: (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean) => {
+    return pow(reducers.var(arr, axis, ddof, keepdims), 0.5);
   },
 }
 
+
 export const kw_reducers = {
-  sum: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.sum,
-  }),
-  product: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.product,
-  }),
-  mean: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.mean,
-  }),
-  max: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.max,
-  }),
-  min: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.min,
-  }),
-  argmax: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.argmax,
-  }),
-  argmin: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.argmin,
-  }),
-  len: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.len,
-  }),
-  any: kwDecorators<ReduceSignature<boolean>, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.any,
-  }),
-  all: kwDecorators<ReduceSignature<boolean>, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.all,
-  }),
-  norm: kwDecorators<ReduceNormSignature, ReduceNormParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false], ["ord", 2]],
-    func: reducers.norm,
-  }),
-  var: kwDecorators<ReduceSignature, ReduceParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false]],
-    func: reducers.var,
-  }),
-  std: kwDecorators<ReduceStdSignature, ReduceStdParsedKwargs>({
-    defaults: [["axis", null], ["keepdims", false], ["ddof", 0]],
-    func: reducers.std,
-  }),
+  sum: Func_a_axis_keepdims.defaultDecorator(reducers.sum),
+  product: Func_a_axis_keepdims.defaultDecorator(reducers.product),
+  mean: Func_a_axis_keepdims.defaultDecorator(reducers.mean),
+  max: Func_a_axis_keepdims.defaultDecorator(reducers.max),
+  min: Func_a_axis_keepdims.defaultDecorator(reducers.min),
+
+  argmax: Func_a_axis_keepdims.defaultDecorator<Int32ArrayConstructor>(reducers.argmax),
+  argmin: Func_a_axis_keepdims.defaultDecorator<Int32ArrayConstructor>(reducers.argmin),
+  len: Func_a_axis_keepdims.defaultDecorator<Int32ArrayConstructor>(reducers.len),
+
+  any: Func_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(reducers.any),
+  all: Func_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(reducers.all),
+
+  norm: Func_a_ord_axis_keepdims.defaultDecorator(reducers.norm),
+
+  var: Func_a_axis_ddof_keepdims.defaultDecorator(reducers.var),
+  std: Func_a_axis_ddof_keepdims.defaultDecorator(reducers.std),
 };
 

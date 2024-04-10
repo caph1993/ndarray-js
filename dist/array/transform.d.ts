@@ -1,10 +1,18 @@
-import { DType } from '../NDArray';
 import type NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
-export declare function apply_along_axis(arr: NDArray, axis: number, transform: any, dtype?: DType): ArrayOrConstant;
-export declare function sort(A: NDArray, axis?: number): ArrayOrConstant;
-export declare function transpose(arr: NDArray, axes?: null | number[]): NDArray;
-export declare function swapAxes(arr: NDArray, axisA: number, axisB: number): NDArray;
-export declare function concatenate(arrays: NDArray[], axis?: number | null): NDArray;
-export declare function stack(arrays: NDArray[], axis?: number): NDArray;
+import { Func_a_lastAxis } from './kwargs';
+import { TypedArrayConstructor } from '../dtypes';
+/**
+ * This function can reduce, sort, operate pointwise, or increase the dimensionality.
+ */
+export declare function apply_along_axis(arr: NDArray<any>, axis: number, transform: any, dtype?: TypedArrayConstructor): ArrayOrConstant;
+export declare const cmp_nan_at_the_end: (a: number, b: number) => number;
+export declare function sort(a: NDArray<any>, axis: number): NDArray<Float64ArrayConstructor>;
+export declare function transpose(arr: NDArray<any>, axes?: null | number[]): NDArray<TypedArrayConstructor>;
+export declare function swapAxes(arr: NDArray<any>, axisA: number, axisB: number): NDArray<TypedArrayConstructor>;
+export declare function concatenate(arrays: NDArray<any>[], axis?: number | null): NDArray<TypedArrayConstructor>;
+export declare function stack(arrays: NDArray[], axis?: number): NDArray<TypedArrayConstructor>;
+export declare const kw_exported: {
+    sort: Func_a_lastAxis.Wrapper;
+};
 //# sourceMappingURL=transform.d.ts.map

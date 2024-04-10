@@ -1,18 +1,13 @@
-export declare function random(shape: any): import("../NDArray").NDArray;
-export declare function uniform(a: any, b: any, shape: any): import("../NDArray").NDArray;
-export declare function exponential(mean: any, shape: any): import("../NDArray").NDArray;
-/** @param {number} n */
-export declare function __normal(n: any): number[];
-export declare function randn(shape: any): import("../NDArray").NDArray;
-export declare function normal(mean: any, std: any, shape: any): import("../NDArray").NDArray;
+import type NDArray from "../NDArray";
+export declare function random(shape: any): NDArray<import("../dtypes").TypedArrayConstructor>;
+export declare function uniform(a: any, b: any, shape: any): NDArray<Float64ArrayConstructor>;
+export declare function exponential(mean: any, shape: any): NDArray<any>;
+export declare function _normal_buffer(n: number): Float64Array;
+export declare function randn(shape: number[]): NDArray<Float64ArrayConstructor>;
+export declare function normal(mean: any, std: any, shape: any): NDArray<Float64ArrayConstructor>;
 /** @param {any[]} list */
 export declare function _shuffle(list: any): void;
-/** @param {any[]} list */
-export declare function _shuffled(list: any): any[];
-/** @param {NDArray} arr  @returns {NDArray} */
-export declare function shuffled(arr: any): any;
-/**
- * @param {NDArray} arr
- */
-export declare function shuffle(arr: any): void;
+export declare function _shuffled<T>(list: T): any;
+export declare function shuffled(arr: NDArray): NDArray<import("../dtypes").TypedArrayConstructor>;
+export declare function shuffle(arr: NDArray): void;
 //# sourceMappingURL=random.d.ts.map
