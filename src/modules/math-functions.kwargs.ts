@@ -1,12 +1,11 @@
 //@ts-check
-import NDArray from "../NDArray";
-import { Arr, ArrJS, OutArg, kwargs_decorator, frequently_used_parsers } from "../array/kwargs";
-
+import { Arr, ArrOrAny, ArrOrNull, kwargs_decorator, frequently_used_parsers, ArrOrConst } from "../array/kwargs";
+import * as math from "./math-functions";
 
 export namespace Func_clip {
   export type Implementation = (a: Arr, a_min: Arr, a_max: Arr, out: Arr) => Arr;
-  export type Kwargs = { a?: ArrJS, a_min?: ArrJS, a_max?: ArrJS, out?: OutArg };
-  export type Wrapper = (a: ArrJS, a_min: ArrJS, a_max: ArrJS, out?: OutArg | Kwargs) => NDArray<any>;
+  export type Kwargs = { a?: ArrOrAny, a_min?: ArrOrAny, a_max?: ArrOrAny, out?: ArrOrNull };
+  export type Wrapper = (a: ArrOrAny, a_min: ArrOrAny, a_max: ArrOrAny, out?: ArrOrNull | Kwargs) => ArrOrConst;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [
     ["a", undefined],
@@ -24,3 +23,5 @@ export namespace Func_clip {
     defaults, implementation, parsers
   });
 }
+
+export const clip = Func_clip.defaultDecorator(math.clip);

@@ -1,6 +1,5 @@
 //@ts-check
-import { Arr } from "../array/kwargs";
-import { Func_clip } from "./math-functions.kwargs";
+import { Arr } from "../array/_globals";
 import { op_binary } from "../array/operators";
 import { apply_along_axis, concatenate } from "../array/transform";
 
@@ -76,9 +75,37 @@ export function cumtrapz(y: Arr, x: Arr | null, dx: number, axis: number, initia
   }, y.dtype);
 }
 
+export function trapz(y: Arr, x: Arr | null, dx: number, axis: number) {
+  return apply_along_axis(y, axis, (arr: any[]) => {
+    let sum = 0;
+    for (let i = 1; i < arr.length; i++) {
+      const dxi = x ? x[i] - x[i - 1] : dx;
+      sum += (arr[i] + arr[i - 1]) / 2 * dxi;
+    }
+    return sum;
+  }, y.dtype);
+}
+
+export function interp(x: Arr, xp: Arr, fp: Arr, left: number | null, right: number | null) {
+  const x_flat = x.flat;
+  const xp_flat: number[] = xp.flat;
+  const fp_flat = fp.flat;
+  // Use binary search instead of findIndex:
+  return x_flat.map((v) => {
+    let lo = 0, hi = xp_flat.length;
+    while (lo < hi) {
+      const mid = lo + hi >> 1;
+      if (xp_flat[mid] < v) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo == 0) return left;
+    if (lo == xp_flat.length) return right;
+    const x0 = xp_flat[lo - 1];
+    const x1 = xp_flat[lo];
+    const f0 = fp_flat[lo - 1];
+    const f1 = fp_flat[lo];
+    return f0 + (f1 - f0) * (v - x0) / (x1 - x0);
+  });
+}
 
 
-
-export const kw_exported = {
-  clip: Func_clip.defaultDecorator(clip),
-};

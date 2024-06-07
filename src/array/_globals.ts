@@ -5,6 +5,17 @@ import { TypedArrayConstructor } from "../dtypes";
 const { np, NDArray: __NDArray } = GLOBALS;
 if (!__NDArray) throw new Error(`Programming error: NDArray not defined`);
 
+
+// Types used everywhere
+export type Arr = NDArray<any>;
+export type ArrOrAny = NDArray<any> | number | boolean | any[];
+export type ArrOrConst = NDArray<any> | number | boolean;
+
+export type AxisArg = number | null;
+export type ArrOrNull = NDArray<any> | null;
+
+
+
 // Functions to avoid importing NDArray (because if I import NDArray, I can't use it as a type annotation in the same file)
 export const _NDArray = __NDArray;
 

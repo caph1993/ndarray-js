@@ -1,12 +1,12 @@
 //@ts-check
 import NDArray from "../NDArray";
-import { Arr, ArrJS, kwargs_decorator, frequently_used_parsers } from "../array/kwargs";
+import { Arr, ArrOrAny, kwargs_decorator, frequently_used_parsers } from "../array/kwargs";
 
 
 export namespace Func_clip {
   export type Implementation = (a: Arr, a_min: Arr, a_max: Arr, out: Arr) => Arr;
-  export type Kwargs = { a?: ArrJS, a_min?: ArrJS, a_max?: ArrJS, out?: NDArray<any> | null };
-  export type Wrapper = (a: ArrJS, a_min: ArrJS, a_max: ArrJS, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export type Kwargs = { a?: ArrOrAny, a_min?: ArrOrAny, a_max?: ArrOrAny, out?: NDArray<any> | null };
+  export type Wrapper = (a: ArrOrAny, a_min: ArrOrAny, a_max: ArrOrAny, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [
     ["a", undefined],
