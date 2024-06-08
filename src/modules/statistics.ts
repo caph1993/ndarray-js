@@ -2,7 +2,6 @@
 import assert = require("assert");
 import NDArray from "../NDArray";
 import { ArrOrAny, asarray, new_NDArray } from "../array/_globals";
-import { as_number } from "../array/basic";
 import { Arr, AxisArg } from "../array/kwargs";
 
 import { cmp_nan_at_the_end, swapAxes } from "../array/transform";
@@ -11,46 +10,75 @@ import { np } from "./_globals";
 
 
 
-export const sum_list = (arr: number[] | boolean[]) => arr.reduce((a, b) => (a as number) + (b as number), 0) as number;
-export const product_list = (arr: number[] | boolean[]) => arr.reduce((a, b) => (a as number) + (b as number), 1) as number;
-export function argmax_list(arr: number[] | boolean[]) {
-  if (arr.length == 0) throw new Error("argmax of an empty array");
-  let i = 0, v = arr[0];
-  for (let j = 1; j < arr.length; j++) if (arr[j] > v) v = arr[i = j];
+export const sum_list = (arr: number[] | boolean[], discard_nans = false) => {
+  let sum = 0;
+  if (discard_nans) for (let x of arr) if (!isNaN(+x)) sum += +x;
+  else for (let x of arr) sum += +x;
+  return sum;
+}
+export const product_list = (arr: number[] | boolean[], discard_nans = false) => {
+  let prod = 1;
+  if (discard_nans) for (let x of arr) if (!isNaN(+x)) prod *= +x;
+  else for (let x of arr) prod *= +x;
+  return prod;
+}
+
+const EmptyArrayError = new Error("Expected one or more values in operation. Found none");
+export function argmax_list(arr: number[] | boolean[], discard_nans = false) {
+  let i = -1, v = -Infinity;
+  for (let j = 0; j < arr.length; j++) {
+    if (+arr[j] > v || (i == -1 && (+arr[j] == v || discard_nans))) {
+      v = +arr[i = j];
+      if (Number.isNaN(arr[i])) return i; // shortcut
+      if (!discard_nans && arr[i] === true) return i; // shortcut for boolean arrays
+    }
+  }
+  if (i == -1) throw EmptyArrayError;
   return i;
 }
-export function argmin_list(arr: number[] | boolean[]) {
-  if (arr.length == 0) throw new Error("argmin of an empty array");
-  let i = 0, v = arr[0];
-  for (let j = 1; j < arr.length; j++) if (arr[j] < v) v = arr[i = j];
+export function argmin_list(arr: number[] | boolean[], discard_nans = false) {
+  let i = -1, v = -Infinity;
+  for (let j = 0; j < arr.length; j++) {
+    if (+arr[j] < v || (i == -1 && (+arr[j] == v || discard_nans))) {
+      v = +arr[i = j];
+      if (Number.isNaN(arr[i])) return i; // shortcut
+      if (!discard_nans && arr[i] === true) return i; // shortcut for boolean arrays
+    }
+  }
+  if (i == -1) throw EmptyArrayError;
   return i;
 }
-export function max_list<T>(arr: T[]): T {
-  if (arr.length == 0) throw new Error("max of an empty array");
-  if (typeof arr[0] == "boolean") return any_list(arr as boolean[]) as T;
-  return Math.max(...arr as number[]) as T;
+export function max_list<T>(arr: T[], discard_nans = false): T {
+  return arr[argmax_list(arr as number[], discard_nans)];
 }
-export function min_list<T>(arr: T[]): T {
-  if (arr.length == 0) throw new Error("min of an empty array");
-  if (typeof arr[0] == "boolean") return all_list(arr as boolean[]) as T;
-  return Math.min(...arr as number[]) as T;
+export function min_list<T>(arr: T[], discard_nans = false): T {
+  return arr[argmin_list(arr as number[], discard_nans)];
 }
-export const any_list = (arr: number[] | boolean[]) => {
-  for (let x of arr) if (x) return true;
+export const any_list = (arr: number[] | boolean[], discard_nans = false) => {
+  if (discard_nans) for (let x of arr) if (x && !Number.isNaN(x)) return true;
+  else for (let x of arr) if (x) return true;
   return false;
 };
-export const all_list = (arr: number[] | boolean[]) => {
-  for (let x of arr) if (!x) return false;
+export const all_list = (arr: number[] | boolean[], discard_nans = false) => {
+  if (discard_nans) for (let x of arr) if (!x && !Number.isNaN(x)) return false;
+  else for (let x of arr) if (x) return false;
   return true;
 }
-export const mean_list = (arr: number[] | boolean[]) => sum_list(arr) / arr.length;
-export const var_list = (arr: number[] | boolean[], ddof: number = 0) => {
+export const mean_list = (arr: number[] | boolean[], discard_nans = false) => {
+  // @ts-ignore
+  if (discard_nans) arr = arr.filter(x => !isNaN(+x));
+  return sum_list(arr) / arr.length;
+}
+export const var_list = (arr: number[] | boolean[], ddof: number = 0, discard_nans = false) => {
+  // @ts-ignore
+  if (discard_nans) arr = arr.filter(x => !isNaN(+x));
   const mean = mean_list(arr);
+  if (Number.isNaN(mean)) return mean; // shortcut
   const n = arr.length;
   return sum_list(arr.map(x => (x - mean) ** 2)) / (n - ddof);
 }
-export const std_list = (arr: number[] | boolean[], ddof: number = 0) => {
-  return Math.pow(var_list(arr, ddof), 0.5);
+export const std_list = (arr: number[] | boolean[], ddof: number = 0, discard_nans = false) => {
+  return Math.pow(var_list(arr, ddof, discard_nans), 0.5);
 }
 
 
@@ -60,17 +88,17 @@ export const std_list = (arr: number[] | boolean[], ddof: number = 0) => {
  * the output is shaped as q.
  * @param a
  * @param q
- * @param _nan_handling 
+ * @param discard_nans 
  * @returns 
  */
 function quantile_list<T extends number | number[] = number>(
   a: number[] | boolean[],
   q: T,
-  _nan_handling = false,
+  discard_nans = false,
 ): T {
   const x = a.map(v => +v).sort(cmp_nan_at_the_end);
   let n = x.length;
-  if (_nan_handling) n -= x.reduce((cum, x) => cum + (isNaN(x) ? 1 : 0), 0);
+  if (discard_nans) n -= x.reduce((cum, x) => cum + (isNaN(x) ? 1 : 0), 0);
   const f = (q: number) => {
     const nq = q * (n - 1);
     const lo = Math.floor(nq);
@@ -115,7 +143,7 @@ export function percentile(a: Arr, q: Arr | number, axis: AxisArg | null) {
 /**
  * Compute the q-th quantile of the data along the specified axis.
  */
-export function quantile(a: Arr, q: Arr | number, axis: number, _nan_handling = false): Arr {
+export function quantile(a: Arr, q: Arr | number, axis: number, discard_nans = false): Arr {
   q = asarray(q);
   if (axis != a.shape.length - 1) { a = swapAxes(a, axis, -1); }
   const outer_shape = q.shape;
@@ -128,7 +156,7 @@ export function quantile(a: Arr, q: Arr | number, axis: number, _nan_handling = 
   const out = new Float64Array(q.size * nrows);
   for (let i = 0; i < nrows; i++) {
     const row = a_flat.slice(i * ncols, (i + 1) * ncols);
-    const values = quantile_list(row, q_flat, _nan_handling);
+    const values = quantile_list(row, q_flat, discard_nans);
     let j = i;
     for (let k in values) {
       out[j] = values[k];
@@ -138,7 +166,7 @@ export function quantile(a: Arr, q: Arr | number, axis: number, _nan_handling = 
   return new_NDArray(out, [...outer_shape, ...inner_shape]);
 
   // a = np.sort(a, { axis: null });
-  // const n = _nan_handling ? np.isnan(a).logical_not().sum(0) : a.shape[0];
+  // const n = discard_nans ? np.isnan(a).logical_not().sum(0) : a.shape[0];
   // // TODO: throw if out of bounds 
   // const indices_float = op_binary["*"](q, op_binary["-"](n, 1));
   // return n_ary_operation([indices_float], a.shape.slice(1), (iq) => {
@@ -320,9 +348,9 @@ export function _n_bins(a: number[], bins: number | number[] | 'auto' | 'rice' |
 }
 
 export function histogram_bin_edges_list(a: number[], bins: number | number[] | 'auto' | 'rice' | 'fd' | 'scott' | 'sqrt' = 'auto', range: [number, number] | null = null): number[] {
-  if (range === null) range = [min_list(a), max_list(a)];
+  if (range === null) range = [min_list(a, true), max_list(a, true)];
   else {
-    // Exclude values outside the range
+    // Exclude values outside the range. Exclude nans as well.
     a = a.filter(x => x >= range[0] && x <= range[1]);
   }
   if (typeof bins === 'string') bins = _n_bins(a, bins, range);
@@ -383,9 +411,5 @@ Averages and variances
   - mean(a[, axis, dtype, out, keepdims, where]) Compute the arithmetic mean along the specified axis.
   - std(a[, axis, dtype, out, ddof, keepdims, where]) Compute the standard deviation along the specified axis.
   - var(a[, axis, dtype, out, ddof, keepdims, where]) Compute the variance along the specified axis.
-  - nanmedian(a[, axis, out, overwrite_input, ...]) Compute the median along the specified axis, while ignoring NaNs.
-  - nanmean(a[, axis, dtype, out, keepdims, where]) Compute the arithmetic mean along the specified axis, ignoring NaNs.
-  - nanstd(a[, axis, dtype, out, ddof, ...]) Compute the standard deviation along the specified axis, while ignoring NaNs.
-  - nanvar(a[, axis, dtype, out, ddof, ...]) Compute the variance along the specified axis, while ignoring NaNs.
  */
 
