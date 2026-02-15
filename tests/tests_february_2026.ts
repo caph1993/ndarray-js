@@ -73,6 +73,28 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
   return obtained;
 }
 
+
+npTest`np.sin(np.arange(100))`
+npTest`np.argsort(np.sin(np.arange(100).reshape(10, 10)), axis=0)`
+
+npTest`np.clip([-10, 5, 15, 20], a_min=0, a_max=10)`
+npTest`np.clip(np.linspace(-10, 10, 200).reshape(10, 10, 2), a_min=0, a_max=None)`
+npTest`np.nan_to_num([1, np.nan, np.inf, -np.inf])`
+npTest`np.real_if_close([1, 2, 3])`
+npTest`np.heaviside([-1, 0, 1, 2], [1, 2, 3, 4])`
+npTest`np.convolve([1, 2, 3], [0, 1])`
+npTest`np.interp([1.5, 2.5], [1, 2, 3], [10, 20, 30])`
+npTest`np.unique([3, 1, 4, 1, 5, 9, 2, 6, 5])`
+// npTest`np.intersect1d([1, 2, 3, 4], [3, 4, 5, 6])`
+// npTest`np.union1d([1, 2, 3], [3, 4, 5])`
+// npTest`np.setdiff1d([1, 2, 3, 4], [2, 4])`
+// npTest`np.setxor1d([1, 2, 3, 4], [3, 4, 5, 6])`
+// npTest`np.isin([1, 2, 3, 4], [2, 4])`
+npTest`np.argsort([3, 1, 4, 1, 5])`
+
+
+
+
 npTest`np.array([0, np.e, np.pi, np.nan, np.inf])`
 npTest`np.array([${1}, ${2}, ${3}])`
 npTest`np.array([0, ${np.inf}, ${np.nan}])`
@@ -143,6 +165,41 @@ npTest`np.arctan([0, 1])`
 npTest`np.hypot([3, 5], [4, 12])`
 npTest`np.arctan2([1, 2], [3, 4])`
 npTest`np.atan2([1, 2], [3, 4])`
+
+// New arithmetic and utility functions
+npTest`np.add([1, 2], [3, 4])`
+npTest`np.subtract([5, 6], [1, 2])`
+npTest`np.multiply([2, 3], [4, 5])`
+npTest`np.divide([10, 20], [2, 4])`
+npTest`np.true_divide([10, 20], [2, 4])`
+npTest`np.mod([10, 20], [3, 7])`
+npTest`np.fmod([10, 20], [3, 7])`
+npTest`np.remainder([10, 20], [3, 7])`
+npTest`np.floor_divide([10, 20], [3, 7])`
+npTest`np.power([2, 3], [3, 2])`
+npTest`np.pow([2, 3], [3, 2])`
+npTest`np.float_power([2.5, 3.5], [2, 1.5])`
+npTest`np.positive([1, -2, 3])`
+npTest`np.angle([1, 2, 3])`
+npTest`np.real([1, 2, 3])`
+npTest`np.imag([1, 2, 3])`
+npTest`np.conj([1, 2, 3])`
+npTest`np.conjugate([1, 2, 3])`
+npTest`np.maximum([1, 5, 3], [2, 3, 4])`
+npTest`np.minimum([1, 5, 3], [2, 3, 4])`
+npTest`np.amax([1, 5, 3, 2])`
+npTest`np.amin([1, 5, 3, 2])`
+
+// New functions from next batch
+npTest`np.sqrt([1, 4, 9, 16])`
+npTest`np.cbrt([1, 8, 27])`
+npTest`np.square([1, 2, 3, 4])`
+npTest`np.absolute([-1, -2, 3])`
+npTest`np.fabs([-1, -2, 3])`
+npTest`np.sign([-3, 0, 2])`
+
+
+
 
 
 console.log('Success')

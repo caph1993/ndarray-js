@@ -19,21 +19,25 @@ export function elementwise<
 ) {
   A = asarray(A);
   //@ts-ignore
-  if (out) dtype = out.dtype;
-  //@ts-ignore
-  let out_buffer = A.flat.map(func) as InstanceType<T>;
-  if (!dtype_leq(dtype, A.dtype)) {
-    out_buffer = new_buffer(out_buffer, dtype) as InstanceType<T>;
-  }
-  if (out) {
+  let _out;
+  if (!out) {
+    let out_buffer = new_buffer(A.flat.length, dtype) as InstanceType<T>;
+    for (let i = 0; i < A.flat.length; i++) {
+      out_buffer[i] = func(A.flat[i]);
+    }
+    _out = new_NDArray(out_buffer, A.shape);
+  } else {
+    if (!dtype_leq(_out.dtype, out.dtype)) {
+      throw new Error(`Output array has dtype ${out.dtype}, which cannot hold all values of type ${dtype}.`);
+    }
     //@ts-ignore
-    out.flat = out_buffer;
-    return out;
+    out.flat = _out.flat;
+    _out = out;
   }
-  return new_NDArray(out_buffer, A.shape);
+  return _out;
 }
 
-function mk_elementwise<
+function elementwise_factory<
   T extends TypedArrayConstructor,
 >(op, dtype: T) {
   return function <
@@ -45,44 +49,59 @@ function mk_elementwise<
 }
 
 export const funcs = {
-  sign: mk_elementwise(Math.sign, Float64Array),
-  sqrt: mk_elementwise(Math.sqrt, Float64Array),
-  square: mk_elementwise((a) => a * a, Float64Array),
-  exp: mk_elementwise(Math.exp, Float64Array),
-  log: mk_elementwise(Math.log, Float64Array),
-  log2: mk_elementwise(Math.log2, Float64Array),
-  log10: mk_elementwise(Math.log10, Float64Array),
-  log1p: mk_elementwise(Math.log1p, Float64Array),
-  sin: mk_elementwise(Math.sin, Float64Array),
-  cos: mk_elementwise(Math.cos, Float64Array),
-  tan: mk_elementwise(Math.tan, Float64Array),
-  asin: mk_elementwise(Math.asin, Float64Array),
-  acos: mk_elementwise(Math.acos, Float64Array),
-  atan: mk_elementwise(Math.atan, Float64Array),
-  cosh: mk_elementwise(Math.cosh, Float64Array),
-  sinh: mk_elementwise(Math.sinh, Float64Array),
-  tanh: mk_elementwise(Math.tanh, Float64Array),
-  acosh: mk_elementwise(Math.acosh, Float64Array),
-  asinh: mk_elementwise(Math.asinh, Float64Array),
-  atanh: mk_elementwise(Math.atanh, Float64Array),
-  floor: mk_elementwise(Math.floor, Float64Array),
-  ceil: mk_elementwise(Math.ceil, Float64Array),
-  isfinite: mk_elementwise((x) => isFinite(x), Uint8Array),
-  isinf: mk_elementwise((x) => x === Infinity || x === -Infinity, Uint8Array),
-  isposinf: mk_elementwise((x) => x === Infinity, Uint8Array),
-  isneginf: mk_elementwise((x) => x === -Infinity, Uint8Array),
-  isnan: mk_elementwise(isNaN, Uint8Array),
-  iscomplex: mk_elementwise((_x) => false, Uint8Array),
-  isreal: mk_elementwise((_x) => true, Uint8Array),
+  sign: elementwise_factory(Math.sign, Float64Array),
+  sqrt: elementwise_factory(Math.sqrt, Float64Array),
+  square: elementwise_factory((a) => a * a, Float64Array),
+  exp: elementwise_factory(Math.exp, Float64Array),
+  log: elementwise_factory(Math.log, Float64Array),
+  log2: elementwise_factory(Math.log2, Float64Array),
+  log10: elementwise_factory(Math.log10, Float64Array),
+  log1p: elementwise_factory(Math.log1p, Float64Array),
+  sin: elementwise_factory(Math.sin, Float64Array),
+  cos: elementwise_factory(Math.cos, Float64Array),
+  tan: elementwise_factory(Math.tan, Float64Array),
+  asin: elementwise_factory(Math.asin, Float64Array),
+  acos: elementwise_factory(Math.acos, Float64Array),
+  atan: elementwise_factory(Math.atan, Float64Array),
+  cosh: elementwise_factory(Math.cosh, Float64Array),
+  sinh: elementwise_factory(Math.sinh, Float64Array),
+  tanh: elementwise_factory(Math.tanh, Float64Array),
+  acosh: elementwise_factory(Math.acosh, Float64Array),
+  asinh: elementwise_factory(Math.asinh, Float64Array),
+  atanh: elementwise_factory(Math.atanh, Float64Array),
+  floor: elementwise_factory(Math.floor, Float64Array),
+  ceil: elementwise_factory(Math.ceil, Float64Array),
+  isfinite: elementwise_factory((x) => isFinite(x), Uint8Array),
+  isinf: elementwise_factory((x) => x === Infinity || x === -Infinity, Uint8Array),
+  isposinf: elementwise_factory((x) => x === Infinity, Uint8Array),
+  isneginf: elementwise_factory((x) => x === -Infinity, Uint8Array),
+  isnan: elementwise_factory(isNaN, Uint8Array),
+  iscomplex: elementwise_factory((_x) => false, Uint8Array),
+  isreal: elementwise_factory((_x) => true, Uint8Array),
+  reciprocal: elementwise_factory((x) => 1 / x, Float64Array),
+  positive: elementwise_factory((x) => +x, Float64Array),
+  angle: elementwise_factory((_x) => 0, Float64Array),
+  real: elementwise_factory((x) => x, Float64Array),
+  imag: elementwise_factory((_x) => 0, Float64Array),
+  conj: elementwise_factory((x) => x, Float64Array),
+  conjugate: elementwise_factory((x) => x, Float64Array),
+  cbrt: elementwise_factory(Math.cbrt, Float64Array),
+  nan_to_num: elementwise_factory((x) => {
+    if (Number.isNaN(x)) return 0;
+    if (x === Infinity) return Number.MAX_VALUE;
+    if (x === -Infinity) return -Number.MAX_VALUE;
+    return x;
+  }, Float64Array),
+  real_if_close: elementwise_factory((x) => x, Float64Array),
   round: function round(arr: NDArray, decimals: number, out: NDArray = null) {
     if (decimals == 0) elementwise(arr, Math.round, Float64Array, out);
     return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Float64Array, out);
   },
-  negative: mk_elementwise(x => -x, Float64Array),
-  bitwise_not: mk_elementwise(x => ~x, Float64Array),
-  logical_not: mk_elementwise(x => !x, Uint8Array),
-  valueOf: mk_elementwise(x => +x, Float64Array),
-  abs: mk_elementwise(Math.abs, Float64Array),
+  negative: elementwise_factory(x => -x, Float64Array),
+  bitwise_not: elementwise_factory(x => ~x, Float64Array),
+  logical_not: elementwise_factory(x => !x, Uint8Array),
+  valueOf: elementwise_factory(x => +x, Float64Array),
+  abs: elementwise_factory(Math.abs, Float64Array),
 }
 
 export const ops = {
@@ -130,6 +149,16 @@ export const kw_funcs = {
   isnan: Func_a_out.defaultDecorator(funcs.isnan),
   iscomplex: Func_a_out.defaultDecorator(funcs.iscomplex),
   isreal: Func_a_out.defaultDecorator(funcs.isreal),
+  reciprocal: Func_a_out.defaultDecorator(funcs.reciprocal),
+  positive: Func_a_out.defaultDecorator(funcs.positive),
+  angle: Func_a_out.defaultDecorator(funcs.angle),
+  real: Func_a_out.defaultDecorator(funcs.real),
+  imag: Func_a_out.defaultDecorator(funcs.imag),
+  conj: Func_a_out.defaultDecorator(funcs.conj),
+  conjugate: Func_a_out.defaultDecorator(funcs.conjugate),
+  cbrt: Func_a_out.defaultDecorator(funcs.cbrt),
+  nan_to_num: Func_a_out.defaultDecorator(funcs.nan_to_num),
+  real_if_close: Func_a_out.defaultDecorator(funcs.real_if_close),
 
   round: Func_a_decimals_out.defaultDecorator(funcs.round),
 }

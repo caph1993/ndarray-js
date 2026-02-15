@@ -4,7 +4,7 @@ import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shi
 import { tolist } from './js-interface';
 
 import NDArray from "../NDArray";
-import { Func_y_x_out } from './kwargs';
+import { Func_y_x_out, Func_a_a_min_a_max_out, Func_x1_x2_out } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
@@ -97,9 +97,27 @@ export const op_binary = {
   "max": __make_operator(Float64Array, (a, b) => Math.max(a, b)),
   "min": __make_operator(Float64Array, (a, b) => Math.min(a, b)),
   "hypot": __make_operator(Float64Array, Math.hypot),
+  "fmod": __make_operator(Float64Array, (a, b) => a % b),
+  "remainder": __make_operator(Float64Array, (a, b) => a % b),
+  "divide": __make_operator(Float64Array, (a, b) => a / b),
+  "true_divide": __make_operator(Float64Array, (a, b) => a / b),
+  "fmax": __make_operator(Float64Array, (a, b) => {
+    if (Number.isNaN(a)) return b;
+    if (Number.isNaN(b)) return a;
+    return Math.max(a, b);
+  }),
+  "fmin": __make_operator(Float64Array, (a, b) => {
+    if (Number.isNaN(a)) return b;
+    if (Number.isNaN(b)) return a;
+    return Math.min(a, b);
+  }),
   // "approx": ,
 }
 
+
+export const heaviside = Func_x1_x2_out.defaultDecorator(
+  __make_operator(Float64Array, (x1, x2) => x1 > 0 ? 1 : (x1 === 0 ? x2 : 0))
+);
 
 op_binary["↑"] = op_binary["max"];
 op_binary["↓"] = op_binary["min"];
@@ -286,7 +304,67 @@ export function array_equiv(A, B, equal_nan = false) {
 
 export const atan2 = Func_y_x_out.defaultDecorator(__make_operator(Float64Array, Math.atan2));
 
+export function modf(x: any) {
+  x = asarray(x);
+  const frac = elementwise(x, (v) => v - Math.floor(v), Float64Array);
+  const integ = elementwise(x, Math.floor, Float64Array);
+  return [frac, integ];
+}
 
+export function divmod(x: any, y: any) {
+  const { elementwise } = require('./elementwise');
+  x = asarray(x);
+  y = asarray(y);
+  const quotient = binary_operation(x, y, (a, b) => Math.floor(a / b), Float64Array);
+  const remainder = binary_operation(x, y, (a, b) => a % b, Float64Array);
+  return [quotient, remainder];
+}
+
+export function float_power(x: any, y: any, out?: any) {
+  return binary_operation(x, y, Math.pow, Float64Array, out);
+}
+
+const { elementwise } = require('./elementwise');
+
+
+export function ternary_operation<
+  T extends TypedArrayConstructor = Float64ArrayConstructor,
+>(A: ArrayOrConstant, B: ArrayOrConstant, C: ArrayOrConstant, func: any, dtype: T, out: NDArray<T> | null = null): NDArray<T> {
+
+  if (isarray(this)) return func.bind(_NDArray.prototype)(this, ...arguments);
+  // Find output shape and input broadcast shapes
+  A = asarray(A);
+  B = asarray(B);
+  C = asarray(C);
+  const [[shapeA, shapeB, shapeC], shape] = broadcast_n_shapes(A.shape, B.shape, C.shape);
+
+  //@ts-ignore
+  if (out) dtype = out.dtype;
+  //@ts-ignore
+  if (out == null) out = new_from(shape, undefined, dtype);
+
+  else if (!(isarray(out))) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
+  // Iterate with broadcasted indices
+  const flatOut = [];
+  const shiftsA = shape_shifts(shapeA);
+  const shiftsB = shape_shifts(shapeB);
+  const shiftsC = shape_shifts(shapeC);
+  const flatA = A.flat;
+  const flatB = B.flat;
+  const flatC = C.flat;
+  for (let i = 0; i < out.size; i++) {
+    let idxA = 0, idxB = 0, idxC = 0, idx = i;
+    for (let axis = shape.length - 1; axis >= 0; axis--) {
+      idxA += shiftsA[axis] * (idx % shapeA[axis]);
+      idxB += shiftsB[axis] * (idx % shapeB[axis]);
+      idxC += shiftsC[axis] * (idx % shapeC[axis]);
+      idx = Math.floor(idx / shape[axis]);
+    }
+    flatOut.push(func(flatA[idxA], flatB[idxB], flatC[idxC]));
+  };
+  out.flat = new_buffer(flatOut, dtype);
+  return out;
+}
 
 
 export function n_ary_operation<
@@ -355,4 +433,165 @@ export function n_ary_operation<
   let out = funcOutIsNDArray ? concatenate(flat) : asarray(flat);
   out = out.reshape([shape, ...out.shape.slice(1)]);
   return out;
+}
+
+
+export function clip(a: any, a_min: any = null, a_max: any = null, out: any = null) {
+  if (a_min === null && a_max === null) throw new Error('At least one of a_min or a_max must be provided');
+  if (a_min !== null && a_max !== null) {
+    return ternary_operation(a, a_min, a_max, (v, minVal, maxVal) => Math.max(minVal, Math.min(maxVal, v)), Float64Array, out);
+  } else if (a_min !== null) {
+    return binary_operation(a, a_min, (v, minVal) => Math.max(minVal, v), Float64Array, out);
+  } else {
+    return binary_operation(a, a_max, (v, maxVal) => Math.min(maxVal, v), Float64Array, out);
+  }
+}
+
+export function convolve(a: any, v: any, mode: string = 'full') {
+  a = asarray(a);
+  v = asarray(v);
+  if (a.shape.length !== 1 || v.shape.length !== 1) {
+    throw new Error('convolve only supports 1D arrays');
+  }
+  const flatA = Array.from(a.flat as any) as number[];
+  const flatV = Array.from(v.flat as any) as number[];
+  const n = flatA.length + flatV.length - 1;
+  const result = new Array(n).fill(0) as number[];
+  for (let i = 0; i < flatA.length; i++) {
+    for (let j = 0; j < flatV.length; j++) {
+      result[i + j] += flatA[i] * flatV[j];
+    }
+  }
+  if (mode === 'same') {
+    const start = Math.floor(flatV.length / 2);
+    return new_NDArray(new_buffer(result.slice(start, start + flatA.length), Float64Array), [flatA.length]);
+  }
+  if (mode === 'valid') {
+    if (flatV.length > flatA.length) return new_NDArray(new_buffer([], Float64Array), [0]);
+    return new_NDArray(new_buffer(result.slice(0, flatA.length - flatV.length + 1), Float64Array), [flatA.length - flatV.length + 1]);
+  }
+  return new_NDArray(new_buffer(result, Float64Array), [n]);
+}
+
+export function interp(x: any, xp: any, fp: any) {
+  x = asarray(x);
+  xp = asarray(xp);
+  fp = asarray(fp);
+  const flatX = Array.from(x.flat as any) as number[];
+  const flatXp = Array.from(xp.flat as any) as number[];
+  const flatFp = Array.from(fp.flat as any) as number[];
+  const result = flatX.map((xi: number) => {
+    if (xi <= flatXp[0]) return flatFp[0];
+    if (xi >= flatXp[flatXp.length - 1]) return flatFp[flatFp.length - 1];
+    for (let i = 0; i < flatXp.length - 1; i++) {
+      if (flatXp[i] <= xi && xi <= flatXp[i + 1]) {
+        const t = (xi - flatXp[i]) / (flatXp[i + 1] - flatXp[i]);
+        return flatFp[i] + t * (flatFp[i + 1] - flatFp[i]);
+      }
+    }
+    return flatFp[flatFp.length - 1];
+  });
+  return new_NDArray(new_buffer(result, Float64Array), x.shape);
+}
+
+export function unique(ar: any, return_index = false, return_inverse = false, return_counts = false) {
+  ar = asarray(ar);
+  const flatAr = Array.from(ar.flat as any).sort((a: any, b: any) => a - b);
+  const unique_arr = [];
+  const indices = [];
+  const inverse = new Array(flatAr.length);
+  const counts = [];
+  let lastVal: any = Symbol('__init__');
+  let count = 0;
+  let idx = 0;
+  for (let i = 0; i < flatAr.length; i++) {
+    if (flatAr[i] !== lastVal) {
+      if (count > 0) counts.push(count);
+      unique_arr.push(flatAr[i]);
+      indices.push(i);
+      lastVal = flatAr[i];
+      count = 1;
+      inverse[i] = idx++;
+    } else {
+      inverse[i] = idx - 1;
+      count++;
+    }
+  }
+  if (count > 0) counts.push(count);
+
+  const result: any[] = [new_NDArray(new_buffer(unique_arr, Float64Array), [unique_arr.length])];
+  if (return_index) result.push(indices);
+  if (return_inverse) result.push(inverse);
+  if (return_counts) result.push(counts);
+  return result.length === 1 ? result[0] : result;
+}
+
+export function intersect1d(...ar: any[]) {
+  const arrays = ar.map(a => Array.from(asarray(a).flat as any).sort((x: any, y: any) => x - y));
+  if (arrays.length === 0) return new_NDArray(new_buffer([], Float64Array), [0]);
+  let result = arrays[0];
+  for (let i = 1; i < arrays.length; i++) {
+    result = result.filter(x => arrays[i].includes(x));
+    result = Array.from(new Set(result)).sort((x: any, y: any) => x - y);
+  }
+  // return new_NDArray(new_buffer(result, Float64Array), [result.length]);
+  throw new Error('intersect1d is not implemented yet');
+}
+
+export function union1d(...ar: any[]) {
+  const all = ar.flatMap(a => Array.from(asarray(a).flat as any));
+  const unique = Array.from(new Set(all)).sort((x: any, y: any) => x - y);
+  // return new_NDArray(new_buffer(unique, Float64Array), [unique.length]);
+  throw new Error('union1d is not implemented yet');
+}
+
+export function setdiff1d(ar1: any, ar2: any) {
+  ar1 = Array.from(asarray(ar1).flat as any).sort((x: any, y: any) => x - y);
+  ar2 = new Set(Array.from(asarray(ar2).flat as any));
+  const result = ar1.filter((x: any) => !ar2.has(x));
+  return new_NDArray(new_buffer(result, Float64Array), [result.length]);
+}
+
+export function setxor1d(ar1: any, ar2: any) {
+  ar1 = Array.from(asarray(ar1).flat as any);
+  ar2 = Array.from(asarray(ar2).flat as any);
+  const set1 = new Set(ar1);
+  const set2 = new Set(ar2);
+  const result = Array.from(new Set([
+    ...ar1.filter((x: any) => !set2.has(x)),
+    ...ar2.filter((x: any) => !set1.has(x))
+  ])).sort((x: any, y: any) => x - y);
+  return new_NDArray(new_buffer(result, Float64Array), [result.length]);
+}
+
+export function isin(element: any, test_elements: any, invert = false) {
+  element = asarray(element);
+  test_elements = asarray(test_elements);
+  const testSet = new Set(Array.from(test_elements.flat as any));
+  const result = Array.from(element.flat as any).map((x: any) => {
+    const isIn = testSet.has(x);
+    return invert ? (isIn ? 0 : 1) : (isIn ? 1 : 0);
+  });
+  return new_NDArray(new_buffer(result, Uint8Array), element.shape);
+}
+
+export function lexsort(...keys: any[]) {
+  const arrays = keys.map(k => asarray(k));
+  const n = arrays[0].size;
+  if (!arrays.every(a => a.size === n)) {
+    throw new Error('lexsort: all input arrays must have the same size');
+  }
+  const indices = Array.from({ length: n }, (_, i) => i);
+  indices.sort((i: number, j: number) => {
+    for (let k = arrays.length - 1; k >= 0; k--) {
+      const cmp = (arrays[k].flat as any)[i] - (arrays[k].flat as any)[j];
+      if (cmp !== 0) return cmp;
+    }
+    return 0;
+  });
+  return new_NDArray(new_buffer(indices, Int32Array), [n]);
+}
+
+export const kw_export = {
+  clip: Func_a_a_min_a_max_out.defaultDecorator(clip),
 }

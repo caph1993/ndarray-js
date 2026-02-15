@@ -97,6 +97,8 @@ np.apply_along_axis = transform.apply_along_axis;
 /** @category Transformations */
 np.sort = transform.kw_exported.sort;
 /** @category Transformations */
+np.argsort = transform.kw_exported.argsort;
+/** @category Transformations */
 np.concatenate = transform.concatenate;
 /** @category Transformations */
 np.stack = transform.stack;
@@ -113,13 +115,25 @@ np.subtract = Func_a_other_out.defaultDecorator(operators.op_binary["-"]);
 /** @category Binary operators */
 np.multiply = Func_a_other_out.defaultDecorator(operators.op_binary["*"]);
 /** @category Binary operators */
-np.divide = Func_a_other_out.defaultDecorator(operators.op_binary["/"]);
+np.divide = Func_a_other_out.defaultDecorator(operators.op_binary["divide"]);
+/** @category Binary operators */
+np.true_divide = Func_a_other_out.defaultDecorator(operators.op_binary["true_divide"]);
 /** @category Binary operators */
 np.mod = Func_a_other_out.defaultDecorator(operators.op_binary["%"]);
 /** @category Binary operators */
+np.fmod = Func_a_other_out.defaultDecorator(operators.op_binary["fmod"]);
+/** @category Binary operators */
+np.remainder = Func_a_other_out.defaultDecorator(operators.op_binary["remainder"]);
+/** @category Binary operators */
 np.divide_int = Func_a_other_out.defaultDecorator(operators.op_binary["//"]);
 /** @category Binary operators */
+np.floor_divide = Func_a_other_out.defaultDecorator(operators.op_binary["//"]);
+/** @category Binary operators */
 np.pow = Func_a_other_out.defaultDecorator(operators.op_binary["**"]);
+/** @category Binary operators */
+np.power = np.pow;
+/** @category Binary operators */
+np.float_power = Func_a_other_out.defaultDecorator(operators.float_power);
 /** @category Binary operators */
 np.bitwise_or = Func_a_other_out.defaultDecorator(operators.op_binary["|"]);
 /** @category Binary operators */
@@ -146,6 +160,10 @@ np.not_equal = Func_a_other_out.defaultDecorator(operators.op_binary["!="]);
 np.maximum = Func_a_other_out.defaultDecorator(operators.op_binary["max"]);
 /** @category Binary operators */
 np.minimum = Func_a_other_out.defaultDecorator(operators.op_binary["min"]);
+/** @category Binary operators */
+np.fmax = Func_a_other_out.defaultDecorator(operators.op_binary["fmax"]);
+/** @category Binary operators */
+np.fmin = Func_a_other_out.defaultDecorator(operators.op_binary["fmin"]);
 /** @category Binary operators */
 np.logical_or = Func_a_other_out.defaultDecorator(operators.op_binary["or"]);
 /** @category Binary operators */
@@ -235,12 +253,60 @@ np.logical_not = ew.kw_funcs.logical_not;
 /** @category Elementwise operators */
 np.negative = ew.kw_funcs.negative;
 /** @category Elementwise operators */
+np.positive = ew.kw_funcs.positive;
+/** @category Elementwise operators */
+np.reciprocal = ew.kw_funcs.reciprocal;
+/** @category Elementwise operators */
+np.angle = ew.kw_funcs.angle;
+/** @category Elementwise operators */
+np.real = ew.kw_funcs.real;
+/** @category Elementwise operators */
+np.imag = ew.kw_funcs.imag;
+/** @category Elementwise operators */
+np.conj = ew.kw_funcs.conj;
+/** @category Elementwise operators */
+np.conjugate = ew.kw_funcs.conjugate;
+/** @category Elementwise operators */
+np.cbrt = ew.kw_funcs.cbrt;
+/** @category Elementwise operators */
+np.nan_to_num = ew.kw_funcs.nan_to_num;
+/** @category Elementwise operators */
+np.real_if_close = ew.kw_funcs.real_if_close;
+/** @category Elementwise operators */
 np.round = ew.kw_funcs.round;
 
 np.arcsin = np.asin;
 np.arccos = np.acos;
 np.arctan = np.atan;
 np.arctan2 = np.atan2;
+
+// Aliases and special functions
+np.absolute = np.abs;
+np.fabs = np.abs;
+np.sqrt = ew.kw_funcs.sqrt;
+np.square = ew.kw_funcs.square;
+np.sign = ew.kw_funcs.sign;
+
+np.max = NDArray.prototype.modules.reduce.kw_reducers.max;
+np.amax = np.max;
+np.min = NDArray.prototype.modules.reduce.kw_reducers.min;
+np.amin = np.min;
+
+np.modf = operators.modf;
+np.divmod = operators.divmod;
+
+np.clip = operators.kw_export.clip;
+np.heaviside = operators.heaviside;
+np.convolve = operators.convolve;
+np.interp = operators.interp;
+np.unique = operators.unique;
+np.intersect1d = operators.intersect1d;
+np.union1d = operators.union1d;
+np.setdiff1d = operators.setdiff1d;
+np.setxor1d = operators.setxor1d;
+np.isin = operators.isin;
+
+np.lexsort = operators.lexsort;
 
 np.isscalar = (obj: any) => {
   if (isarray(obj)) return false;

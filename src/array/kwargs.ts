@@ -144,6 +144,10 @@ export const frequently_used_parsers = {
   'asarray': (key: string) => (kwargs: any) => {
     kwargs[key] = asarray(kwargs[key]);
   },
+  'asarray_or_null': (key: string) => (kwargs: any) => {
+    if (kwargs[key] === null) return;
+    else kwargs[key] = asarray(kwargs[key]);
+  },
   'isarray': (key: string) => (kwargs: any) => {
     if (!isarray(kwargs[key])) {
       throw new Error(`Invalid "${key}" argument. Expected NDArray. Found type ${typeof kwargs[key]} (${kwargs[key].prototype})`);
@@ -432,3 +436,40 @@ export namespace Func_y_x_out {
     defaults, implementation, parsers
   });
 }
+
+
+// Used by clip:
+export namespace Func_a_a_min_a_max_out {
+  export type Implementation = (a: NDArray<any>, a_min?: NDArray<any>, a_max?: NDArray<any>, out?: NDArray<any> | null) => NDArray<any>;
+  export type Kwargs = { a?: ArrOrAny, a_min?: ArrOrAny, a_max?: ArrOrAny, out?: NDArray<any> | null };
+  export type Wrapper = (a: ArrOrAny | Kwargs, a_min?: ArrOrAny | Kwargs, a_max?: ArrOrAny | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["a", undefined], ["a_min", null], ["a_max", null], ["out", null]];
+  export const parsers = [
+    frequently_used_parsers.asarray('a'),
+    frequently_used_parsers.asarray_or_null('a_min'),
+    frequently_used_parsers.asarray_or_null('a_max'),
+    frequently_used_parsers.isarray_or_null('out'),
+  ];
+  export const defaultDecorator = (implementation: Implementation) => decorator({
+    defaults, implementation, parsers
+  });
+}
+
+// Used by heaviside:
+export namespace Func_x1_x2_out {
+  export type Implementation = (x1: ArrOrAny, x2: ArrOrAny, out?: NDArray | null) => NDArray<any>;
+  export type Kwargs = { x1?: ArrOrAny, x2?: ArrOrAny, out?: NDArray<any> | null };
+  export type Wrapper = (x1: ArrOrAny | Kwargs, x2: ArrOrAny | Kwargs, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [["x1", undefined], ["x2", undefined], ["out", null]];
+  export const parsers = [
+    frequently_used_parsers.asarray('x1'),
+    frequently_used_parsers.asarray('x2'),
+    frequently_used_parsers.isarray_or_null('out'),
+  ];
+  export const defaultDecorator = (implementation: Implementation) => decorator({
+    defaults, implementation, parsers
+  });
+}
+

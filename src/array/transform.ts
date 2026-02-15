@@ -48,7 +48,7 @@ export function apply_along_axis(arr: NDArray<any>, axis: number, transform, dty
 export const cmp_nan_at_the_end = (a: number, b: number) => {
   // https://stackoverflow.com/a/56265258/3671939
   //@ts-ignore
-  return a - b || isNaN(a) - isNaN(b) || Object.is(b, -0) - Object.is(a, -0);
+  return a - b || Number.isNaN(a) - Number.isNaN(b) || Object.is(b, 0) - Object.is(a, 0);
 }
 
 export function sort(a: NDArray<any>, axis: number) {
@@ -57,6 +57,14 @@ export function sort(a: NDArray<any>, axis: number) {
     cpy.sort(cmp_nan_at_the_end)
     return cpy;
   }, a.dtype) as NDArray;
+}
+
+export function argsort(a: NDArray<any>, axis: number) {
+  return apply_along_axis(a, axis, (arr) => {
+    const idx = Array.from(arr).map((_: any, i: number) => i);
+    idx.sort((i: number, j: number) => cmp_nan_at_the_end(arr[i], arr[j]));
+    return idx;
+  }, Int32Array) as NDArray;
 }
 
 export function transpose(arr: NDArray<any>, axes: null | number[] = null) {
@@ -172,4 +180,5 @@ export function stack(arrays: NDArray[], axis: number = 0) {
 
 export const kw_exported = {
   sort: Func_a_lastAxis.defaultDecorator(sort),
-};
+  argsort: Func_a_lastAxis.defaultDecorator(argsort),
+}
