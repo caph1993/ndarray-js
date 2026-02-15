@@ -6,7 +6,7 @@ import { allClose } from '../src/utils-js';
 console.log('Start')
 
 
-function npTest(template, ...variables) {
+function npTest(template: TemplateStringsArray, ...variables: any[]) {
   let idx = 0;
   const str = template.join('###').replace(/###/g, () => {
     let value = variables[idx++];

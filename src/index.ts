@@ -33,6 +33,7 @@ GLOBALS.np = np;
 //    Define casting and core before importing any other module
 // ==============================
 import NDArray from './NDArray';
+import { isarray } from './array/basic';
 /** @category Main */
 np.NDArray = NDArray;
 
@@ -149,13 +150,18 @@ np.minimum = Func_a_other_out.defaultDecorator(operators.op_binary["min"]);
 np.logical_or = Func_a_other_out.defaultDecorator(operators.op_binary["or"]);
 /** @category Binary operators */
 np.logical_and = Func_a_other_out.defaultDecorator(operators.op_binary["and"]);
+/** @category Binary operators */
+np.logical_xor = Func_a_other_out.defaultDecorator(operators.op_binary["xor"]);
 np.atan2 = operators.atan2;
+np.hypot = Func_a_other_out.defaultDecorator(operators.op_binary["hypot"]);
 
 
 np.assign = operators.op_assign['='];
 
 np.allclose = operators.allclose;
 np.isclose = operators.isclose;
+np.array_equal = operators.array_equal;
+np.array_equiv = operators.array_equiv;
 
 
 const ew = NDArray.prototype.modules.elementwise;
@@ -209,6 +215,16 @@ np.ceil = ew.kw_funcs.ceil;
 np.isnan = ew.kw_funcs.isnan;
 /** @category Elementwise operators */
 np.isfinite = ew.kw_funcs.isfinite;
+/** @category Elementwise operators */
+np.isinf = ew.kw_funcs.isinf;
+/** @category Elementwise operators */
+np.isposinf = ew.kw_funcs.isposinf;
+/** @category Elementwise operators */
+np.isneginf = ew.kw_funcs.isneginf;
+/** @category Elementwise operators */
+np.iscomplex = ew.kw_funcs.iscomplex;
+/** @category Elementwise operators */
+np.isreal = ew.kw_funcs.isreal;
 
 /** @category Elementwise operators */
 np.abs = ew.kw_funcs.abs;
@@ -220,6 +236,19 @@ np.logical_not = ew.kw_funcs.logical_not;
 np.negative = ew.kw_funcs.negative;
 /** @category Elementwise operators */
 np.round = ew.kw_funcs.round;
+
+np.arcsin = np.asin;
+np.arccos = np.acos;
+np.arctan = np.atan;
+np.arctan2 = np.atan2;
+
+np.isscalar = (obj: any) => {
+  if (isarray(obj)) return false;
+  if (Array.isArray(obj)) return false;
+  if (obj === null || obj === undefined) return false;
+  const t = typeof obj;
+  return t === 'number' || t === 'boolean' || t === 'string' || t === 'bigint' || t === 'symbol';
+}
 
 
 // ==============================
@@ -261,5 +290,11 @@ np.nanquantile = np.modules.statistics.nanquantile;
 np.pi = Math.PI;
 /** @category Math constants */
 np.e = Math.E;
+/** @category Math constants */
+np.nan = NaN;
+/** @category Math constants */
+np.inf = Infinity;
+/** @category Math constants */
+np.euler_gamma = 0.5772156649015328606065120900824024310421;
 
 export { np };

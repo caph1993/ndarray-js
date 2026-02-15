@@ -5,7 +5,7 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "webpack --config webpack.config.js",
-    "test": "cd tests && ts-node tests_october.ts",
+    "test": "cd tests && ts-node tests_february_2026.ts",
     "serve-docs": "cd docs && python -m http.server 8000",
     "build-docs": "typedoc",
     "build-docs-4": "ts-docs src/index.ts",
@@ -40,6 +40,7 @@
     "declaration-bundler-webpack-plugin": "^1.0.3",
     "eslint-plugin-tsdoc": "^0.2.17",
     "jsdom": "^22.1.0",
+    "json5": "^2.2.3",
     "ts-loader": "^9.5.0",
     "ts-node": "^10.9.1",
     "typedoc": "^0.25.12",

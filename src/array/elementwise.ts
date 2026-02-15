@@ -21,8 +21,10 @@ export function elementwise<
   //@ts-ignore
   if (out) dtype = out.dtype;
   //@ts-ignore
-  const in_buffer = dtype_leq(dtype, A.dtype) ? A.flat : new_buffer(A.flat, dtype);
-  const out_buffer = in_buffer.map(func) as InstanceType<T>;
+  let out_buffer = A.flat.map(func) as InstanceType<T>;
+  if (!dtype_leq(dtype, A.dtype)) {
+    out_buffer = new_buffer(out_buffer, dtype) as InstanceType<T>;
+  }
   if (out) {
     //@ts-ignore
     out.flat = out_buffer;
@@ -65,8 +67,13 @@ export const funcs = {
   atanh: mk_elementwise(Math.atanh, Float64Array),
   floor: mk_elementwise(Math.floor, Float64Array),
   ceil: mk_elementwise(Math.ceil, Float64Array),
-  isfinite: mk_elementwise(isFinite, Uint8Array),
+  isfinite: mk_elementwise((x) => isFinite(x), Uint8Array),
+  isinf: mk_elementwise((x) => x === Infinity || x === -Infinity, Uint8Array),
+  isposinf: mk_elementwise((x) => x === Infinity, Uint8Array),
+  isneginf: mk_elementwise((x) => x === -Infinity, Uint8Array),
   isnan: mk_elementwise(isNaN, Uint8Array),
+  iscomplex: mk_elementwise((_x) => false, Uint8Array),
+  isreal: mk_elementwise((_x) => true, Uint8Array),
   round: function round(arr: NDArray, decimals: number, out: NDArray = null) {
     if (decimals == 0) elementwise(arr, Math.round, Float64Array, out);
     return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Float64Array, out);
@@ -117,7 +124,12 @@ export const kw_funcs = {
   abs: Func_a_out.defaultDecorator(funcs.abs),
 
   isfinite: Func_a_out.defaultDecorator(funcs.isfinite),
+  isinf: Func_a_out.defaultDecorator(funcs.isinf),
+  isposinf: Func_a_out.defaultDecorator(funcs.isposinf),
+  isneginf: Func_a_out.defaultDecorator(funcs.isneginf),
   isnan: Func_a_out.defaultDecorator(funcs.isnan),
+  iscomplex: Func_a_out.defaultDecorator(funcs.iscomplex),
+  isreal: Func_a_out.defaultDecorator(funcs.isreal),
 
   round: Func_a_decimals_out.defaultDecorator(funcs.round),
 }

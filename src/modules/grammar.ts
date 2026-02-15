@@ -8,6 +8,7 @@ ArrayGrammar {
   Instruction
   = Variable "[" Slice "]" AssignSymbol ArithmeticLogicExp -- sliceAssignment
   | ArithmeticLogicExp                       -- expression
+  | Constant
   
   Variable
    = "#" digit+ "#"
@@ -76,7 +77,14 @@ ArrayGrammar {
   KwArg = Name "=" ArgValue
 
   ArgValue = Constant | JsArray | ArithmeticLogicExp | String
-  Constant = "True" | "False" | "None" | "np.nan" | "np.inf"
+  Constant = NumericConstant | "True" | "False" | "None" | "np.newaxis"
+  NumericConstant
+    = ("+"|"-")? "np.nan"
+    | ("+"|"-")? "np.inf"
+    | ("+"|"-")? "np.e"
+    | ("+"|"-")? "np.pi"
+    | ("+"|"-")? "np.euler_gamma"
+
   JsArray
     = "[" ListOf<ArgValue, ","> ","? "]"
     | "(" ListOf<ArgValue, ","> ","? ")"
@@ -198,7 +206,21 @@ export const __makeSemantics = () => {
         case "False": return false;
         case "None": return null;
         case "np.nan": return Number.NaN;
+        case "+np.nan": return Number.NaN;
+        case "-np.nan": return Number.NaN;
         case "np.inf": return Number.POSITIVE_INFINITY;
+        case "+np.inf": return Number.POSITIVE_INFINITY;
+        case "-np.inf": return Number.NEGATIVE_INFINITY;
+        case "np.e": return Math.E;
+        case "+np.e": return Math.E;
+        case "-np.e": return -Math.E;
+        case "np.pi": return Math.PI;
+        case "+np.pi": return Math.PI;
+        case "-np.pi": return -Math.PI;
+        case "np.euler_gamma": return 0.5772156649015329; // Euler's constant
+        case "+np.euler_gamma": return 0.5772156649015329; // Euler's constant
+        case "-np.euler_gamma": return -0.5772156649015329; // Euler's constant
+        case "np.newaxis": return null;
       }
       throw new Error(`Unrecognized constant ${$x.sourceString}`)
     },

@@ -96,6 +96,7 @@ export const op_binary = {
   "xor": __make_operator(Uint8Array, (a, b) => (!a) != (!b)),
   "max": __make_operator(Float64Array, (a, b) => Math.max(a, b)),
   "min": __make_operator(Float64Array, (a, b) => Math.min(a, b)),
+  "hypot": __make_operator(Float64Array, Math.hypot),
   // "approx": ,
 }
 
@@ -224,6 +225,58 @@ export function allclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   catch (err) {
     if (err === different) return false;
     else throw err;
+  }
+  return true;
+}
+
+export function array_equal(A, B, equal_nan = false) {
+  ({ equal_nan } = Object.assign({ equal_nan }, this));
+  A = asarray(A);
+  B = asarray(B);
+  if (A.shape.length !== B.shape.length) return false;
+  for (let i = 0; i < A.shape.length; i++) if (A.shape[i] !== B.shape[i]) return false;
+  const flatA = A.flat;
+  const flatB = B.flat;
+  if (flatA.length !== flatB.length) return false;
+  for (let i = 0; i < flatA.length; i++) {
+    const a = flatA[i];
+    const b = flatB[i];
+    if (a === b) continue;
+    if (equal_nan && Number.isNaN(a) && Number.isNaN(b)) continue;
+    return false;
+  }
+  return true;
+}
+
+export function array_equiv(A, B, equal_nan = false) {
+  ({ equal_nan } = Object.assign({ equal_nan }, this));
+  A = asarray(A);
+  B = asarray(B);
+  let shape: number[];
+  let shapeA: number[];
+  let shapeB: number[];
+  try {
+    [shape, shapeA, shapeB] = broadcast_shapes(A.shape, B.shape);
+  } catch (_err) {
+    return false;
+  }
+  const shiftsA = shape_shifts(shapeA);
+  const shiftsB = shape_shifts(shapeB);
+  const flatA = A.flat;
+  const flatB = B.flat;
+  const size = shape.reduce((a, b) => a * b, 1);
+  for (let i = 0; i < size; i++) {
+    let idxA = 0, idxB = 0, idx = i;
+    for (let axis = shape.length - 1; axis >= 0; axis--) {
+      idxA += shiftsA[axis] * (idx % shapeA[axis]);
+      idxB += shiftsB[axis] * (idx % shapeB[axis]);
+      idx = Math.floor(idx / shape[axis]);
+    }
+    const a = flatA[idxA];
+    const b = flatB[idxB];
+    if (a === b) continue;
+    if (equal_nan && Number.isNaN(a) && Number.isNaN(b)) continue;
+    return false;
   }
   return true;
 }
