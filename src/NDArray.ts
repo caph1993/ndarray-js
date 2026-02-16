@@ -1,6 +1,6 @@
 //@ts-check
 
-import { DType, HasDType, bool, infer_dtype, new_buffer } from './dtypes';
+import { DType, HasDType, bool, infer_dtype, new_buffer, object } from './dtypes';
 /** @ignore */
 export type ArrayOrConstant = NDArray | number | boolean;
 
@@ -26,7 +26,7 @@ class NDArray implements HasDType {
   /** @category Attributes @readonly */
   get dtype(): DType {
     if (this._dtype) return this._dtype;
-    return infer_dtype(this);
+    return infer_dtype[this._flat.constructor.name] || object;
   }
 
   /** @category Indexing / slicing */
@@ -173,10 +173,11 @@ class NDArray implements HasDType {
    */
   op: GenericOperatorFunction;
 
-  constructor(flat: InstanceType<DType["BufferType"]>, shape?: number[]) {
+  constructor(flat: InstanceType<DType["BufferType"]>, shape?: number[], dtype?: DType) {
     this.shape = shape || [flat.length]; // invariant: immutable
     this._flat = flat;
     this._simpleIndexes = null;
+    if (dtype) this._dtype = dtype;
   }
 
   /** @ignore */
@@ -197,6 +198,7 @@ class NDArray implements HasDType {
 
   /** @internal */
   set flat(list) {
+    console.log(list, this.size)
     if (list.length != this.size)
       throw new Error(`Length mismatch. Can't write ${list.length} values into ${this.size} available positions.`);
     const n = this.size;

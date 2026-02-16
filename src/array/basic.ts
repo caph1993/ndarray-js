@@ -109,3 +109,19 @@ export function copy(A: NDArray) {
   return new_NDArray(new_buffer(A.flat, A.dtype), A.shape);
 }
 
+export function new_array(shape: Shape, dtype?: DType, fill?: Function | number | boolean) {
+  const size = parse_shape(shape).reduce((a, b) => a * b, 1);
+  const buffer = new_buffer(size, dtype);
+  // If callable, call fill for each element. Otherwise, fill with the value.
+  if (typeof fill == 'function') {
+    for (let i = 0; i < size; i++) {
+      buffer[i] = fill(i);
+    }
+  } else if (fill !== undefined) {
+    for (let i = 0; i < size; i++) {
+      buffer[i] = fill;
+    }
+  }
+  return new_NDArray(buffer, parse_shape(shape), dtype);
+};
+

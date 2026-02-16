@@ -96,24 +96,33 @@ export type Promote<
 > = DTypeByName<PromoteName<DTypeNameOf<A>, DTypeNameOf<B>>>
 
 
-const _infer_dtype = {
-  Float32Array: "float32" as const,
-  Int32Array: "int32" as const,
-  Uint8Array: "bool" as const,
-  Array: "object" as const,
-}
-
-export function infer_dtype<T extends HasDType>(arr: T): DTypeOf<T> {
-  const key = arr.dtype.constructor.name;
-  return _infer_dtype[key] || object;
+export const infer_dtype = {
+  Float32Array: float32,
+  Int32Array: int32,
+  Uint8Array: bool,
+  Array: object,
 }
 
 export function new_buffer<T extends DType>(
   size_or_array: number | InstanceType<T["BufferType"]>,
-  dtype?: T
+  dtype?: DType
 ): InstanceType<T["BufferType"]> {
-  //@ts-ignore
-  return new (dtype || float64).BufferType(size_or_array) as InstanceType<T["BufferType"]>;
+
+  dtype = dtype || float64;
+  if (dtype.name === "object") {
+    // Handled separately because Array is not a typed array and doesn't have the same constructor signature.
+    if (Array.isArray(size_or_array)) {
+      return size_or_array as any;
+    } else if (typeof size_or_array === "number") {
+      return Array.from({ length: size_or_array }) as any;
+    } else {
+      return Array.from(size_or_array as any) as any;
+    }
+    // else {
+    // throw new Error(`Invalid input for object dtype: ${size_or_array}`);
+    // }
+  }
+  return new dtype.BufferType(size_or_array as any) as InstanceType<T["BufferType"]>;
 }
 
 export function promote(a: DType, b: DType): DType {
@@ -147,6 +156,9 @@ export function dtype_is_integer(dtype: DType): boolean {
 export function dtype_is_boolean(dtype: DType): boolean {
   return dtype.name === "bool";
 }
+export function dtype_is_float(dtype: DType): boolean {
+  return dtype.name === "float32" || dtype.name === "float64";
+}
 
 
 
@@ -160,21 +172,45 @@ function get_out_dtype(out?: DType | HasDType) {
   return out as DType;
 }
 
+export function addition_out(dtypes: DType[], out?: DType | HasDType): DType {
+  out = get_out_dtype(out);
+  let inferred = dtype_max(int32, ...dtypes);
+  if (out && dtype_cmp(out, inferred) < 0)
+    throw new Error(`Output array has dtype ${out.name}, which cannot hold all values of type ${inferred.name}.`);
+  return out || inferred;
+}
+export function bitwise_out(dtypes: DType[], out?: DType | HasDType): DType {
+  out = get_out_dtype(out);
+  let inferred = dtype_max(...dtypes);
+  if (out && dtype_cmp(out, inferred) < 0)
+    throw new Error(`Output array has dtype ${out.name}, which cannot hold all values of type ${inferred.name}.`);
+  return out || inferred;
+}
+
 export function float_out(dtypes: DType[], out?: DType | HasDType): DType {
-  let dtype = get_out_dtype(out);
+  out = get_out_dtype(out);
   let max = dtype_max(...dtypes);
   // Output is float64. If you want float32, provide out.
   const inferred = (dtype_cmp(max, float32) >= 0) ? max : float64;
-  if (dtype && dtype_cmp(dtype, inferred) < 0)
-    throw new Error(`Output array has dtype ${dtype.name}, which cannot hold all values of type ${inferred.name}.`);
-  return dtype || inferred;
+  if (out && dtype_cmp(out, inferred) < 0)
+    throw new Error(`Output array has dtype ${out.name}, which cannot hold all values of type ${inferred.name}.`);
+  return out || inferred;
 }
 
 export function bool_out<T extends DType>(dtypes: DType[], out?: DType | HasDType): T {
-  let dtype = get_out_dtype(out);
-  if (dtype && dtype_cmp(dtype, bool) != 0)
-    throw new Error(`Output array has dtype ${dtype.name} but expected bool.`);
+  out = get_out_dtype(out);
+  if (out && dtype_cmp(out, bool) != 0)
+    throw new Error(`Output array has dtype ${out.name} but expected bool.`);
   return bool as T;
+}
+
+export function argmax_out(dtypes: DType[], out?: DType | HasDType): DType {
+  out = get_out_dtype(out);
+  const inferred = int32;
+  if (out && !dtype_is_integer(out)) {
+    throw new Error(`Output array has dtype ${out.name}, which is not an integer type.`);
+  }
+  return out || inferred;
 }
 
 

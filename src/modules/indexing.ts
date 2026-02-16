@@ -20,7 +20,7 @@ export function where(condition: NDArray, x: NDArray, y: NDArray, out: NDArray |
   return out;
 }
 
-export function nonzero(a: NDArray<any>) {
+export function nonzero(a: NDArray) {
   const raw_indices = [...a.flat].map((v, i) => v ? i : null).filter((v) => v !== null);
   // Convert to many 1D arrays
   const indices = a.shape.map(() => new Int32Array(raw_indices.length));
@@ -30,5 +30,5 @@ export function nonzero(a: NDArray<any>) {
       v = Math.floor(v / a.shape[i]);
     }
   });
-  return indices.map(buffer => new NDArray<Int32ArrayConstructor>(buffer));
+  return indices.map(buffer => new NDArray(buffer));
 }

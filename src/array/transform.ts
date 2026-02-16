@@ -1,26 +1,30 @@
 //@ts-check
 
-import { isarray, asarray, new_NDArray, _NDArray, number_collapse, ravel, shape_shifts, reshape } from './basic';
+import { isarray, asarray, new_NDArray, _NDArray, number_collapse, ravel, shape_shifts, reshape, empty } from './basic';
 import { fromlist } from './js-interface';
 import { allEq, extend } from '../utils-js';
 import type NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
 import { Func_a_lastAxis } from './kwargs';
-import { DType, new_buffer } from '../dtypes';
+import { argmax_out, bitwise_out, DType, dtype_max, DtypeResolver, new_buffer } from '../dtypes';
 
 
 /**
  * This function can reduce, sort, operate pointwise, or increase the dimensionality.
  */
-export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: DType): ArrayOrConstant {
+export function apply_along_axis(
+  dtype_resolver: DtypeResolver,
+  transform: (arr: any[]) => any[],
+  arr: NDArray, axis: number
+): ArrayOrConstant {
   arr = asarray(arr);
-  if (axis == null) return transform(arr.flat);
+  if (axis == null) return transform(arr.flat as any[]) as any as NDArray;
   const nDims = arr.shape.length;
   if (axis < 0) axis = nDims + axis;
   if (axis !== nDims - 1) {
     // Transpose to end, apply, and transpose back:
     const tmp = swapAxes(arr, axis, -1);
-    const out = apply_along_axis(tmp, -1, transform, dtype);
+    const out = apply_along_axis(dtype_resolver, transform, tmp, -1);
     //@ts-ignore
     return swapAxes(out, axis, -1);
   }
@@ -41,6 +45,7 @@ export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: D
   const tmp = fromlist(data);
   const shape = [...arr.shape.slice(0, axis), ...tmp.shape.slice(1), ...arr.shape.slice(axis + 1),];
 
+  const dtype = dtype_resolver([arr.dtype], null);
   const out = new_NDArray(new_buffer(tmp.flat, dtype), shape);
   return number_collapse(out);
 }
@@ -52,19 +57,21 @@ export const cmp_nan_at_the_end = (a: number, b: number) => {
 }
 
 export function sort(a: NDArray, axis: number) {
-  return apply_along_axis(a, axis, (arr) => {
+  const transform = (arr) => {
     const cpy = [...arr];
     cpy.sort(cmp_nan_at_the_end)
     return cpy;
-  }, a.dtype) as NDArray;
+  }
+  return apply_along_axis(bitwise_out, transform, a, axis) as NDArray;
 }
 
 export function argsort(a: NDArray, axis: number) {
-  return apply_along_axis(a, axis, (arr) => {
+  const func = (arr) => {
     const idx = Array.from(arr).map((_: any, i: number) => i);
     idx.sort((i: number, j: number) => cmp_nan_at_the_end(arr[i], arr[j]));
     return idx;
-  }, Int32Array) as NDArray;
+  }
+  return apply_along_axis(argmax_out, func, a, axis) as NDArray;
 }
 
 export function transpose(arr: NDArray, axes: null | number[] = null) {
@@ -106,7 +113,9 @@ export function transpose(arr: NDArray, axes: null | number[] = null) {
   }
   // Now, just copy the data:
   const src = arr.flat;
-  return new_NDArray(arr.dtype.from(indices.map((i) => src[i])), shape);
+  const out = new_NDArray(new_buffer(src.length, arr.dtype), shape);
+  for (let i = 0; i < indices.length; i++) out.flat[i] = src[indices[i]];
+  return out;
 }
 
 
@@ -142,11 +151,12 @@ export function concatenate(arrays: NDArray[], axis: number | null = null) {
     if (!allEq(arr.shape.filter((_, i) => i != axis), shapeIn.filter((_, i) => i != axis))) throw new Error(`Inconsistent input shape ${shapeIn} with respect to ${arr.shape.map((v, i) => i == axis ? '?' : v)}`);
     shape[0] += arr.shape[axis];
     arr = axis == 0 ? arr : swapAxes(arr, axis, 0);
-    extend(flat, arr.flat);
+    extend(flat, arr.flat as any[]);
   }
   // TO DO: infer or expect dtype here:
-  const dtype = dtype_least_ancestor(...arrays.map(arr => arr.dtype));
-  const out = new_NDArray(dtype.from(flat), shape);
+  const dtype = dtype_max(...arrays.map(arr => arr.dtype));
+  const out = empty(shape, dtype);
+  out.flat = flat as any;
   if (axis == 0) return out;
   else return swapAxes(out, axis, 0);
 }

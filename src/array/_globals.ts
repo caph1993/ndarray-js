@@ -1,7 +1,7 @@
 //@ts-check
 import type NDArray from "../NDArray";
 import { GLOBALS } from '../_globals';
-import { DTypeOf, HasDType, new_buffer } from "../dtypes";
+import { DType, DTypeOf, HasDType, new_buffer } from "../dtypes";
 const { np, NDArray: __NDArray } = GLOBALS;
 if (!__NDArray) throw new Error(`Programming error: NDArray not defined`);
 
@@ -24,8 +24,8 @@ export function isarray(A: any): A is NDArray {
   return A instanceof _NDArray;
 }
 
-export function new_NDArray<T extends HasDType>(flat: InstanceType<DTypeOf<T>["BufferType"]>, shape: number[]) {
-  return new _NDArray(flat, shape);
+export function new_NDArray<T extends HasDType>(flat: InstanceType<DTypeOf<T>["BufferType"]>, shape: number[], dtype?: DTypeOf<T>): NDArray {
+  return new _NDArray(flat, shape, dtype);
 }
 
 export function asarray(A: NDArray | any) {
@@ -33,9 +33,12 @@ export function asarray(A: NDArray | any) {
   else return np.fromlist(A) as NDArray;
 }
 
-export function array(A: NDArray | any) {
+export function array(A: NDArray | any, dtype: DType = null) {
   if (isarray(A)) { // copy if it's a view
     let flat = A._simpleIndexes == null ? new_buffer(A.flat, A.dtype) : A.flat;
+    if (dtype && dtype !== A.dtype) {
+      flat = new_buffer(flat, dtype);
+    }
     return new_NDArray(flat, A.shape);
   }
   else return asarray(A);
