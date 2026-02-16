@@ -63,10 +63,6 @@ function apply_binary_operation(
     }
     flatOut.push(func(flatA[idxA], flatB[idxB]));
   };
-  console.log(`flatOut=${flatOut}. len=${flatOut.length}, out.size=${out.size}, dtype=${dtype.name}`)
-
-  console.log(new_buffer(flatOut, dtype));
-
   out.flat = new_buffer(flatOut, dtype);
   return out;
 }
@@ -78,7 +74,7 @@ export const op_binary = {
   "+": freeze_args_bin_op(addition_out, (a, b) => a + b),
   "-": freeze_args_bin_op(addition_out, (a, b) => a - b),
   "*": freeze_args_bin_op(addition_out, (a, b) => a * b),
-  "/": freeze_args_bin_op(addition_out, (a, b) => a / b),
+  "/": freeze_args_bin_op(float_out, (a, b) => a / b),
   "%": freeze_args_bin_op(addition_out, (a, b) => (a % b)),
   "|": freeze_args_bin_op(addition_out, (a, b) => a | b),
   "&": freeze_args_bin_op(bitwise_out, (a, b) => a & b),
@@ -222,7 +218,7 @@ export function isclose(A, B, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
   const func = (a, b) => {
     if (a == b) return true; // shortcut for equality
     if (Number.isFinite(a) && Number.isFinite(b)) return Math.abs(a - b) <= atol + rtol * b;
-    console.log('NOT FINITE', a, b)
+    // console.log('NOT FINITE', a, b)
     return (a == b) || (equal_nan && Number.isNaN(a) && Number.isNaN(b));
   }
   return apply_binary_operation(bool_out, func, A, B)
@@ -367,7 +363,7 @@ export function n_ary_operation<
   func: F,
 ): NDArray {
   // Find output shape and input broadcast shapes
-  arrs = arrs.map(asarray);
+  arrs = arrs.map((a) => asarray(a));
 
   // // Some optimization for common low-complexity cases
   // if (arrs.length == 1 && elem_shape.length == 0) {

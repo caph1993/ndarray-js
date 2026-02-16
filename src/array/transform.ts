@@ -136,7 +136,7 @@ export function concatenate(arrays: NDArray[], axis: number | null = null) {
   //@ts-ignore
   if (axis instanceof Object) ({ axis } = axis);
   if (isarray(arrays)) arrays = [...arrays];
-  arrays = arrays.map(asarray);
+  arrays = arrays.map((a) => asarray(a));
   if (axis == null) {
     arrays = arrays.map(arr => ravel(arr));
     axis = 0;
@@ -167,7 +167,7 @@ export function stack(arrays: NDArray[], axis: number = 0) {
   if (axis instanceof Object) ({ axis } = axis);
   if (isarray(arrays)) arrays = [...arrays];
   if (!Array.isArray(arrays)) throw new Error(`Expected list of arrays. Found ${typeof arrays}`);
-  arrays = arrays.map(asarray);
+  arrays = arrays.map((a) => asarray(a));
   if (!arrays.length) throw new Error(`Expected at least two arrays`);
   const shapeIn = [...arrays[0].shape];
   if (axis < 0) axis = shapeIn.length + 1 + axis;

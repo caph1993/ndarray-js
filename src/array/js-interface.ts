@@ -1,12 +1,19 @@
 //@ts-check
 
+import { bool, DType, float64, int32, new_buffer, object } from '../dtypes';
 import { isarray, number_collapse, new_NDArray, _NDArray } from './basic';
 
 
-export function fromlist(arr: any, dtype = Float64Array) {
+export function fromlist(arr: any, dtype?: DType) {
   if (isarray(arr)) return arr;
-  if (typeof arr === "number") return new_NDArray(new Float32Array([arr]), []);
-  if (typeof arr === "boolean") return new_NDArray(new Uint8Array([arr ? 1 : 0]), []);
+  if (typeof arr === "number") {
+    if (!dtype && Number.isInteger(arr)) dtype = int32;
+    else if (!dtype) dtype = float64;
+    return new_NDArray(new_buffer([arr], dtype), [], dtype);
+  }
+  if (typeof arr === "boolean") {
+    return new_NDArray(new_buffer([arr ? 1 : 0], bool), [], bool);
+  }
   if (arr === _NDArray.prototype) throw new Error(`Programming error`);
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
   const shape: number[] = [];
@@ -35,12 +42,17 @@ export function fromlist(arr: any, dtype = Float64Array) {
     }
   }
   pushToFlat(arr, 0);
-  const buffer = new dtype(flat);
-  return new_NDArray(buffer, shape)
+  // Infer dtype
+  if (!dtype) {
+    if (flat.every(x => typeof x === "boolean")) dtype = bool;
+    else if (flat.every(x => typeof x === "number" && Number.isInteger(x))) dtype = int32;
+    else if (flat.every(x => typeof x === "number")) dtype = float64;
+    else dtype = object;
+  }
+  return new_NDArray(new_buffer(flat, dtype), shape, dtype);
 }
 
 export function tolist(arr) {
-  if (isarray(this)) return tolist;
   if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
   if (Array.isArray(arr)) return arr.map(tolist);
   if (!(isarray(arr))) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);

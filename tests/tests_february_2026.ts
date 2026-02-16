@@ -3,6 +3,7 @@ import { spawnSync } from 'child_process'; // For testing
 import { np } from '../src';
 import { allClose } from '../src/utils-js';
 import { parse as JSON5_parse } from 'json5';
+import { exit } from 'process';
 
 console.log('Start')
 
@@ -49,9 +50,11 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
   if (!stdout.length) throw new Error(`No output produced by python program. STDERR:\n${process.stderr.toString()}`);
 
   const expected = JSON5_parse(stdout);
+  let arr;
   let obtained;
   try {
-    obtained = np.tolist(template, ...variables);
+    arr = np(template, ...variables);
+    obtained = np.tolist(arr);
   } catch (err) {
     console.error('EXPECTED (from Python):');
     console.error(expected && np.array(expected));
@@ -63,15 +66,22 @@ print(json.dumps(out, cls=NpEncoder), flush=True)
     console.error('EXPECTED (from Python):');
     console.error(expected && np.array(expected));
     console.error('OBTAINED (from ndarray-js):');
-    console.error(obtained && np.array(obtained));
+    console.error(obtained && arr);
     // console.error(np.nonzero(np.isclose(obtained, expected).logical_not()));
     // console.error(np.array(obtained).index(313));
     // console.error(np.array(expected).index(313));
     throw new Error(`Mismatch for ${str}`);
   }
-  console.log(obtained && np.array(obtained).toString());
+  console.log(obtained && arr.toString());
   return obtained;
 }
+
+
+npTest`np.linspace(-10, 10, 200)`
+
+npTest`np.clip(np.linspace(-10, 10, 200).reshape(10, 10, 2), a_min=0, a_max=None)`
+
+npTest`np.arange(5)`
 
 npTest`np.floor_divide([10, 20], [3, 7])`
 npTest`np.power([2, 3], [3, 2])`

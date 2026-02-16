@@ -78,7 +78,6 @@ export class AxesIndex {
 function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): AxesIndex {
   if (first == null) return second;
   const axisIndexes = [];
-  // console.log({ first, second })
   let j = 0;
   for (let i = 0; i < first.axisIndexes.length; i++) {
     let { spec: specA } = first.axisIndexes[i];

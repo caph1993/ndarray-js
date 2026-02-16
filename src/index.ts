@@ -6,7 +6,7 @@
  */
 const np = function (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) {
   const usage = 'Usage example: np`np.arange(10)+${5}` or np([0,1,2]).';
-  if (typeof template == "number") return template;
+  if (typeof template == "number" || typeof template == "boolean") return template;
   if (template instanceof np.NDArray) return template;
   if (!Array.isArray(template)) throw new Error(`Expected template or array. ${usage}`);
   if (!template.length) throw new Error(`Expected argument. ${usage}`);
@@ -44,6 +44,9 @@ np.NDArray = NDArray;
 const { tolist } = NDArray.prototype.modules.jsInterface;
 /** @category Casting and reshaping */
 np.tolist = (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) => {
+  if (template instanceof np.NDArray && variables.length === 0) {
+    return tolist(template);
+  }
   return tolist(np(template, ...variables));
 }
 /** @category Casting and reshaping */

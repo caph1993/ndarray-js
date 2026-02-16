@@ -198,7 +198,6 @@ class NDArray implements HasDType {
 
   /** @internal */
   set flat(list) {
-    console.log(list, this.size)
     if (list.length != this.size)
       throw new Error(`Length mismatch. Can't write ${list.length} values into ${this.size} available positions.`);
     const n = this.size;

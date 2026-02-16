@@ -28,9 +28,9 @@ export function new_NDArray<T extends HasDType>(flat: InstanceType<DTypeOf<T>["B
   return new _NDArray(flat, shape, dtype);
 }
 
-export function asarray(A: NDArray | any) {
+export function asarray(A: NDArray | any, dtype: DType = null): NDArray {
   if (isarray(A)) return A as NDArray;
-  else return np.fromlist(A) as NDArray;
+  else return np.fromlist(A, dtype) as NDArray;
 }
 
 export function array(A: NDArray | any, dtype: DType = null) {
@@ -41,7 +41,7 @@ export function array(A: NDArray | any, dtype: DType = null) {
     }
     return new_NDArray(flat, A.shape);
   }
-  else return asarray(A);
+  else return asarray(A, dtype);
 }
 
 
