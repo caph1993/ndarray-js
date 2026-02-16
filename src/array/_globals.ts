@@ -1,18 +1,18 @@
 //@ts-check
 import type NDArray from "../NDArray";
 import { GLOBALS } from '../_globals';
-import { TypedArrayConstructor } from "../dtypes";
+import { DTypeOf, HasDType, new_buffer } from "../dtypes";
 const { np, NDArray: __NDArray } = GLOBALS;
 if (!__NDArray) throw new Error(`Programming error: NDArray not defined`);
 
 
 // Types used everywhere
-export type Arr = NDArray<any>;
-export type ArrOrAny = NDArray<any> | number | boolean | any[];
-export type ArrOrConst = NDArray<any> | number | boolean;
+export type Arr = NDArray;
+export type ArrOrAny = NDArray | number | boolean | any[];
+export type ArrOrConst = NDArray | number | boolean;
 
 export type AxisArg = number | null;
-export type ArrOrNull = NDArray<any> | null;
+export type ArrOrNull = NDArray | null;
 
 
 
@@ -24,18 +24,18 @@ export function isarray(A: any): A is NDArray {
   return A instanceof _NDArray;
 }
 
-export function new_NDArray<T extends TypedArrayConstructor>(flat: InstanceType<T>, shape: number[]) {
-  return new _NDArray<T>(flat, shape);
+export function new_NDArray<T extends HasDType>(flat: InstanceType<DTypeOf<T>["BufferType"]>, shape: number[]) {
+  return new _NDArray(flat, shape);
 }
 
-export function asarray<T extends TypedArrayConstructor = any>(A: NDArray<T> | any) {
-  if (isarray(A)) return A as NDArray<T>;
-  else return np.fromlist(A) as NDArray<T>;
+export function asarray(A: NDArray | any) {
+  if (isarray(A)) return A as NDArray;
+  else return np.fromlist(A) as NDArray;
 }
 
-export function array(A: NDArray<any> | any) {
+export function array(A: NDArray | any) {
   if (isarray(A)) { // copy if it's a view
-    let flat = A._simpleIndexes == null ? A.dtype.from(A.flat) : A.flat;
+    let flat = A._simpleIndexes == null ? new_buffer(A.flat, A.dtype) : A.flat;
     return new_NDArray(flat, A.shape);
   }
   else return asarray(A);
