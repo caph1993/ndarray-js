@@ -292,21 +292,11 @@ np.amax = np.max;
 np.min = NDArray.prototype.modules.reduce.kw_reducers.min;
 np.amin = np.min;
 
-np.modf = operators.modf;
 np.divmod = operators.divmod;
 
 np.clip = operators.kw_export.clip;
 np.heaviside = operators.heaviside;
-np.convolve = operators.convolve;
-np.interp = operators.interp;
-np.unique = operators.unique;
-np.intersect1d = operators.intersect1d;
-np.union1d = operators.union1d;
-np.setdiff1d = operators.setdiff1d;
-np.setxor1d = operators.setxor1d;
-np.isin = operators.isin;
 
-np.lexsort = operators.lexsort;
 
 np.isscalar = (obj: any) => {
   if (isarray(obj)) return false;

@@ -1,6 +1,6 @@
 //@ts-check
 
-import { TypedArray, TypedArrayConstructor, new_buffer } from './dtypes';
+import { DType, HasDType, bool, infer_dtype, new_buffer, object } from './dtypes';
 /** @ignore */
 export type ArrayOrConstant = NDArray | number | boolean;
 
@@ -11,31 +11,34 @@ export type ArrayOrConstant = NDArray | number | boolean;
 /**
  * Multi dimensional array.
  */
-class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
+class NDArray implements HasDType {
 
 
   /** @ignore */
-  _flat: InstanceType<T>;
+  _flat: InstanceType<DType["BufferType"]>;
 
   /** @category Attributes @readonly */
   shape: number[];
 
+  /** @ignore */
+  _dtype?: DType;
+
   /** @category Attributes @readonly */
-  get dtype(): T {
-    //@ts-ignore
-    return this._flat.constructor;
+  get dtype(): DType {
+    if (this._dtype) return this._dtype;
+    return infer_dtype[this._flat.constructor.name] || object;
   }
 
   /** @category Indexing / slicing */
-  index: (...where: Where) => NDArray<T>;
+  index: (...where: Where) => NDArray;
 
   /** @ignore */
   modules: typeof import("./array").modules;
 
   /** @category Reducers */
-  any: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
+  any: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  all: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
+  all: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
   sum: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
@@ -84,26 +87,26 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
   bitwise_shift_right: Method_other_out.Wrapper;
 
   /** @category Binary logical operators */
-  logical_xor: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  logical_xor: Method_other_out.Wrapper;
   /** @category Binary logical operators */
-  logical_or: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  logical_or: Method_other_out.Wrapper;
   /** @category Binary logical operators */
-  logical_and: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  logical_and: Method_other_out.Wrapper;
 
   /** @category Comparison operators */
-  greater: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  greater: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  less: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  less: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  greater_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  greater_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  less_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  less_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  not_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  not_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray<T>;
+  isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
   /** @category Comparison operators */
   allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
 
@@ -114,9 +117,9 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
   /** @category Unary operators */
   negative: Method_out.Wrapper;
   /** @category Unary operators */
-  bitwise_not: Method_out.Wrapper<Uint8ArrayConstructor>;
+  bitwise_not: Method_out.Wrapper;
   /** @category Unary logical operators */
-  logical_not: Method_out.Wrapper<Uint8ArrayConstructor>;
+  logical_not: Method_out.Wrapper;
 
   /** @category Operators with assignment */
   assign: Method_values_where.Wrapper;
@@ -152,28 +155,29 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
   logical_and_assign: Method_values_where.Wrapper;
 
   /** @category Transformations */
-  ravel: () => NDArray<T>;
+  ravel: () => NDArray;
   /** @category Transformations */
-  reshape: (shape: any, ...more_shape: any[]) => NDArray<T>;
+  reshape: (shape: any, ...more_shape: any[]) => NDArray;
   /** @category Transformations */
-  sort: (axis?: number) => NDArray<T>;
+  sort: (axis?: number) => NDArray;
   /** @category Transformations */
-  transpose: (axes?: number[]) => NDArray<T>;
+  transpose: (axes?: number[]) => NDArray;
 
 
   /** @category Casting */
   tolist: () => any;
-  // fromJS: (A: any) => NDArray<T>;
+  // fromJS: (A: any) => NDArray;
 
   /**
    * Generic operator function. See {@link GenericOperatorFunction} for details.
    */
   op: GenericOperatorFunction;
 
-  constructor(flat: InstanceType<T>, shape?: number[]) {
+  constructor(flat: InstanceType<DType["BufferType"]>, shape?: number[], dtype?: DType) {
     this.shape = shape || [flat.length]; // invariant: immutable
     this._flat = flat;
     this._simpleIndexes = null;
+    if (dtype) this._dtype = dtype;
   }
 
   /** @ignore */
@@ -184,7 +188,7 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
     return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;
   }
   /** @category Attributes @readonly */
-  get flat(): InstanceType<T> {
+  get flat(): InstanceType<DType["BufferType"]> {
     if (this._simpleIndexes == null) return this._flat;
     const indices = this._simpleIndexes.indices;
     //@ts-ignore
@@ -194,6 +198,7 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
 
   /** @internal */
   set flat(list) {
+    console.log(list, this.size)
     if (list.length != this.size)
       throw new Error(`Length mismatch. Can't write ${list.length} values into ${this.size} available positions.`);
     const n = this.size;
@@ -227,11 +232,11 @@ class NDArray<T extends TypedArrayConstructor = Float64ArrayConstructor> {
   }
 
   /** @category Transformations */
-  copy: () => NDArray<T>;
+  copy: () => NDArray;
   /** @category Casting */
   item() {
     if (this.size != 1) throw new Error(`Can't convert array of size ${this.size} to scalar`);
-    return this.dtype == Uint8Array ? !!this._flat[0] : this._flat[0];
+    return this.dtype === bool ? !!this._flat[0] : this._flat[0];
   }
 }
 
@@ -289,8 +294,8 @@ NDArray.prototype.toString = function () {
 // ==============================
 
 
-NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(modules.reduce.reducers.any);
-NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(modules.reduce.reducers.all);
+NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.any);
+NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.all);
 
 NDArray.prototype.sum = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.sum);
 NDArray.prototype.product = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.product);
@@ -327,16 +332,16 @@ NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(modules.operato
 NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary["<<"]);
 NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary[">>"]);
 
-NDArray.prototype.logical_or = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["or"]);
-NDArray.prototype.logical_and = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["and"]);
-NDArray.prototype.logical_xor = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["xor"]);
+NDArray.prototype.logical_or = Method_other_out.defaultDecorator(modules.operators.op_binary["or"]);
+NDArray.prototype.logical_and = Method_other_out.defaultDecorator(modules.operators.op_binary["and"]);
+NDArray.prototype.logical_xor = Method_other_out.defaultDecorator(modules.operators.op_binary["xor"]);
 
-NDArray.prototype.greater = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary[">"]);
-NDArray.prototype.less = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["<"]);
-NDArray.prototype.greater_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary[">="]);
-NDArray.prototype.less_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["<="]);
-NDArray.prototype.equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["=="]);
-NDArray.prototype.not_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["!="]);
+NDArray.prototype.greater = Method_other_out.defaultDecorator(modules.operators.op_binary[">"]);
+NDArray.prototype.less = Method_other_out.defaultDecorator(modules.operators.op_binary["<"]);
+NDArray.prototype.greater_equal = Method_other_out.defaultDecorator(modules.operators.op_binary[">="]);
+NDArray.prototype.less_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["<="]);
+NDArray.prototype.equal = Method_other_out.defaultDecorator(modules.operators.op_binary["=="]);
+NDArray.prototype.not_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["!="]);
 
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless

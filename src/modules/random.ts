@@ -1,11 +1,12 @@
 //@ts-check
 import { np, nd_modules } from "./_globals";
-import { TypedArray, new_buffer } from "../dtypes";
+import { new_buffer, float64, DType } from "../dtypes";
 import type NDArray from "../NDArray";
+import type { Shape } from "../array/basic";
 
 
-export function random(shape) {
-  return nd_modules.basic.new_from(shape, (_) => Math.random(), Float64Array)
+export function random(shape: Shape, dtype: DType = float64) {
+  return nd_modules.basic.new_array(shape, dtype, (_) => Math.random())
 };
 export function uniform(a, b, shape) {
   return random(shape).multiply(b - a).add(a);

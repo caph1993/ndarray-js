@@ -156,8 +156,10 @@ export function quantile(a: Arr, q: Arr | number, axis: number, discard_nans = f
   const out = new Float64Array(q.size * nrows);
   for (let i = 0; i < nrows; i++) {
     const row = a_flat.slice(i * ncols, (i + 1) * ncols);
+    //@ts-ignore
     const values = quantile_list(row, q_flat, discard_nans);
     let j = i;
+    //@ts-ignore
     for (let k in values) {
       out[j] = values[k];
       j += nrows;

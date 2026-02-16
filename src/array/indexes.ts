@@ -1,10 +1,10 @@
 //@ts-check
 import { isarray, asarray, new_NDArray, shape_shifts } from './basic';
 import type NDArray from "../NDArray";
-import { dtype_is_boolean, dtype_is_integer } from '../dtypes';
+import { dtype_is_boolean, dtype_is_integer, new_buffer } from '../dtypes';
 
 export type RangeSpec = string;
-export type IndexSpec = ':' | number | RangeSpec | number[] | NDArray<Float64ArrayConstructor> | NDArray<Int32ArrayConstructor> | NDArray<Uint8ArrayConstructor>;
+export type IndexSpec = ':' | number | RangeSpec | number[] | NDArray;
 export type GeneralIndexSpec = '...' | 'None' | null | boolean | IndexSpec;
 export type Where = null | GeneralIndexSpec[];
 
@@ -27,7 +27,8 @@ export function index(arr: NDArray, where: Where) {
     return copy ? out.copy() : out;
   } else {
     const src_flat = arr.flat;
-    const buffer = arr.dtype.from(axesIndex.indices.map(i => src_flat[i]));
+    const buffer = new_buffer(axesIndex.size, arr.dtype);
+    for (let i = 0; i < axesIndex.size; i++) buffer[i] = src_flat[axesIndex.indices[i]];
     const out = new_NDArray(buffer, axesIndex.shape);
     if (!copy) out['__warnAssignments'] = true;
     return out;

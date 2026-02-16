@@ -1,33 +1,53 @@
 //@ts-check
 
-import { asarray, new_NDArray } from './basic';
+import { asarray, isarray, new_NDArray } from './basic';
 import type NDArray from "../NDArray";
 import { Func_a_out, Func_a_decimals_out } from './kwargs';
-import { TypedArrayConstructor, dtype_leq, new_buffer } from "../dtypes";
+import { DType, dtype_cmp, new_buffer, float_out, bool, bool_out, DtypeResolver, HasDType } from "../dtypes";
 
 // Here, we declare only the core functions (those that are methods)
 
-export function elementwise<
-  T extends TypedArrayConstructor,
-  T_a extends TypedArrayConstructor,
-  T_out extends TypedArrayConstructor,
->(
-  A: NDArray<T_a>,
+
+export type ElementwiseOp = {
+  (A: NDArray, out?: NDArray | DType): NDArray;
+};
+
+
+function applyFuncToArray_freeze(get_dtype: DtypeResolver, func): ElementwiseOp {
+  return function (A: NDArray, out: NDArray | DType = null): NDArray {
+    return applyFuncToArray(get_dtype, func, A, out);
+  } as ElementwiseOp;
+}
+
+function applyFuncToArray(
+  get_dtype: DtypeResolver,
   func,
-  dtype: T,
-  out: NDArray<T_out> = null,
+  A: NDArray,
+  out: NDArray | DType = null
+) {
+  A = asarray(A);
+  const dtype = get_dtype([A.dtype], out);
+  out = isarray(out) ? out : null;
+  return _applyFuncToArray(A, func, dtype, out);
+}
+
+function _applyFuncToArray(
+  A: NDArray,
+  func,
+  dtype: DType = null,
+  out: NDArray = null,
 ) {
   A = asarray(A);
   //@ts-ignore
   let _out;
   if (!out) {
-    let out_buffer = new_buffer(A.flat.length, dtype) as InstanceType<T>;
+    let out_buffer = new_buffer(A.flat.length, dtype);
     for (let i = 0; i < A.flat.length; i++) {
       out_buffer[i] = func(A.flat[i]);
     }
     _out = new_NDArray(out_buffer, A.shape);
   } else {
-    if (!dtype_leq(_out.dtype, out.dtype)) {
+    if (dtype_cmp(_out.dtype, out.dtype) > 0) {
       throw new Error(`Output array has dtype ${out.dtype}, which cannot hold all values of type ${dtype}.`);
     }
     //@ts-ignore
@@ -37,71 +57,61 @@ export function elementwise<
   return _out;
 }
 
-function elementwise_factory<
-  T extends TypedArrayConstructor,
->(op, dtype: T) {
-  return function <
-    T_a extends TypedArrayConstructor,
-    T_out extends TypedArrayConstructor,
-  >(A: NDArray<T_a>, out: NDArray<T_out> = null) {
-    return elementwise(A, op, dtype, out);
-  }
-}
 
 export const funcs = {
-  sign: elementwise_factory(Math.sign, Float64Array),
-  sqrt: elementwise_factory(Math.sqrt, Float64Array),
-  square: elementwise_factory((a) => a * a, Float64Array),
-  exp: elementwise_factory(Math.exp, Float64Array),
-  log: elementwise_factory(Math.log, Float64Array),
-  log2: elementwise_factory(Math.log2, Float64Array),
-  log10: elementwise_factory(Math.log10, Float64Array),
-  log1p: elementwise_factory(Math.log1p, Float64Array),
-  sin: elementwise_factory(Math.sin, Float64Array),
-  cos: elementwise_factory(Math.cos, Float64Array),
-  tan: elementwise_factory(Math.tan, Float64Array),
-  asin: elementwise_factory(Math.asin, Float64Array),
-  acos: elementwise_factory(Math.acos, Float64Array),
-  atan: elementwise_factory(Math.atan, Float64Array),
-  cosh: elementwise_factory(Math.cosh, Float64Array),
-  sinh: elementwise_factory(Math.sinh, Float64Array),
-  tanh: elementwise_factory(Math.tanh, Float64Array),
-  acosh: elementwise_factory(Math.acosh, Float64Array),
-  asinh: elementwise_factory(Math.asinh, Float64Array),
-  atanh: elementwise_factory(Math.atanh, Float64Array),
-  floor: elementwise_factory(Math.floor, Float64Array),
-  ceil: elementwise_factory(Math.ceil, Float64Array),
-  isfinite: elementwise_factory((x) => isFinite(x), Uint8Array),
-  isinf: elementwise_factory((x) => x === Infinity || x === -Infinity, Uint8Array),
-  isposinf: elementwise_factory((x) => x === Infinity, Uint8Array),
-  isneginf: elementwise_factory((x) => x === -Infinity, Uint8Array),
-  isnan: elementwise_factory(isNaN, Uint8Array),
-  iscomplex: elementwise_factory((_x) => false, Uint8Array),
-  isreal: elementwise_factory((_x) => true, Uint8Array),
-  reciprocal: elementwise_factory((x) => 1 / x, Float64Array),
-  positive: elementwise_factory((x) => +x, Float64Array),
-  angle: elementwise_factory((_x) => 0, Float64Array),
-  real: elementwise_factory((x) => x, Float64Array),
-  imag: elementwise_factory((_x) => 0, Float64Array),
-  conj: elementwise_factory((x) => x, Float64Array),
-  conjugate: elementwise_factory((x) => x, Float64Array),
-  cbrt: elementwise_factory(Math.cbrt, Float64Array),
-  nan_to_num: elementwise_factory((x) => {
+  sign: applyFuncToArray_freeze(float_out, Math.sign),
+  sqrt: applyFuncToArray_freeze(float_out, Math.sqrt),
+  square: applyFuncToArray_freeze(float_out, (a) => a * a),
+  exp: applyFuncToArray_freeze(float_out, Math.exp),
+  log: applyFuncToArray_freeze(float_out, Math.log),
+  log2: applyFuncToArray_freeze(float_out, Math.log2),
+  log10: applyFuncToArray_freeze(float_out, Math.log10),
+  log1p: applyFuncToArray_freeze(float_out, Math.log1p),
+  sin: applyFuncToArray_freeze(float_out, Math.sin),
+  cos: applyFuncToArray_freeze(float_out, Math.cos),
+  tan: applyFuncToArray_freeze(float_out, Math.tan),
+  asin: applyFuncToArray_freeze(float_out, Math.asin),
+  acos: applyFuncToArray_freeze(float_out, Math.acos),
+  atan: applyFuncToArray_freeze(float_out, Math.atan),
+  cosh: applyFuncToArray_freeze(float_out, Math.cosh),
+  sinh: applyFuncToArray_freeze(float_out, Math.sinh),
+  tanh: applyFuncToArray_freeze(float_out, Math.tanh),
+  acosh: applyFuncToArray_freeze(float_out, Math.acosh),
+  asinh: applyFuncToArray_freeze(float_out, Math.asinh),
+  atanh: applyFuncToArray_freeze(float_out, Math.atanh),
+  floor: applyFuncToArray_freeze(float_out, Math.floor),
+  ceil: applyFuncToArray_freeze(float_out, Math.ceil),
+  isfinite: applyFuncToArray_freeze(bool_out, (x) => isFinite(x)),
+  isinf: applyFuncToArray_freeze(bool_out, (x) => x === Infinity || x === -Infinity),
+  isposinf: applyFuncToArray_freeze(bool_out, (x) => x === Infinity),
+  isneginf: applyFuncToArray_freeze(bool_out, (x) => x === -Infinity),
+  isnan: applyFuncToArray_freeze(bool_out, isNaN),
+  iscomplex: applyFuncToArray_freeze(bool_out, (_x) => false),
+  isreal: applyFuncToArray_freeze(bool_out, (_x) => true),
+  reciprocal: applyFuncToArray_freeze(float_out, (x) => 1 / x),
+  positive: applyFuncToArray_freeze(float_out, (x) => +x),
+  angle: applyFuncToArray_freeze(float_out, (_x) => 0),
+  real: applyFuncToArray_freeze(float_out, (x) => x),
+  imag: applyFuncToArray_freeze(float_out, (_x) => 0),
+  conj: applyFuncToArray_freeze(float_out, (x) => x),
+  conjugate: applyFuncToArray_freeze(float_out, (x) => x),
+  cbrt: applyFuncToArray_freeze(float_out, Math.cbrt),
+  nan_to_num: applyFuncToArray_freeze(float_out, (x) => {
     if (Number.isNaN(x)) return 0;
     if (x === Infinity) return Number.MAX_VALUE;
     if (x === -Infinity) return -Number.MAX_VALUE;
     return x;
-  }, Float64Array),
-  real_if_close: elementwise_factory((x) => x, Float64Array),
-  round: function round(arr: NDArray, decimals: number, out: NDArray = null) {
-    if (decimals == 0) elementwise(arr, Math.round, Float64Array, out);
-    return elementwise(arr, x => parseFloat(x.toFixed(decimals)), Float64Array, out);
+  }),
+  real_if_close: applyFuncToArray_freeze(float_out, (x) => x),
+  round: function round(arr: NDArray, decimals: number, out: NDArray | DType = null) {
+    if (decimals == 0) applyFuncToArray(float_out, Math.round, arr, out);
+    return applyFuncToArray(float_out, (x => parseFloat(x.toFixed(decimals))), arr, out);
   },
-  negative: elementwise_factory(x => -x, Float64Array),
-  bitwise_not: elementwise_factory(x => ~x, Float64Array),
-  logical_not: elementwise_factory(x => !x, Uint8Array),
-  valueOf: elementwise_factory(x => +x, Float64Array),
-  abs: elementwise_factory(Math.abs, Float64Array),
+  negative: applyFuncToArray_freeze(float_out, x => -x),
+  bitwise_not: applyFuncToArray_freeze(float_out, x => ~x),
+  logical_not: applyFuncToArray_freeze(bool_out, x => !x),
+  valueOf: applyFuncToArray_freeze(float_out, x => +x),
+  abs: applyFuncToArray_freeze(float_out, Math.abs),
 }
 
 export const ops = {
