@@ -36,9 +36,9 @@ class NDArray implements HasDType {
   modules: typeof import("./array").modules;
 
   /** @category Reducers */
-  any: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
+  any: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  all: Method_a_axis_keepdims.Wrapper<Uint8ArrayConstructor>;
+  all: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
   sum: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
@@ -87,24 +87,24 @@ class NDArray implements HasDType {
   bitwise_shift_right: Method_other_out.Wrapper;
 
   /** @category Binary logical operators */
-  logical_xor: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  logical_xor: Method_other_out.Wrapper;
   /** @category Binary logical operators */
-  logical_or: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  logical_or: Method_other_out.Wrapper;
   /** @category Binary logical operators */
-  logical_and: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  logical_and: Method_other_out.Wrapper;
 
   /** @category Comparison operators */
-  greater: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  greater: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  less: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  less: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  greater_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  greater_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  less_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  less_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  not_equal: Method_other_out.Wrapper<Uint8ArrayConstructor>;
+  not_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
   isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
   /** @category Comparison operators */
@@ -117,9 +117,9 @@ class NDArray implements HasDType {
   /** @category Unary operators */
   negative: Method_out.Wrapper;
   /** @category Unary operators */
-  bitwise_not: Method_out.Wrapper<Uint8ArrayConstructor>;
+  bitwise_not: Method_out.Wrapper;
   /** @category Unary logical operators */
-  logical_not: Method_out.Wrapper<Uint8ArrayConstructor>;
+  logical_not: Method_out.Wrapper;
 
   /** @category Operators with assignment */
   assign: Method_values_where.Wrapper;
@@ -292,8 +292,8 @@ NDArray.prototype.toString = function () {
 // ==============================
 
 
-NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(modules.reduce.reducers.any);
-NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator<Uint8ArrayConstructor>(modules.reduce.reducers.all);
+NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.any);
+NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.all);
 
 NDArray.prototype.sum = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.sum);
 NDArray.prototype.product = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.product);
@@ -330,16 +330,16 @@ NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(modules.operato
 NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary["<<"]);
 NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary[">>"]);
 
-NDArray.prototype.logical_or = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["or"]);
-NDArray.prototype.logical_and = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["and"]);
-NDArray.prototype.logical_xor = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["xor"]);
+NDArray.prototype.logical_or = Method_other_out.defaultDecorator(modules.operators.op_binary["or"]);
+NDArray.prototype.logical_and = Method_other_out.defaultDecorator(modules.operators.op_binary["and"]);
+NDArray.prototype.logical_xor = Method_other_out.defaultDecorator(modules.operators.op_binary["xor"]);
 
-NDArray.prototype.greater = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary[">"]);
-NDArray.prototype.less = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["<"]);
-NDArray.prototype.greater_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary[">="]);
-NDArray.prototype.less_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["<="]);
-NDArray.prototype.equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["=="]);
-NDArray.prototype.not_equal = Method_other_out.defaultDecorator<Uint8ArrayConstructor>(modules.operators.op_binary["!="]);
+NDArray.prototype.greater = Method_other_out.defaultDecorator(modules.operators.op_binary[">"]);
+NDArray.prototype.less = Method_other_out.defaultDecorator(modules.operators.op_binary["<"]);
+NDArray.prototype.greater_equal = Method_other_out.defaultDecorator(modules.operators.op_binary[">="]);
+NDArray.prototype.less_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["<="]);
+NDArray.prototype.equal = Method_other_out.defaultDecorator(modules.operators.op_binary["=="]);
+NDArray.prototype.not_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["!="]);
 
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless

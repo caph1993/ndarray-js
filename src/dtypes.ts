@@ -141,6 +141,13 @@ export function dtype_max(...dtypes: DType[]): DType {
   return dtypes.reduce((a, b) => promote(a, b));
 }
 
+export function dtype_is_integer(dtype: DType): boolean {
+  return dtype.name === "int32"; // Add more integer types when we have them
+}
+export function dtype_is_boolean(dtype: DType): boolean {
+  return dtype.name === "bool";
+}
+
 
 
 export type DtypeResolver = {

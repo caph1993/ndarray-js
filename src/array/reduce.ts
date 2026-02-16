@@ -3,7 +3,7 @@ import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from 
 import { op_binary } from './operators';
 import NDArray from "../NDArray";
 import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims } from './kwargs';
-import { TypedArray, TypedArrayConstructor, new_buffer } from '../dtypes';
+import { DType, new_buffer } from '../dtypes';
 
 const multiply = op_binary["*"];
 const divide = op_binary["/"];
@@ -14,10 +14,8 @@ const pow = op_binary["**"];
 /**
  * This function reduces an array along an axis
  */
-function apply_on_axis<
-  T extends TypedArrayConstructor = Float64ArrayConstructor,
->(func: (arr: any[]) => number | boolean, dtype: T, arr: NDArray, axis: AxisArg, keepdims: boolean): NDArray<T> {
-  if (axis == null) return func(arr.flat as any) as any as NDArray<T>;
+function apply_on_axis(func: (arr: any[]) => number | boolean, dtype: DType, arr: NDArray, axis: AxisArg, keepdims: boolean): NDArray {
+  if (axis == null) return func(arr.flat as any) as any as NDArray;
   if (axis < 0) axis = arr.shape.length - 1;
   let m = arr.shape[axis];
   let shift = shape_shifts(arr.shape)[axis];
@@ -48,11 +46,9 @@ function apply_on_axis<
 
 
 
-function mk_reducer<
-  T extends TypedArrayConstructor = Float64ArrayConstructor,
->(flat_reduce: (arr: any[]) => number | boolean, dtype?: T) {
+function mk_reducer(flat_reduce: (arr: any[]) => number | boolean, dtype?: DType) {
   if (!dtype) dtype = Float64Array as any as T;
-  return (arr: NDArray, axis: AxisArg | null, keepdims: boolean): NDArray<T> => {
+  return (arr: NDArray, axis: AxisArg | null, keepdims: boolean): NDArray => {
     return apply_on_axis(flat_reduce, dtype, arr, axis, keepdims);
   }
 }

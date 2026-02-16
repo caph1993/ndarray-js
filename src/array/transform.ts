@@ -1,18 +1,18 @@
 //@ts-check
 
-import { isarray, asarray, new_NDArray, _NDArray, new_from, number_collapse, ravel, shape_shifts, reshape } from './basic';
+import { isarray, asarray, new_NDArray, _NDArray, number_collapse, ravel, shape_shifts, reshape } from './basic';
 import { fromlist } from './js-interface';
 import { allEq, extend } from '../utils-js';
 import type NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
-import { AxisArg, Func_a_lastAxis } from './kwargs';
-import { TypedArrayConstructor, dtype_least_ancestor, new_buffer } from '../dtypes';
+import { Func_a_lastAxis } from './kwargs';
+import { DType, new_buffer } from '../dtypes';
 
 
 /**
  * This function can reduce, sort, operate pointwise, or increase the dimensionality.
  */
-export function apply_along_axis(arr: NDArray<any>, axis: number, transform, dtype: TypedArrayConstructor = Float64Array): ArrayOrConstant {
+export function apply_along_axis(arr: NDArray, axis: number, transform, dtype: DType): ArrayOrConstant {
   arr = asarray(arr);
   if (axis == null) return transform(arr.flat);
   const nDims = arr.shape.length;
@@ -51,7 +51,7 @@ export const cmp_nan_at_the_end = (a: number, b: number) => {
   return a - b || Number.isNaN(a) - Number.isNaN(b) || Object.is(b, 0) - Object.is(a, 0);
 }
 
-export function sort(a: NDArray<any>, axis: number) {
+export function sort(a: NDArray, axis: number) {
   return apply_along_axis(a, axis, (arr) => {
     const cpy = [...arr];
     cpy.sort(cmp_nan_at_the_end)
@@ -59,7 +59,7 @@ export function sort(a: NDArray<any>, axis: number) {
   }, a.dtype) as NDArray;
 }
 
-export function argsort(a: NDArray<any>, axis: number) {
+export function argsort(a: NDArray, axis: number) {
   return apply_along_axis(a, axis, (arr) => {
     const idx = Array.from(arr).map((_: any, i: number) => i);
     idx.sort((i: number, j: number) => cmp_nan_at_the_end(arr[i], arr[j]));
@@ -67,7 +67,7 @@ export function argsort(a: NDArray<any>, axis: number) {
   }, Int32Array) as NDArray;
 }
 
-export function transpose(arr: NDArray<any>, axes: null | number[] = null) {
+export function transpose(arr: NDArray, axes: null | number[] = null) {
   ({ axes } = Object.assign({ axes }, this));
   //@ts-ignore
   if (axes !== null && axes["axes"]) ({ axes } = axes);
@@ -110,7 +110,7 @@ export function transpose(arr: NDArray<any>, axes: null | number[] = null) {
 }
 
 
-export function swapAxes(arr: NDArray<any>, axisA: number, axisB: number) {
+export function swapAxes(arr: NDArray, axisA: number, axisB: number) {
   arr = asarray(arr)
   const nDims = arr.shape.length;
   if (axisA < 0) axisA = nDims + axisA;
@@ -122,7 +122,7 @@ export function swapAxes(arr: NDArray<any>, axisA: number, axisB: number) {
 }
 
 
-export function concatenate(arrays: NDArray<any>[], axis: number | null = null) {
+export function concatenate(arrays: NDArray[], axis: number | null = null) {
   // ({ axis } = Object.assign({ axis }, this));
   //@ts-ignore
   if (axis instanceof Object) ({ axis } = axis);

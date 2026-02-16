@@ -13,15 +13,15 @@ export type ElementwiseOp = {
 };
 
 
-function applyFuncToArray_freeze(func, get_dtype: DtypeResolver): ElementwiseOp {
+function applyFuncToArray_freeze(get_dtype: DtypeResolver, func): ElementwiseOp {
   return function (A: NDArray, out: NDArray | DType = null): NDArray {
-    return applyFuncToArray(func, get_dtype, A, out);
+    return applyFuncToArray(get_dtype, func, A, out);
   } as ElementwiseOp;
 }
 
 function applyFuncToArray(
-  func,
   get_dtype: DtypeResolver,
+  func,
   A: NDArray,
   out: NDArray | DType = null
 ) {
@@ -59,59 +59,59 @@ function _applyFuncToArray(
 
 
 export const funcs = {
-  sign: applyFuncToArray_freeze(Math.sign, float_out),
-  sqrt: applyFuncToArray_freeze(Math.sqrt, float_out),
-  square: applyFuncToArray_freeze((a) => a * a, float_out),
-  exp: applyFuncToArray_freeze(Math.exp, float_out),
-  log: applyFuncToArray_freeze(Math.log, float_out),
-  log2: applyFuncToArray_freeze(Math.log2, float_out),
-  log10: applyFuncToArray_freeze(Math.log10, float_out),
-  log1p: applyFuncToArray_freeze(Math.log1p, float_out),
-  sin: applyFuncToArray_freeze(Math.sin, float_out),
-  cos: applyFuncToArray_freeze(Math.cos, float_out),
-  tan: applyFuncToArray_freeze(Math.tan, float_out),
-  asin: applyFuncToArray_freeze(Math.asin, float_out),
-  acos: applyFuncToArray_freeze(Math.acos, float_out),
-  atan: applyFuncToArray_freeze(Math.atan, float_out),
-  cosh: applyFuncToArray_freeze(Math.cosh, float_out),
-  sinh: applyFuncToArray_freeze(Math.sinh, float_out),
-  tanh: applyFuncToArray_freeze(Math.tanh, float_out),
-  acosh: applyFuncToArray_freeze(Math.acosh, float_out),
-  asinh: applyFuncToArray_freeze(Math.asinh, float_out),
-  atanh: applyFuncToArray_freeze(Math.atanh, float_out),
-  floor: applyFuncToArray_freeze(Math.floor, float_out),
-  ceil: applyFuncToArray_freeze(Math.ceil, float_out),
-  isfinite: applyFuncToArray_freeze((x) => isFinite(x), bool_out),
-  isinf: applyFuncToArray_freeze((x) => x === Infinity || x === -Infinity, bool_out),
-  isposinf: applyFuncToArray_freeze((x) => x === Infinity, bool_out),
-  isneginf: applyFuncToArray_freeze((x) => x === -Infinity, bool_out),
-  isnan: applyFuncToArray_freeze(isNaN, bool_out),
-  iscomplex: applyFuncToArray_freeze((_x) => false, bool_out),
-  isreal: applyFuncToArray_freeze((_x) => true, bool_out),
-  reciprocal: applyFuncToArray_freeze((x) => 1 / x, float_out),
-  positive: applyFuncToArray_freeze((x) => +x, float_out),
-  angle: applyFuncToArray_freeze((_x) => 0, float_out),
-  real: applyFuncToArray_freeze((x) => x, float_out),
-  imag: applyFuncToArray_freeze((_x) => 0, float_out),
-  conj: applyFuncToArray_freeze((x) => x, float_out),
-  conjugate: applyFuncToArray_freeze((x) => x, float_out),
-  cbrt: applyFuncToArray_freeze(Math.cbrt, float_out),
-  nan_to_num: applyFuncToArray_freeze((x) => {
+  sign: applyFuncToArray_freeze(float_out, Math.sign),
+  sqrt: applyFuncToArray_freeze(float_out, Math.sqrt),
+  square: applyFuncToArray_freeze(float_out, (a) => a * a),
+  exp: applyFuncToArray_freeze(float_out, Math.exp),
+  log: applyFuncToArray_freeze(float_out, Math.log),
+  log2: applyFuncToArray_freeze(float_out, Math.log2),
+  log10: applyFuncToArray_freeze(float_out, Math.log10),
+  log1p: applyFuncToArray_freeze(float_out, Math.log1p),
+  sin: applyFuncToArray_freeze(float_out, Math.sin),
+  cos: applyFuncToArray_freeze(float_out, Math.cos),
+  tan: applyFuncToArray_freeze(float_out, Math.tan),
+  asin: applyFuncToArray_freeze(float_out, Math.asin),
+  acos: applyFuncToArray_freeze(float_out, Math.acos),
+  atan: applyFuncToArray_freeze(float_out, Math.atan),
+  cosh: applyFuncToArray_freeze(float_out, Math.cosh),
+  sinh: applyFuncToArray_freeze(float_out, Math.sinh),
+  tanh: applyFuncToArray_freeze(float_out, Math.tanh),
+  acosh: applyFuncToArray_freeze(float_out, Math.acosh),
+  asinh: applyFuncToArray_freeze(float_out, Math.asinh),
+  atanh: applyFuncToArray_freeze(float_out, Math.atanh),
+  floor: applyFuncToArray_freeze(float_out, Math.floor),
+  ceil: applyFuncToArray_freeze(float_out, Math.ceil),
+  isfinite: applyFuncToArray_freeze(bool_out, (x) => isFinite(x)),
+  isinf: applyFuncToArray_freeze(bool_out, (x) => x === Infinity || x === -Infinity),
+  isposinf: applyFuncToArray_freeze(bool_out, (x) => x === Infinity),
+  isneginf: applyFuncToArray_freeze(bool_out, (x) => x === -Infinity),
+  isnan: applyFuncToArray_freeze(bool_out, isNaN),
+  iscomplex: applyFuncToArray_freeze(bool_out, (_x) => false),
+  isreal: applyFuncToArray_freeze(bool_out, (_x) => true),
+  reciprocal: applyFuncToArray_freeze(float_out, (x) => 1 / x),
+  positive: applyFuncToArray_freeze(float_out, (x) => +x),
+  angle: applyFuncToArray_freeze(float_out, (_x) => 0),
+  real: applyFuncToArray_freeze(float_out, (x) => x),
+  imag: applyFuncToArray_freeze(float_out, (_x) => 0),
+  conj: applyFuncToArray_freeze(float_out, (x) => x),
+  conjugate: applyFuncToArray_freeze(float_out, (x) => x),
+  cbrt: applyFuncToArray_freeze(float_out, Math.cbrt),
+  nan_to_num: applyFuncToArray_freeze(float_out, (x) => {
     if (Number.isNaN(x)) return 0;
     if (x === Infinity) return Number.MAX_VALUE;
     if (x === -Infinity) return -Number.MAX_VALUE;
     return x;
-  }, float_out),
-  real_if_close: applyFuncToArray_freeze((x) => x, float_out),
+  }),
+  real_if_close: applyFuncToArray_freeze(float_out, (x) => x),
   round: function round(arr: NDArray, decimals: number, out: NDArray | DType = null) {
-    if (decimals == 0) applyFuncToArray(Math.round, float_out, arr, out);
-    return applyFuncToArray(x => parseFloat(x.toFixed(decimals)), float_out, arr, out);
+    if (decimals == 0) applyFuncToArray(float_out, Math.round, arr, out);
+    return applyFuncToArray(float_out, (x => parseFloat(x.toFixed(decimals))), arr, out);
   },
-  negative: applyFuncToArray_freeze(x => -x, float_out),
-  bitwise_not: applyFuncToArray_freeze(x => ~x, float_out),
-  logical_not: applyFuncToArray_freeze(x => !x, bool_out),
-  valueOf: applyFuncToArray_freeze(x => +x, float_out),
-  abs: applyFuncToArray_freeze(Math.abs, float_out),
+  negative: applyFuncToArray_freeze(float_out, x => -x),
+  bitwise_not: applyFuncToArray_freeze(float_out, x => ~x),
+  logical_not: applyFuncToArray_freeze(bool_out, x => !x),
+  valueOf: applyFuncToArray_freeze(float_out, x => +x),
+  abs: applyFuncToArray_freeze(float_out, Math.abs),
 }
 
 export const ops = {

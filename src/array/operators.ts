@@ -1,6 +1,7 @@
 //@ts-check
 import * as indexes from './indexes';
-import { isarray, asarray, _NDArray, new_from, number_collapse, ravel, shape_shifts, new_NDArray } from './basic';
+import { isarray, asarray, _NDArray, empty, ravel, shape_shifts, new_NDArray } from './basic';
+import { DType, DtypeResolver } from '../dtypes';
 import { tolist } from './js-interface';
 
 import NDArray from "../NDArray";
@@ -9,28 +10,52 @@ import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
 import { broadcast_n_shapes, broadcast_shapes } from './_globals';
-import { TypedArrayConstructor, new_buffer } from '../dtypes';
+import { new_buffer } from '../dtypes';
 
-export type ArrayOrConstant = NDArray<any> | number | boolean;
-
-
+export type ArrayOrConstant = NDArray | number | boolean;
 
 
+export type BinaryOperator = (A: ArrayOrConstant, B: ArrayOrConstant, out?: NDArray | DType | null) => NDArray
+export type SelfBinaryOperator = (other: ArrayOrConstant, out?: NDArray | null) => NDArray
 
-export function binary_operation<
-  T extends TypedArrayConstructor = Float64ArrayConstructor,
->(A: ArrayOrConstant, B: ArrayOrConstant, func: any, dtype: T, out: NDArray<T> | null = null): NDArray<T> {
 
+
+
+function freeze_args_bin_op(get_dtype: DtypeResolver, func): BinaryOperator {
+  return function (A: NDArray, B: NDArray, out: NDArray | DType = null): NDArray {
+    return apply_binary_operation(get_dtype, func, A, B, out);
+  };
+}
+
+function apply_binary_operation(
+  get_dtype: DtypeResolver,
+  func,
+  A: NDArray,
+  B: NDArray,
+  out: NDArray | DType = null
+) {
   if (isarray(this)) return func.bind(_NDArray.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
   A = asarray(A);
   B = asarray(B);
+  const dtype = get_dtype([A.dtype, B.dtype], out);
+  out = isarray(out) ? out : null;
+  return _apply_binary_operation(A, B, func, dtype, out);
+}
+
+function _apply_binary_operation(
+  A: NDArray,
+  B: NDArray,
+  func,
+  dtype: DType = null,
+  out: NDArray = null,
+) {
   const [shape, shapeA, shapeB] = broadcast_shapes(A.shape, B.shape);
 
   //@ts-ignore
   if (out) dtype = out.dtype;
   //@ts-ignore
-  if (out == null) out = new_from(shape, undefined, dtype);
+  if (out == null) out = empty(shape, dtype);
 
   else if (!(isarray(out))) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
@@ -53,60 +78,45 @@ export function binary_operation<
 }
 
 
-export function __make_operator<
-  T extends TypedArrayConstructor = Float64ArrayConstructor,
->(dtype: T, func): BinaryOperator {
-  function operator(A: ArrayOrConstant, B: ArrayOrConstant, out = null) {
-    return binary_operation<T>(A, B, func, dtype, out);
-  };
-  //@ts-ignore
-  return operator;
-}
-
-
-export type BinaryOperator = (A: ArrayOrConstant, B: ArrayOrConstant, out?: NDArray | null) => NDArray
-export type SelfBinaryOperator = (other: ArrayOrConstant, out?: NDArray | null) => NDArray
-
-
 
 export const op_binary = {
 
-  "+": __make_operator(Float64Array, (a, b) => a + b),
-  "-": __make_operator(Float64Array, (a, b) => a - b),
-  "*": __make_operator(Float64Array, (a, b) => a * b),
-  "/": __make_operator(Float64Array, (a, b) => a / b),
-  "%": __make_operator(Float64Array, (a, b) => (a % b)),
-  "|": __make_operator(Float64Array, (a, b) => a | b),
-  "&": __make_operator(Float64Array, (a, b) => a & b),
-  "^": __make_operator(Float64Array, (a, b) => a ^ b),
-  "<<": __make_operator(Float64Array, (a, b) => a << b),
-  ">>": __make_operator(Float64Array, (a, b) => a >> b),
-  "**": __make_operator(Float64Array, (a, b) => Math.pow(a, b)),
-  "//": __make_operator(Float64Array, (a, b) => Math.floor(a / b)),
+  "+": freeze_args_bin_op(Float64Array, (a, b) => a + b),
+  "-": freeze_args_bin_op(Float64Array, (a, b) => a - b),
+  "*": freeze_args_bin_op(Float64Array, (a, b) => a * b),
+  "/": freeze_args_bin_op(Float64Array, (a, b) => a / b),
+  "%": freeze_args_bin_op(Float64Array, (a, b) => (a % b)),
+  "|": freeze_args_bin_op(Float64Array, (a, b) => a | b),
+  "&": freeze_args_bin_op(Float64Array, (a, b) => a & b),
+  "^": freeze_args_bin_op(Float64Array, (a, b) => a ^ b),
+  "<<": freeze_args_bin_op(Float64Array, (a, b) => a << b),
+  ">>": freeze_args_bin_op(Float64Array, (a, b) => a >> b),
+  "**": freeze_args_bin_op(Float64Array, (a, b) => Math.pow(a, b)),
+  "//": freeze_args_bin_op(Float64Array, (a, b) => Math.floor(a / b)),
 
-  "<": __make_operator(Uint8Array, (a, b) => a < b),
-  ">": __make_operator(Uint8Array, (a, b) => a > b),
-  ">=": __make_operator(Uint8Array, (a, b) => a >= b),
-  "<=": __make_operator(Uint8Array, (a, b) => a <= b),
-  "==": __make_operator(Uint8Array, (a, b) => a == b),
-  "!=": __make_operator(Uint8Array, (a, b) => a != b),
+  "<": freeze_args_bin_op(Uint8Array, (a, b) => a < b),
+  ">": freeze_args_bin_op(Uint8Array, (a, b) => a > b),
+  ">=": freeze_args_bin_op(Uint8Array, (a, b) => a >= b),
+  "<=": freeze_args_bin_op(Uint8Array, (a, b) => a <= b),
+  "==": freeze_args_bin_op(Uint8Array, (a, b) => a == b),
+  "!=": freeze_args_bin_op(Uint8Array, (a, b) => a != b),
   // Operators with custom ascii identifiers:
-  "or": __make_operator(Uint8Array, (a, b) => a || b),
-  "and": __make_operator(Uint8Array, (a, b) => a && b),
-  "xor": __make_operator(Uint8Array, (a, b) => (!a) != (!b)),
-  "max": __make_operator(Float64Array, (a, b) => Math.max(a, b)),
-  "min": __make_operator(Float64Array, (a, b) => Math.min(a, b)),
-  "hypot": __make_operator(Float64Array, Math.hypot),
-  "fmod": __make_operator(Float64Array, (a, b) => a % b),
-  "remainder": __make_operator(Float64Array, (a, b) => a % b),
-  "divide": __make_operator(Float64Array, (a, b) => a / b),
-  "true_divide": __make_operator(Float64Array, (a, b) => a / b),
-  "fmax": __make_operator(Float64Array, (a, b) => {
+  "or": freeze_args_bin_op(Uint8Array, (a, b) => a || b),
+  "and": freeze_args_bin_op(Uint8Array, (a, b) => a && b),
+  "xor": freeze_args_bin_op(Uint8Array, (a, b) => (!a) != (!b)),
+  "max": freeze_args_bin_op(Float64Array, (a, b) => Math.max(a, b)),
+  "min": freeze_args_bin_op(Float64Array, (a, b) => Math.min(a, b)),
+  "hypot": freeze_args_bin_op(Float64Array, Math.hypot),
+  "fmod": freeze_args_bin_op(Float64Array, (a, b) => a % b),
+  "remainder": freeze_args_bin_op(Float64Array, (a, b) => a % b),
+  "divide": freeze_args_bin_op(Float64Array, (a, b) => a / b),
+  "true_divide": freeze_args_bin_op(Float64Array, (a, b) => a / b),
+  "fmax": freeze_args_bin_op(Float64Array, (a, b) => {
     if (Number.isNaN(a)) return b;
     if (Number.isNaN(b)) return a;
     return Math.max(a, b);
   }),
-  "fmin": __make_operator(Float64Array, (a, b) => {
+  "fmin": freeze_args_bin_op(Float64Array, (a, b) => {
     if (Number.isNaN(a)) return b;
     if (Number.isNaN(b)) return a;
     return Math.min(a, b);
@@ -116,7 +126,7 @@ export const op_binary = {
 
 
 export const heaviside = Func_x1_x2_out.defaultDecorator(
-  __make_operator(Float64Array, (x1, x2) => x1 > 0 ? 1 : (x1 === 0 ? x2 : 0))
+  freeze_args_bin_op(Float64Array, (x1, x2) => x1 > 0 ? 1 : (x1 === 0 ? x2 : 0))
 );
 
 op_binary["↑"] = op_binary["max"];
@@ -126,9 +136,7 @@ op_binary["≥"] = op_binary["geq"];
 op_binary["≠"] = op_binary["neq"];
 
 
-export function assign_operation<
-  T extends TypedArrayConstructor = Float64ArrayConstructor,
->(tgt: NDArray<T>, src: ArrayOrConstant, where: Where, func): NDArray<T> {
+export function assign_operation(tgt: NDArray, src: ArrayOrConstant, where: Where, func): NDArray {
 
   if (tgt['__warnAssignment']) {
     console.warn(`Warning: You are assigning on a copy that resulted from an advanced index on a source array.\nIf this is intentional, use yourArray = source.withKwArgs({copy:true}).index(...yourIndex) to make explicit your awareness of the copy operation.\nInstead, if you want to assign to the source array, use source.op('=', other) or source.op(['::3', -1, '...', [5,4]], '*=', other).\n`);
@@ -138,7 +146,8 @@ export function assign_operation<
     return _assign_operation_toJS(tgt as any, src, where, func) as any;
   }
   if (!where) {
-    binary_operation(tgt, src, func, tgt.dtype, tgt);
+    src = asarray(src);
+    _apply_binary_operation(tgt, src, func, tgt.dtype, tgt);
   } else {
     src = asarray(src);
     let { indices } = indexes.AxesIndex.prototype.parse(tgt.shape, where);
@@ -146,11 +155,11 @@ export function assign_operation<
     if (func == null) {
       // Small optimization: unlike "+=", "*=", etc., for "=", we don't need to reed the target
       func = (a, b) => b;
-      tmpTgt = new_from(indices.length, () => undefined, tgt.dtype);
+      tmpTgt = empty([indices.length], tgt.dtype);
     } else {
       tmpTgt = asarray(indices.map(i => tgt._flat[i]));
     }
-    binary_operation(tmpTgt, ravel(src), func, tgt.dtype, tmpTgt);
+    _apply_binary_operation(tmpTgt, ravel(src), func, tgt.dtype, tmpTgt);
     for (let i in indices) tgt._flat[indices[i]] = tmpTgt._flat[i];
   }
   return tgt;
@@ -180,11 +189,11 @@ export function _assign_operation_toJS(tgtJS: any[], src: any, where: Where, fun
 export function __make_assignment_operator(func) {
   return function operator<
     T extends TypedArrayConstructor,
-  >(a: NDArray<T>, values: NDArray, where: Where) {
+  >(a: NDArray, values: NDArray, where: Where) {
     // console.log(`where=${JSON.stringify(where)}`)
     if (where.length === 1 && where[0] === false) return a;
     if (where.length === 1 && where[0] === true) where = [];
-    return assign_operation<T>(a, values, where, func);
+    return assign_operation(a, values, where, func);
   }
 }
 
@@ -302,7 +311,7 @@ export function array_equiv(A, B, equal_nan = false) {
 
 //op_binary["≈≈"] = op[MyArray.prototype.isclose,
 
-export const atan2 = Func_y_x_out.defaultDecorator(__make_operator(Float64Array, Math.atan2));
+export const atan2 = Func_y_x_out.defaultDecorator(freeze_args_bin_op(Float64Array, Math.atan2));
 
 export function modf(x: any) {
   x = asarray(x);
@@ -327,9 +336,7 @@ export function float_power(x: any, y: any, out?: any) {
 const { elementwise } = require('./elementwise');
 
 
-export function ternary_operation<
-  T extends TypedArrayConstructor = Float64ArrayConstructor,
->(A: ArrayOrConstant, B: ArrayOrConstant, C: ArrayOrConstant, func: any, dtype: T, out: NDArray<T> | null = null): NDArray<T> {
+export function ternary_operation(A: ArrayOrConstant, B: ArrayOrConstant, C: ArrayOrConstant, func: any, dtype: DType, out: NDArray | null = null): NDArray {
 
   if (isarray(this)) return func.bind(_NDArray.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
@@ -341,7 +348,7 @@ export function ternary_operation<
   //@ts-ignore
   if (out) dtype = out.dtype;
   //@ts-ignore
-  if (out == null) out = new_from(shape, undefined, dtype);
+  if (out == null) out = empty(shape, dtype);
 
   else if (!(isarray(out))) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
   // Iterate with broadcasted indices
