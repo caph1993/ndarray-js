@@ -1,11 +1,11 @@
 //@ts-check
 import assert = require("assert");
 import NDArray from "../NDArray";
-import { ArrOrAny, asarray, new_NDArray } from "../array/_globals";
 import { Arr, AxisArg } from "../array/kwargs";
 
 import { cmp_nan_at_the_end, swapAxes } from "../array/transform";
-import { np } from "./_globals";
+import { np } from "../np_circular_import";
+import { ArrOrAny, asarray, new_NDArray } from "../array/_globals";
 
 
 

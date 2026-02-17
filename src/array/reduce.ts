@@ -2,7 +2,7 @@
 import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from './basic';
 import { op_binary } from './operators';
 import NDArray from "../NDArray";
-import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims } from './kwargs';
+import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_ord_axis_keepdims } from './kwargs';
 import { addition_out, argmax_out, bitwise_out, bool_out, DType, DtypeResolver, float_out, new_buffer } from '../dtypes';
 
 const multiply = op_binary["*"];
@@ -116,3 +116,20 @@ export const kw_reducers = {
   std: Func_a_axis_ddof_keepdims.defaultDecorator(reducers.std),
 };
 
+
+
+NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator(reducers.any);
+NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator(reducers.all);
+
+NDArray.prototype.sum = Method_a_axis_keepdims.defaultDecorator(reducers.sum);
+NDArray.prototype.product = Method_a_axis_keepdims.defaultDecorator(reducers.product);
+NDArray.prototype.max = Method_a_axis_keepdims.defaultDecorator(reducers.max);
+NDArray.prototype.min = Method_a_axis_keepdims.defaultDecorator(reducers.min);
+NDArray.prototype.argmax = Method_a_axis_keepdims.defaultDecorator(reducers.argmax);
+NDArray.prototype.argmin = Method_a_axis_keepdims.defaultDecorator(reducers.argmin);
+NDArray.prototype.mean = Method_a_axis_keepdims.defaultDecorator(reducers.mean);
+
+NDArray.prototype.var = Method_a_axis_ddof_keepdims.defaultDecorator(reducers.var);
+
+NDArray.prototype.std = Method_a_axis_ddof_keepdims.defaultDecorator(reducers.std);
+NDArray.prototype.norm = Method_a_ord_axis_keepdims.defaultDecorator(reducers.norm);

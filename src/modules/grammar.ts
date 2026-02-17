@@ -1,7 +1,6 @@
 //@ts-check
-import { np, nd_modules } from "./_globals";
 import * as ohm from 'ohm-js';
-
+import { np as np } from '../np_circular_import';
 
 export const grammar = String.raw`
 ArrayGrammar {
@@ -123,11 +122,11 @@ export const __makeSemantics = () => {
       const _src = $src.parse();
       const symbol = $symbol.sourceString;
       const where = $where.parse();
-      let tgt = nd_modules.basic.asarray(_tgt);
-      nd_modules.operators.op_assign[symbol](_tgt, where, _src);
+      let tgt = np.modules.array.basic.asarray(_tgt);
+      np.modules.array.operators.op_assign[symbol](_tgt, where, _src);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-        tgt = nd_modules.jsInterface.tolist(tgt);
+        tgt = np.modules.array.jsInterface.tolist(tgt);
         while (_tgt.length) _tgt.pop();
         // @ts-ignore
         _tgt.push(..._tgt);
@@ -139,7 +138,7 @@ export const __makeSemantics = () => {
       if (typeof arr === "number") return arr;
       if (typeof arr === "boolean") return arr;
       if (Array.isArray(arr)) return arr;
-      if (nd_modules.basic.isarray(arr)) arr = nd_modules.basic.number_collapse(arr);
+      if (np.modules.array.basic.isarray(arr)) arr = np.modules.array.basic.number_collapse(arr);
       return arr;
     },
     Precedence11: BinaryOperation,
@@ -188,8 +187,8 @@ export const __makeSemantics = () => {
     Variable(_, $i, __) {
       const i = parseInt($i.sourceString);
       let value = semanticVariables[i];
-      const isListOfArrays = Array.isArray(value) && value.length && nd_modules.basic.isarray(value[0]);
-      if (Array.isArray(value) && !isListOfArrays) value = nd_modules.basic.array(value);
+      const isListOfArrays = Array.isArray(value) && value.length && np.modules.array.basic.isarray(value[0]);
+      if (Array.isArray(value) && !isListOfArrays) value = np.modules.array.basic.array(value);
       return value;
     },
     int($sign, $value) {
@@ -232,7 +231,7 @@ export const __makeSemantics = () => {
       let entries = $kwArgs.parse() || [];
       let kwArgs = Object.fromEntries(entries.map(([k, v]) => {
         // The following is needed because minus integer gets parsed as array.
-        if (nd_modules.basic.isarray(v)) v = nd_modules.basic.number_collapse(v);
+        if (np.modules.array.basic.isarray(v)) v = np.modules.array.basic.number_collapse(v);
         return [k, v];
       }));
       return { args, kwArgs };
@@ -248,8 +247,8 @@ export const __makeSemantics = () => {
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
-      const { tolist } = nd_modules.jsInterface;
-      for (let i in list) if (nd_modules.basic.isarray(list[i])) list[i] = tolist(list[i]);
+      const { tolist } = np.modules.array.jsInterface;
+      for (let i in list) if (np.modules.array.basic.isarray(list[i])) list[i] = tolist(list[i]);
       return list;
     },
     _terminal() { return null; },
@@ -260,7 +259,7 @@ export const __makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const { op_binary: op } = nd_modules.operators;
+    const { op_binary: op } = np.modules.array.operators;
     return op[symbol](A, B);
   }
 
@@ -268,7 +267,7 @@ export const __makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { ops } = nd_modules.elementwise;
+    const { ops } = np.modules.array.elementwise;
     switch (symbol) {
       case "+": return ops["+"](B);
       case "-": return ops["-"](B);
@@ -291,7 +290,7 @@ export const __makeSemantics = () => {
     semanticVariables.length = 0;
     semanticVariables.push(...variables);
     const match = ohmGrammar.match(template_with_placeholders);
-    if (!match.succeeded()) throw new Error(match.message);
+    if (!match.succeeded()) throw new Error(match["message"]);
     return ohmSemantics(match).parse();
   }
 

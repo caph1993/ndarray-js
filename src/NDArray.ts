@@ -5,6 +5,7 @@ import { DType, HasDType, bool, infer_dtype, new_buffer, object, Buffer } from '
 export type ArrayOrConstant = NDArray | number | boolean;
 
 
+import type { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
 
 
 
@@ -177,7 +178,7 @@ class NDArray implements HasDType {
     this.shape = shape || [flat.length]; // invariant: immutable
     this._flat = flat;
     this._simpleIndexes = null;
-    if (dtype) this._dtype = dtype;
+    if (dtype && this.dtype !== dtype) this._dtype = dtype;
   }
 
   /** @ignore */
@@ -239,176 +240,60 @@ class NDArray implements HasDType {
   }
 }
 
-import { GLOBALS } from './_globals';
-GLOBALS.NDArray = NDArray;
+export { NDArray };
 
-import { modules } from "./array";
-// import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-import { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
-NDArray.prototype.modules = modules;
+export default NDArray;
 
 
+// import { GLOBALS } from './_globals';
+// GLOBALS.NDArray = NDArray;
 
-// const a = new NDArray(new Int32Array(20), [], Number)
-
-// ==============================
-//    Basic methods
-// ==============================
-
-const basic = modules.basic;
-
-NDArray.prototype.reshape = function (shape, ...more_shape) {
-  return basic.reshape(this, shape, ...more_shape);
-};
-
-NDArray.prototype.ravel = function () {
-  return basic.ravel(this);
-};
-
-NDArray.prototype.copy = function () {
-  return basic.copy(this);
-};
-
-
-// ==============================
-//    Indexing
-// ==============================
-
-
-NDArray.prototype.index = function (...where: import("./array/indexes").GeneralIndexSpec[]) {
-  return modules.indexes.index(this, where);
-}
-
-// ==============================
-//    Printing
-// ==============================
-
-NDArray.prototype.toString = function () {
-  return modules.print.humanReadable(this);
-}
-
-
-// ==============================
-//    Reduce
-// ==============================
-
-
-NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.any);
-NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.all);
-
-NDArray.prototype.sum = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.sum);
-NDArray.prototype.product = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.product);
-NDArray.prototype.max = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.max);
-NDArray.prototype.min = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.min);
-NDArray.prototype.argmax = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.argmax);
-NDArray.prototype.argmin = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.argmin);
-NDArray.prototype.mean = Method_a_axis_keepdims.defaultDecorator(modules.reduce.reducers.mean);
-
-NDArray.prototype.var = Method_a_axis_ddof_keepdims.defaultDecorator(modules.reduce.reducers.var);
-
-NDArray.prototype.std = Method_a_axis_ddof_keepdims.defaultDecorator(modules.reduce.reducers.std);
-NDArray.prototype.norm = Method_a_ord_axis_keepdims.defaultDecorator(modules.reduce.reducers.norm);
-
-
-// ==============================
-//       Operators: Binary operations, assignment operations and unary boolean_not
-// ==============================
-import { Func_a_other_out } from "./array/kwargs";
-
-NDArray.prototype.add = Method_other_out.defaultDecorator(modules.operators.op_binary["+"]);
-NDArray.prototype.subtract = Method_other_out.defaultDecorator(modules.operators.op_binary["-"]);
-NDArray.prototype.multiply = Method_other_out.defaultDecorator(modules.operators.op_binary["*"]);
-NDArray.prototype.divide = Method_other_out.defaultDecorator(modules.operators.op_binary["/"]);
-NDArray.prototype.mod = Method_other_out.defaultDecorator(modules.operators.op_binary["%"]);
-NDArray.prototype.divide_int = Method_other_out.defaultDecorator(modules.operators.op_binary["//"]);
-NDArray.prototype.pow = Method_other_out.defaultDecorator(modules.operators.op_binary["**"]);
-NDArray.prototype.maximum = Method_other_out.defaultDecorator(modules.operators.op_binary["max"]);
-NDArray.prototype.minimum = Method_other_out.defaultDecorator(modules.operators.op_binary["min"]);
-
-NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(modules.operators.op_binary["|"]);
-NDArray.prototype.bitwise_and = Method_other_out.defaultDecorator(modules.operators.op_binary["&"]);
-NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(modules.operators.op_binary["^"]);
-NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary["<<"]);
-NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(modules.operators.op_binary[">>"]);
-
-NDArray.prototype.logical_or = Method_other_out.defaultDecorator(modules.operators.op_binary["or"]);
-NDArray.prototype.logical_and = Method_other_out.defaultDecorator(modules.operators.op_binary["and"]);
-NDArray.prototype.logical_xor = Method_other_out.defaultDecorator(modules.operators.op_binary["xor"]);
-
-NDArray.prototype.greater = Method_other_out.defaultDecorator(modules.operators.op_binary[">"]);
-NDArray.prototype.less = Method_other_out.defaultDecorator(modules.operators.op_binary["<"]);
-NDArray.prototype.greater_equal = Method_other_out.defaultDecorator(modules.operators.op_binary[">="]);
-NDArray.prototype.less_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["<="]);
-NDArray.prototype.equal = Method_other_out.defaultDecorator(modules.operators.op_binary["=="]);
-NDArray.prototype.not_equal = Method_other_out.defaultDecorator(modules.operators.op_binary["!="]);
-
-
-// Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_not = Method_out.defaultDecorator(modules.elementwise.funcs.bitwise_not);
-NDArray.prototype.logical_not = Method_out.defaultDecorator(modules.elementwise.funcs.logical_not);
-NDArray.prototype.negative = Method_out.defaultDecorator(modules.elementwise.funcs.negative);
-NDArray.prototype.abs = Method_out.defaultDecorator(modules.elementwise.funcs.abs);
-
-
-NDArray.prototype.isclose = modules.operators.isclose;
-NDArray.prototype.allclose = modules.operators.allclose;
-
-
-NDArray.prototype.assign = Method_values_where.defaultDecorator(modules.operators.op_assign["="]);
-NDArray.prototype.add_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["+="]);
-NDArray.prototype.subtract_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["-="]);
-NDArray.prototype.multiply_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["*="]);
-NDArray.prototype.divide_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["/="]);
-NDArray.prototype.mod_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["%="]);
-NDArray.prototype.divide_int_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["//="]);
-NDArray.prototype.pow_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["**="]);
-
-NDArray.prototype.maximum_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["max="]);
-NDArray.prototype.minimum_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["min="]);
-
-NDArray.prototype.bitwise_or_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["|="]);
-NDArray.prototype.bitwise_and_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["&="]);
-NDArray.prototype.bitwise_shift_left_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["<<="]);
-NDArray.prototype.bitwise_shift_right_assign = Method_values_where.defaultDecorator(modules.operators.op_assign[">>="]);
-
-NDArray.prototype.logical_or_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["or="]);
-NDArray.prototype.logical_and_assign = Method_values_where.defaultDecorator(modules.operators.op_assign["and="]);
+// import { modules } from "./array";
+// // // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
+// // import { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
+// NDArray.prototype.modules = modules;
 
 
 
-// ==============================
-//    array instantiation and reshaping
-// ==============================
+// // ==============================
+// //    Basic methods
+// // ==============================
 
-NDArray.prototype.tolist = function () {
-  return modules.jsInterface.tolist(this);
-}
-// NDArray.prototype.fromJS = function (A) {
-//   return modules.jsInterface.fromJS(A);
-// }
-
-// ==============================
-//    elementwise methods
-// ==============================
-
-NDArray.prototype.round = Method_a_decimals_out.defaultDecorator(modules.elementwise.funcs.round);
-
-// ==============================
-//    transform methods
-// ==============================
-
-/** @param {null|number[]} axes */
-NDArray.prototype.transpose = function (axes: null | number[] = null) {
-  return modules.transform.transpose(this, axes);
-};
-
-NDArray.prototype.sort = function (axis = -1) {
-  modules.transform.sort(this, axis);
-  return null;
-};
+// // ==============================
+// //    Indexing
+// // ==============================
 
 
-//=============================
+
+// // ==============================
+// //    Printing
+// // ==============================
+
+
+
+// // ==============================
+// //    Reduce
+// // ==============================
+
+
+
+// // ==============================
+// //    array instantiation and reshaping
+// // ==============================
+
+
+// // ==============================
+// //    elementwise methods
+// // ==============================
+
+
+// // ==============================
+// //    transform methods
+// // ==============================
+
+
+
+// //=============================
 
 
 
@@ -432,38 +317,34 @@ type Where = import("./array/indexes").Where;
  */
 export type GenericOperatorFunction = { (): NDArray; (where: Where): ArrayOrConstant; (where: Where, op: AssignmentOpSymbol, B: ArrayOrConstant): NDArray; (op: AssignmentOpSymbol, B: ArrayOrConstant): NDArray; (op: BinaryOpSymbol, B: ArrayOrConstant): NDArray; (UnaryOpSymbol): NDArray; };
 
-const op: GenericOperatorFunction = function (...args): NDArray {
-  if (!args.length) return this;
-  if (typeof args[0] == "string") {
-    const symbol = args[0];
-    if (args.length == 1) {
-      let func = modules.elementwise.ops[symbol];
-      if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.elementwise.ops)]}`);
-      return func(this, symbol);
-    }
-    if (args.length > 2) throw new Error(`Too many arguments provided: ${[...args]}`);
-    const other = args[1];
-    let func = modules.operators.op_binary[symbol];
-    if (func) return func(this, other);
-    func = modules.operators.op_assign[symbol];
-    if (func) return func(this, other);
-    if (symbol.includes(':')) throw new Error(`Expected index or operator symbol. Found "${symbol}". Did you mean ${[symbol]}?`);
-    throw new Error(`Expected index or operator symbol. Found "${symbol}"`);
-  }
-  const where = args[0];
-  if (where instanceof NDArray) throw new Error(`Expected operator or index. Found numpy array`);
-  if (args.length == 1) return this.index(where);
-  const symbol = args[1];
-  let func = modules.operators.op_assign[symbol];
-  if (!func) throw new Error(`Unknown assign operator "${symbol}". Options:${[...Object.keys(modules.operators.op_assign)]}`);
-  if (args.length > 3) throw new Error(`Too many arguments provided: ${[...args]}`);
-  const other = args[2];
-  return func(this, where, other);
-}
+// const op: GenericOperatorFunction = function (...args): NDArray {
+//   if (!args.length) return this;
+//   if (typeof args[0] == "string") {
+//     const symbol = args[0];
+//     if (args.length == 1) {
+//       let func = modules.elementwise.ops[symbol];
+//       if (!func) throw new Error(`Unknown unary operator "${symbol}". Options:${[...Object.keys(modules.elementwise.ops)]}`);
+//       return func(this, symbol);
+//     }
+//     if (args.length > 2) throw new Error(`Too many arguments provided: ${[...args]}`);
+//     const other = args[1];
+//     let func = modules.operators.op_binary[symbol];
+//     if (func) return func(this, other);
+//     func = modules.operators.op_assign[symbol];
+//     if (func) return func(this, other);
+//     if (symbol.includes(':')) throw new Error(`Expected index or operator symbol. Found "${symbol}". Did you mean ${[symbol]}?`);
+//     throw new Error(`Expected index or operator symbol. Found "${symbol}"`);
+//   }
+//   const where = args[0];
+//   if (where instanceof NDArray) throw new Error(`Expected operator or index. Found numpy array`);
+//   if (args.length == 1) return this.index(where);
+//   const symbol = args[1];
+//   let func = modules.operators.op_assign[symbol];
+//   if (!func) throw new Error(`Unknown assign operator "${symbol}". Options:${[...Object.keys(modules.operators.op_assign)]}`);
+//   if (args.length > 3) throw new Error(`Too many arguments provided: ${[...args]}`);
+//   const other = args[2];
+//   return func(this, where, other);
+// }
 
-NDArray.prototype.op = op;
+// NDArray.prototype.op = op;
 
-
-export { NDArray };
-
-export default NDArray;

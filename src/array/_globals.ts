@@ -1,13 +1,10 @@
 //@ts-check
-import type NDArray from "../NDArray";
-import { GLOBALS } from '../_globals';
+import NDArray from "../NDArray";
 import { DType, Buffer, new_buffer } from "../dtypes";
-const { np, NDArray: __NDArray } = GLOBALS;
-if (!__NDArray) throw new Error(`Programming error: NDArray not defined`);
+import { fromlist } from "./js-interface";
 
 
 // Types used everywhere
-export type Arr = NDArray;
 export type ArrOrAny = NDArray | number | boolean | any[];
 export type ArrOrConst = NDArray | number | boolean;
 
@@ -15,24 +12,23 @@ export type AxisArg = number | null;
 export type ArrOrNull = NDArray | null;
 
 
-
-// Functions to avoid importing NDArray (because if I import NDArray, I can't use it as a type annotation in the same file)
-export const _NDArray = __NDArray;
-
-
+// TODO: move to NDArray
 export function isarray(A: any): A is NDArray {
-  return A instanceof _NDArray;
+  return A instanceof NDArray;
 }
 
+// TODO: move to NDArray
 export function new_NDArray(flat: Buffer, shape: number[], dtype?: DType): NDArray {
-  return new _NDArray(flat, shape, dtype);
+  return new NDArray(flat, shape, dtype);
 }
 
+// TODO: move to js-interface
 export function asarray(A: NDArray | any, dtype: DType = null): NDArray {
   if (isarray(A)) return A as NDArray;
-  else return np.fromlist(A, dtype) as NDArray;
+  else return fromlist(A, dtype) as NDArray;
 }
 
+// TODO: move to js-interface
 export function array(A: NDArray | any, dtype: DType = null) {
   if (isarray(A)) { // copy if it's a view
     let flat = A._simpleIndexes == null ? new_buffer(A.flat, A.dtype) : A.flat;
@@ -60,7 +56,7 @@ export function broadcast_shapes(shapeA: number[], shapeB: number[]) {
   return [shape, shapeA, shapeB];
 }
 
-
+// TODO: move to shape-utils
 export function broadcast_n_shapes(...shapes: number[][]) {
   const maxDim = Math.max(...shapes.map(shape => shape.length));
   const broadcastShapes = shapes.map(shape => {

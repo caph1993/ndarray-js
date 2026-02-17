@@ -1,8 +1,8 @@
 //@ts-check
 
 import { asarray, isarray, new_NDArray } from './basic';
-import type NDArray from "../NDArray";
-import { Func_a_out, Func_a_decimals_out } from './kwargs';
+import NDArray from "../NDArray";
+import { Func_a_out, Func_a_decimals_out, Method_out, Method_a_decimals_out } from './kwargs';
 import { DType, dtype_cmp, new_buffer, float_out, bool, bool_out, DtypeResolver, HasDType } from "../dtypes";
 
 // Here, we declare only the core functions (those that are methods)
@@ -172,3 +172,12 @@ export const kw_funcs = {
 
   round: Func_a_decimals_out.defaultDecorator(funcs.round),
 }
+
+
+
+// Unary operations: only boolean_not. Positive is useless and negative is almost useless
+NDArray.prototype.bitwise_not = Method_out.defaultDecorator(funcs.bitwise_not);
+NDArray.prototype.logical_not = Method_out.defaultDecorator(funcs.logical_not);
+NDArray.prototype.negative = Method_out.defaultDecorator(funcs.negative);
+NDArray.prototype.abs = Method_out.defaultDecorator(funcs.abs);
+NDArray.prototype.round = Method_a_decimals_out.defaultDecorator(funcs.round);

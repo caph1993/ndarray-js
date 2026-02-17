@@ -1,8 +1,6 @@
 //@ts-check
 
-// Import core-globals first!
-import './_globals';
-
+import NDArray from '../NDArray';
 import * as basic from './basic';
 import * as indexes from './indexes';
 import * as jsInterface from './js-interface';
@@ -22,3 +20,5 @@ export const modules = {
   operators,
   transform,
 };
+
+NDArray.prototype.modules = modules;

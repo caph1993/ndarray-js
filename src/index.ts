@@ -4,7 +4,26 @@
  * Parser and main namespace for the ndarray-js package.
  * <script src="https://cdn.jsdelivr.net/npm/ndarray-js@latest/dist/index.js"></script>
  */
-const np = function (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) {
+// const np = function (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) {
+//   const usage = 'Usage example: np`np.arange(10)+${5}` or np([0,1,2]).';
+//   if (typeof template == "number" || typeof template == "boolean") return template;
+//   if (template instanceof np.NDArray) return template;
+//   if (!Array.isArray(template)) throw new Error(`Expected template or array. ${usage}`);
+//   if (!template.length) throw new Error(`Expected argument. ${usage}`);
+//   if (typeof template[0] == "string") {
+//     if (variables.length + 1 != template.length) throw new Error(`Wrong input. ${usage}`);
+//     //@ts-ignore
+//     return np.modules.grammar.parse(/**@type {*}*/(template), ...variables);
+//   }
+//   else {
+//     if (variables.length) throw new Error(`Wrong input. ${usage}`);
+//     //@ts-ignore
+//     return np.asarray(template);
+//   }
+// }
+
+
+function np(template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) {
   const usage = 'Usage example: np`np.arange(10)+${5}` or np([0,1,2]).';
   if (typeof template == "number" || typeof template == "boolean") return template;
   if (template instanceof np.NDArray) return template;
@@ -22,17 +41,14 @@ const np = function (template: TemplateStringsArray | any[] | number | boolean, 
   }
 }
 
-
-// ==============================
-//    Define Global before importing any module
-// ==============================
-import { GLOBALS } from './_globals';
-GLOBALS.np = np;
+import { set_np } from './np_circular_import';
+set_np(np);
 
 // ==============================
 //    Define casting and core before importing any other module
 // ==============================
 import NDArray from './NDArray';
+import { modules as array_modules } from './array';
 import { isarray } from './array/basic';
 /** @category Main */
 np.NDArray = NDArray;
@@ -41,27 +57,25 @@ np.NDArray = NDArray;
 //  Define core-related functions
 // ==============================
 
-const { tolist } = NDArray.prototype.modules.jsInterface;
+const { tolist } = array_modules.jsInterface;
 /** @category Casting and reshaping */
-np.tolist = (template: TemplateStringsArray | any[] | number | boolean, ...variables: any[]) => {
-  if (template instanceof np.NDArray && variables.length === 0) {
-    return tolist(template);
-  }
+np.tolist = (template: TemplateStringsArray | any[] | number | boolean | NDArray, ...variables: any[]) => {
+  if (template instanceof NDArray) return tolist(template);
   return tolist(np(template, ...variables));
 }
 /** @category Casting and reshaping */
-np.fromlist = NDArray.prototype.modules.jsInterface.fromlist;
+np.fromlist = array_modules.jsInterface.fromlist;
 
 /** @category Casting and reshaping */
-np.ravel = NDArray.prototype.modules.basic.ravel;
+np.ravel = array_modules.basic.ravel;
 /** @category Casting and reshaping */
-np.reshape = NDArray.prototype.modules.basic.reshape;
+np.reshape = array_modules.basic.reshape;
 /** @category Casting and reshaping */
-np.array = NDArray.prototype.modules.basic.array;
+np.array = array_modules.basic.array;
 /** @category Casting and reshaping */
-np.asarray = NDArray.prototype.modules.basic.asarray;
+np.asarray = array_modules.basic.asarray;
 
-const reduce = NDArray.prototype.modules.reduce;
+const reduce = array_modules.reduce;
 /** @category Reducers */
 np.sum = reduce.kw_reducers.sum;
 /** @category Reducers */
@@ -91,7 +105,7 @@ np.std = reduce.kw_reducers.std;
 
 
 
-const transform = NDArray.prototype.modules.transform;
+const transform = array_modules.transform;
 
 /** @category Transformations */
 np.transpose = transform.transpose;
@@ -108,7 +122,7 @@ np.stack = transform.stack;
 
 import { Func_a_other_out } from './array/kwargs';
 
-const operators = NDArray.prototype.modules.operators;
+const operators = array_modules.operators;
 
 
 /** @category Binary operators */
@@ -185,7 +199,7 @@ np.array_equal = operators.array_equal;
 np.array_equiv = operators.array_equiv;
 
 
-const ew = NDArray.prototype.modules.elementwise;
+const ew = array_modules.elementwise;
 
 /** @category Elementwise operators */
 np.sign = ew.kw_funcs.sign;
@@ -290,9 +304,9 @@ np.sqrt = ew.kw_funcs.sqrt;
 np.square = ew.kw_funcs.square;
 np.sign = ew.kw_funcs.sign;
 
-np.max = NDArray.prototype.modules.reduce.kw_reducers.max;
+np.max = array_modules.reduce.kw_reducers.max;
 np.amax = np.max;
-np.min = NDArray.prototype.modules.reduce.kw_reducers.min;
+np.min = array_modules.reduce.kw_reducers.min;
 np.amin = np.min;
 
 np.divmod = operators.divmod;

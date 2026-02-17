@@ -1,11 +1,11 @@
 //@ts-check
 import * as indexes from './indexes';
-import { isarray, asarray, _NDArray, empty, ravel, shape_shifts, new_NDArray } from './basic';
+import { isarray, asarray, empty, ravel, shape_shifts, new_NDArray } from './basic';
 import { addition_out, bitwise_out, bool, bool_out, DType, DtypeResolver, float_out } from '../dtypes';
 import { tolist } from './js-interface';
 
 import NDArray from "../NDArray";
-import { Func_y_x_out, Func_a_a_min_a_max_out, Func_x1_x2_out } from './kwargs';
+import { Func_y_x_out, Func_a_a_min_a_max_out, Func_x1_x2_out, Method_other_out, Method_values_where } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
@@ -34,7 +34,7 @@ function apply_binary_operation(
   B: NDArray,
   out: NDArray | DType = null
 ) {
-  if (isarray(this)) return func.bind(_NDArray.prototype)(this, ...arguments);
+  if (isarray(this)) return func.bind(this.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
   A = asarray(A);
   B = asarray(B);
@@ -46,7 +46,7 @@ function apply_binary_operation(
   if (!isarray(out)) {
     out = empty(shape, dtype);
   }
-  else if (out) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
+  else if (out) throw new Error(`Out must be of type NDArray. Got ${typeof out}`);
 
   // Iterate with broadcasted indices
   const flatOut = [];
@@ -316,22 +316,19 @@ export function float_power(x: any, y: any, out?: any) {
 
 export function ternary_operation(dtype_resolver: DtypeResolver, func, A: ArrayOrConstant, B: ArrayOrConstant, C: ArrayOrConstant, out: NDArray | DType | null = null): NDArray {
 
-  if (isarray(this)) return func.bind(_NDArray.prototype)(this, ...arguments);
+  if (isarray(this)) return func.bind(this.prototype)(this, ...arguments);
   // Find output shape and input broadcast shapes
   A = asarray(A);
   B = asarray(B);
   C = asarray(C);
-  const dtype = dtype_resolver([A.dtype, B.dtype, C.dtype], out);
-  out = isarray(out) ? out : null;
 
   const [[shapeA, shapeB, shapeC], shape] = broadcast_n_shapes(A.shape, B.shape, C.shape);
 
-  //@ts-ignore
-  if (out) dtype = out.dtype;
-  //@ts-ignore
+  const dtype = dtype_resolver([A.dtype, B.dtype, C.dtype], out);
+  out = isarray(out) ? out : null;
   if (out == null) out = empty(shape, dtype);
 
-  else if (!(isarray(out))) throw new Error(`Out must be of type ${_NDArray}. Got ${typeof out}`);
+  else if (!(isarray(out))) throw new Error(`Out must be of type NDArray. Got ${typeof out}`);
   // Iterate with broadcasted indices
   const flatOut = [];
   const shiftsA = shape_shifts(shapeA);
@@ -439,3 +436,62 @@ export function clip(a: NDArray, a_min: NDArray = null, a_max: NDArray = null, o
 export const kw_export = {
   clip: Func_a_a_min_a_max_out.defaultDecorator(clip),
 }
+
+
+
+// // ==============================
+// //       Operators: Binary operations, assignment operations and unary boolean_not
+// // ==============================
+
+NDArray.prototype.add = Method_other_out.defaultDecorator(op_binary["+"]);
+NDArray.prototype.subtract = Method_other_out.defaultDecorator(op_binary["-"]);
+NDArray.prototype.multiply = Method_other_out.defaultDecorator(op_binary["*"]);
+NDArray.prototype.divide = Method_other_out.defaultDecorator(op_binary["/"]);
+NDArray.prototype.mod = Method_other_out.defaultDecorator(op_binary["%"]);
+NDArray.prototype.divide_int = Method_other_out.defaultDecorator(op_binary["//"]);
+NDArray.prototype.pow = Method_other_out.defaultDecorator(op_binary["**"]);
+NDArray.prototype.maximum = Method_other_out.defaultDecorator(op_binary["max"]);
+NDArray.prototype.minimum = Method_other_out.defaultDecorator(op_binary["min"]);
+
+NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(op_binary["|"]);
+NDArray.prototype.bitwise_and = Method_other_out.defaultDecorator(op_binary["&"]);
+// NDArray.prototype.bitwise_xor = Method_other_out.defaultDecorator(op_binary["^"]);
+// NDArray.prototype.bitwise_shift_left = Method_other_out.defaultDecorator(op_binary["<<"]);
+NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(op_binary[">>"]);
+
+NDArray.prototype.logical_or = Method_other_out.defaultDecorator(op_binary["or"]);
+NDArray.prototype.logical_and = Method_other_out.defaultDecorator(op_binary["and"]);
+NDArray.prototype.logical_xor = Method_other_out.defaultDecorator(op_binary["xor"]);
+
+NDArray.prototype.greater = Method_other_out.defaultDecorator(op_binary[">"]);
+NDArray.prototype.less = Method_other_out.defaultDecorator(op_binary["<"]);
+NDArray.prototype.greater_equal = Method_other_out.defaultDecorator(op_binary[">="]);
+NDArray.prototype.less_equal = Method_other_out.defaultDecorator(op_binary["<="]);
+NDArray.prototype.equal = Method_other_out.defaultDecorator(op_binary["=="]);
+NDArray.prototype.not_equal = Method_other_out.defaultDecorator(op_binary["!="]);
+
+
+
+NDArray.prototype.isclose = isclose;
+NDArray.prototype.allclose = allclose;
+
+
+NDArray.prototype.assign = Method_values_where.defaultDecorator(op_assign["="]);
+NDArray.prototype.add_assign = Method_values_where.defaultDecorator(op_assign["+="]);
+NDArray.prototype.subtract_assign = Method_values_where.defaultDecorator(op_assign["-="]);
+NDArray.prototype.multiply_assign = Method_values_where.defaultDecorator(op_assign["*="]);
+NDArray.prototype.divide_assign = Method_values_where.defaultDecorator(op_assign["/="]);
+NDArray.prototype.mod_assign = Method_values_where.defaultDecorator(op_assign["%="]);
+NDArray.prototype.divide_int_assign = Method_values_where.defaultDecorator(op_assign["//="]);
+NDArray.prototype.pow_assign = Method_values_where.defaultDecorator(op_assign["**="]);
+
+NDArray.prototype.maximum_assign = Method_values_where.defaultDecorator(op_assign["max="]);
+NDArray.prototype.minimum_assign = Method_values_where.defaultDecorator(op_assign["min="]);
+
+NDArray.prototype.bitwise_or_assign = Method_values_where.defaultDecorator(op_assign["|="]);
+NDArray.prototype.bitwise_and_assign = Method_values_where.defaultDecorator(op_assign["&="]);
+NDArray.prototype.bitwise_shift_left_assign = Method_values_where.defaultDecorator(op_assign["<<="]);
+NDArray.prototype.bitwise_shift_right_assign = Method_values_where.defaultDecorator(op_assign[">>="]);
+
+NDArray.prototype.logical_or_assign = Method_values_where.defaultDecorator(op_assign["or="]);
+NDArray.prototype.logical_and_assign = Method_values_where.defaultDecorator(op_assign["and="]);

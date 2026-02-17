@@ -1,4 +1,4 @@
-import NDArray from "../NDArray";
+import type NDArray from "../NDArray";
 import { asarray, new_NDArray } from "../array/basic";
 import { Where, IndexSpec } from "../array/indexes";
 import { new_buffer } from "../dtypes";

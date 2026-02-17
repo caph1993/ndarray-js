@@ -3,7 +3,8 @@ import NDArray from '../NDArray';
 import { Shape } from '../array/basic';
 import { float64, DType, int32 } from '../dtypes';
 
-const { basic, elementwise } = NDArray.prototype.modules;
+import * as basic from '../array/basic';
+import * as elementwise from '../array/elementwise';
 
 /**
  * Creates a new array with the specified shape and type, without initializing entries.

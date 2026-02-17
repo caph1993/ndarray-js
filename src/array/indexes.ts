@@ -1,6 +1,6 @@
 //@ts-check
 import { isarray, asarray, new_NDArray, shape_shifts } from './basic';
-import type NDArray from "../NDArray";
+import NDArray from "../NDArray";
 import { dtype_is_boolean, dtype_is_integer, new_buffer } from '../dtypes';
 
 export type RangeSpec = string;
@@ -398,4 +398,9 @@ AxesIndex.prototype.parse = function (shape: number[], where: Where): AxesIndex 
   }
   const axesIndex = new AxesIndex(buffers.apparentShape, buffers.internalShape, buffers.axisIndexes)
   return axesIndex;
+}
+
+
+NDArray.prototype.index = function (...where: GeneralIndexSpec[]) {
+  return index(this, where);
 }

@@ -2,7 +2,7 @@
 
 import { ops as ew_ops } from './elementwise';
 import { tolist } from './js-interface';
-import type NDArray from "../NDArray";
+import NDArray from "../NDArray";
 import { dtype_is_float } from '../dtypes';
 
 const round = ew_ops.round;
@@ -86,4 +86,8 @@ export function humanReadable(arr: NDArray) {
   out = `${out}${suffix})`;
   return out;
 
+}
+
+NDArray.prototype.toString = function () {
+  return humanReadable(this);
 }

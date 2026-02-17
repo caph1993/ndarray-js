@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "build": "webpack --config webpack.config.js",
-    "test": "cd tests && ts-node tests_february_2026.ts",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
     "serve-docs": "cd docs && python -m http.server 8000",
     "build-docs": "typedoc",
     "build-docs-4": "ts-docs src/index.ts",
@@ -52,6 +53,7 @@
     "typedoc-theme-hierarchy": "^4.1.2",
     "typescript": "^5.2.2",
     "uglifyjs-webpack-plugin": "^2.2.0",
+    "vitest": "^2.1.0",
     "webpack": "^5.88.2",
     "webpack-cli": "^5.1.4",
     "webpack-license-plugin": "^4.3.0"

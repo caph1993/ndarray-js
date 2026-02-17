@@ -1,14 +1,13 @@
 //@ts-check
-import type NDArray from "../NDArray";
+import NDArray from "../NDArray";
 import { new_buffer, Buffer, DType } from "../dtypes";
-import { isarray, asarray, array, new_NDArray, _NDArray } from "./_globals";
+import { isarray, asarray, array, new_NDArray } from "./_globals";
 
 export {
   isarray,
   asarray,
   array,
-  new_NDArray,
-  _NDArray
+  new_NDArray
 }
 // Functions to avoid importing NDArray (because if I import NDArray, I can't use it as a type annotation in the same file)
 
@@ -43,6 +42,7 @@ export function as_number(obj) {
 // ====================
 
 
+// TODO: move to shape-utils
 export function shape_shifts(shape) {
   // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
   const shifts = Array.from({ length: shape.length }, (_) => 0);
@@ -52,8 +52,10 @@ export function shape_shifts(shape) {
 }
 
 
+// TODO: move to shape-utils
 export type Shape = number | number[] | NDArray;
 
+// TODO: move to shape-utils
 export function parse_shape(shape: Shape): number[] {
   if (typeof shape == "number") return [shape];
   if (isarray(shape)) {
@@ -67,6 +69,7 @@ export function parse_shape(shape: Shape): number[] {
 }
 
 
+// TODO: move to shape-utils
 export function reshape(A: NDArray, shape_or_first: Shape, ...more_shape: number[]) {
   A = asarray(A);
   let shape: number[];
@@ -109,6 +112,7 @@ export function copy(A: NDArray) {
   return new_NDArray(new_buffer(A.flat, A.dtype), A.shape);
 }
 
+// TODO: move to NDArray
 export function new_array(shape: Shape, dtype?: DType, fill?: Function | number | boolean) {
   const size = parse_shape(shape).reduce((a, b) => a * b, 1);
   const buffer = new_buffer(size, dtype);
@@ -125,3 +129,18 @@ export function new_array(shape: Shape, dtype?: DType, fill?: Function | number 
   return new_NDArray(buffer, parse_shape(shape), dtype);
 };
 
+
+// TODO: move to shape-utils
+NDArray.prototype.reshape = function (shape, ...more_shape) {
+  return reshape(this, shape, ...more_shape);
+};
+
+// TODO: move to js-interface
+NDArray.prototype.ravel = function () {
+  return ravel(this);
+};
+
+// TODO: move to NDArray
+NDArray.prototype.copy = function () {
+  return copy(this);
+};

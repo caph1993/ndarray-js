@@ -1,9 +1,9 @@
 //@ts-check
 
-import { isarray, asarray, new_NDArray, _NDArray, number_collapse, ravel, shape_shifts, reshape, empty } from './basic';
+import { isarray, asarray, new_NDArray, number_collapse, ravel, shape_shifts, reshape, empty } from './basic';
 import { fromlist } from './js-interface';
 import { allEq, extend } from '../utils-js';
-import type NDArray from "../NDArray";
+import NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
 import { Func_a_lastAxis } from './kwargs';
 import { argmax_out, bitwise_out, DType, dtype_max, DtypeResolver, new_buffer } from '../dtypes';
@@ -192,3 +192,14 @@ export const kw_exported = {
   sort: Func_a_lastAxis.defaultDecorator(sort),
   argsort: Func_a_lastAxis.defaultDecorator(argsort),
 }
+
+
+/** @param {null|number[]} axes */
+NDArray.prototype.transpose = function (axes: null | number[] = null) {
+  return transpose(this, axes);
+};
+
+NDArray.prototype.sort = function (axis = -1) {
+  sort(this, axis);
+  return null;
+};

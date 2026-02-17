@@ -1,8 +1,8 @@
 //@ts-check
 
 import { bool, DType, float64, int32, new_buffer, object } from '../dtypes';
-import { isarray, number_collapse, new_NDArray, _NDArray } from './basic';
-
+import { isarray, number_collapse, new_NDArray } from './basic';
+import NDArray from "../NDArray";
 
 export function fromlist(arr: any, dtype?: DType) {
   if (isarray(arr)) return arr;
@@ -14,7 +14,6 @@ export function fromlist(arr: any, dtype?: DType) {
   if (typeof arr === "boolean") {
     return new_NDArray(new_buffer([arr ? 1 : 0], bool), [], bool);
   }
-  if (arr === _NDArray.prototype) throw new Error(`Programming error`);
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
   const shape: number[] = [];
   let root = arr;
@@ -90,7 +89,9 @@ export function tolist(arr) {
   return out;
 }
 
-
-
-
-
+NDArray.prototype.tolist = function () {
+  return tolist(this);
+}
+// NDArray.prototype.fromJS = function (A) {
+//   return fromJS(A);
+// }

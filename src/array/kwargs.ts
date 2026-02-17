@@ -1,7 +1,7 @@
 import { NDArray } from '../NDArray';
 import { broadcast_n_shapes, isarray } from "./_globals";
-import { asarray, Arr, ArrOrAny, ArrOrConst, AxisArg, ArrOrNull, } from './_globals';
-export { asarray, Arr, ArrOrAny, ArrOrConst, AxisArg, ArrOrNull } from './_globals';
+import { asarray, NDArray, ArrOrAny, ArrOrConst, AxisArg, ArrOrNull, } from './_globals';
+export { asarray, NDArray as Arr, ArrOrAny, ArrOrConst, AxisArg, ArrOrNull } from './_globals';
 import { empty } from './basic';
 import { Where } from './indexes';
 
@@ -18,7 +18,7 @@ import { Where } from './indexes';
 
 export function kwargs_decorator<
   Wrapper extends (...args: any[]) => ArrOrConst,
-  Implementation extends (...args: any[]) => Arr,
+  Implementation extends (...args: any[]) => NDArray,
 >({ defaults, implementation, parsers, this_as_first_arg }: {
   defaults: [string, any][],
   implementation: Implementation,

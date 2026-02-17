@@ -1,26 +1,72 @@
 //@ts-check
-import NDArray from "../NDArray";
-import { Arr, ArrOrAny, kwargs_decorator, frequently_used_parsers } from "../array/kwargs";
+import { Arr, ArrOrAny, ArrOrNull, kwargs_decorator, frequently_used_parsers, ArrOrConst } from "../array/kwargs";
+import * as _globals from "./_globals";
+import type NDArray from "../NDArray";
+import type { DType, Buffer } from "../dtypes";
 
-
-export namespace Func_clip {
-  export type Implementation = (a: Arr, a_min: Arr, a_max: Arr, out: Arr) => Arr;
-  export type Kwargs = { a?: ArrOrAny, a_min?: ArrOrAny, a_max?: ArrOrAny, out?: NDArray<any> | null };
-  export type Wrapper = (a: ArrOrAny, a_min: ArrOrAny, a_max: ArrOrAny, out?: NDArray<any> | null | Kwargs) => NDArray<any>;
+export namespace Func_isarray {
+  export type Implementation = (A: any) => A is NDArray;
+  export type Kwargs = { A?: any };
+  export type Wrapper = (A: any | Kwargs) => NDArray;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [
-    ["a", undefined],
-    ["a_min", undefined],
-    ["a_max", undefined],
-    ["out", null],
+    ["A", undefined],
   ];
   export const parsers = [
-    frequently_used_parsers.asarray('a'),
-    frequently_used_parsers.asarray('a_min'),
-    frequently_used_parsers.asarray('a_max'),
-    frequently_used_parsers.out_broadcast(['a', 'a_min', 'a_max'], 'out', true),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
-    defaults, implementation, parsers
-  });
+}
+
+export namespace Func_new_NDArray {
+  export type Implementation = (flat: Buffer, shape: number[], dtype?: DType) => NDArray;
+  export type Kwargs = { flat?: Buffer, shape?: number[], dtype?: DType };
+  export type Wrapper = (flat: Buffer | Kwargs, shape?: number[], dtype?: DType) => NDArray;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["flat", undefined],
+    ["shape", []],
+    ["dtype", null],
+  ];
+}
+
+export namespace Func_asarray {
+  export type Implementation = (A: NDArray | any, dtype: DType) => NDArray;
+  export type Kwargs = { A?: NDArray | any, dtype?: DType };
+  export type Wrapper = (A: NDArray | any | Kwargs, dtype?: DType) => NDArray;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["A", undefined],
+    ["dtype", null],
+  ];
+}
+
+export namespace Func_array {
+  export type Implementation = (A: NDArray | any, dtype: DType) => NDArray;
+  export type Kwargs = { A?: NDArray | any, dtype?: DType };
+  export type Wrapper = (A: NDArray | any | Kwargs, dtype?: DType) => NDArray;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["A", undefined],
+    ["dtype", null],
+  ];
+}
+
+export namespace Func_broadcast_shapes {
+  export type Implementation = (shapeA: number[], shapeB: number[]) => [number[], number[], number[]];
+  export type Kwargs = { shapeA?: number[], shapeB?: number[] };
+  export type Wrapper = (shapeA: number[] | Kwargs, shapeB?: number[]) => [number[], number[], number[]];
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["shapeA", []],
+    ["shapeB", []],
+  ];
+}
+
+export namespace Func_broadcast_n_shapes {
+  export type Implementation = (...shapes: number[][]) => [number[][], number[]];
+  export type Kwargs = { shapes?: number[][] };
+  export type Wrapper = (...shapes: number[][] | Kwargs) => [number[][], number[]];
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["shapes", []],
+  ];
 }
