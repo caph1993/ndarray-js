@@ -1,7 +1,7 @@
 //@ts-check
 import type NDArray from "../NDArray";
 import { GLOBALS } from '../_globals';
-import { DType, DTypeOf, HasDType, new_buffer } from "../dtypes";
+import { DType, Buffer, new_buffer } from "../dtypes";
 const { np, NDArray: __NDArray } = GLOBALS;
 if (!__NDArray) throw new Error(`Programming error: NDArray not defined`);
 
@@ -24,7 +24,7 @@ export function isarray(A: any): A is NDArray {
   return A instanceof _NDArray;
 }
 
-export function new_NDArray<T extends HasDType>(flat: InstanceType<DTypeOf<T>["BufferType"]>, shape: number[], dtype?: DTypeOf<T>): NDArray {
+export function new_NDArray(flat: Buffer, shape: number[], dtype?: DType): NDArray {
   return new _NDArray(flat, shape, dtype);
 }
 

@@ -1,6 +1,7 @@
 import NDArray from "../NDArray";
-import { asarray } from "../array/basic";
+import { asarray, new_NDArray } from "../array/basic";
 import { Where, IndexSpec } from "../array/indexes";
+import { new_buffer } from "../dtypes";
 
 
 
@@ -23,12 +24,12 @@ export function where(condition: NDArray, x: NDArray, y: NDArray, out: NDArray |
 export function nonzero(a: NDArray) {
   const raw_indices = [...a.flat].map((v, i) => v ? i : null).filter((v) => v !== null);
   // Convert to many 1D arrays
-  const indices = a.shape.map(() => new Int32Array(raw_indices.length));
+  const indices = a.shape.map(() => new_buffer(raw_indices.length, 'int32'));
   raw_indices.forEach((v, pos) => {
     for (let i = a.shape.length - 1; i >= 0; i--) {
       indices[i][pos] = v % a.shape[i];
       v = Math.floor(v / a.shape[i]);
     }
   });
-  return indices.map(buffer => new NDArray(buffer));
+  return indices.map(buffer => new_NDArray(buffer, [buffer.length], 'int32'));
 }

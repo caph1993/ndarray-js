@@ -1,6 +1,6 @@
 //@ts-check
 
-import { DType, HasDType, bool, infer_dtype, new_buffer, object } from './dtypes';
+import { DType, HasDType, bool, infer_dtype, new_buffer, object, Buffer } from './dtypes';
 /** @ignore */
 export type ArrayOrConstant = NDArray | number | boolean;
 
@@ -15,7 +15,7 @@ class NDArray implements HasDType {
 
 
   /** @ignore */
-  _flat: InstanceType<DType["BufferType"]>;
+  _flat: Buffer;
 
   /** @category Attributes @readonly */
   shape: number[];
@@ -173,7 +173,7 @@ class NDArray implements HasDType {
    */
   op: GenericOperatorFunction;
 
-  constructor(flat: InstanceType<DType["BufferType"]>, shape?: number[], dtype?: DType) {
+  constructor(flat: Buffer, shape?: number[], dtype?: DType) {
     this.shape = shape || [flat.length]; // invariant: immutable
     this._flat = flat;
     this._simpleIndexes = null;
@@ -188,7 +188,7 @@ class NDArray implements HasDType {
     return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;
   }
   /** @category Attributes @readonly */
-  get flat(): InstanceType<DType["BufferType"]> {
+  get flat(): Buffer {
     if (this._simpleIndexes == null) return this._flat;
     const indices = this._simpleIndexes.indices;
     //@ts-ignore

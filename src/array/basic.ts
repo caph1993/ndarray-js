@@ -1,6 +1,6 @@
 //@ts-check
 import type NDArray from "../NDArray";
-import { new_buffer, DType } from "../dtypes";
+import { new_buffer, Buffer, DType } from "../dtypes";
 import { isarray, asarray, array, new_NDArray, _NDArray } from "./_globals";
 
 export {

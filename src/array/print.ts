@@ -51,7 +51,7 @@ export function humanReadable(arr: NDArray) {
   }
 
   let prefix = 'np';
-  let suffix = `, shape=(${arr.shape}), dtype=${arr.dtype.name}`;
+  let suffix = `, shape=(${arr.shape}), dtype=${arr.dtype}`;
   let out = str(simplify(list), 1 + prefix.length);
   function alignColumns(inputString, delimiter = ',') {
     // Split the input string into rows
