@@ -1,5 +1,6 @@
 //@ts-check
-import { Arr, AxisArg, kwargs_decorator, frequently_used_parsers, asarray, ArrOrConst, Func_a_axis_keepdims } from "../array/kwargs";
+import { AxisArg, kwargs_decorator, frequently_used_parsers, Func_a_axis_keepdims, ArrOrConst, Arr } from "../array/kwargs";
+import NDArray, { asarray } from "../NDArray";
 import * as stats from "./statistics";
 
 
@@ -9,12 +10,12 @@ type NDArray_non_0D = Arr | number[];
 export namespace Func_a_q_axis {
   export type Implementation = (a: Arr, q: number, axis: number) => Arr;
   export type Kwargs = { a?: NDArray_non_0D, q?: number, axis?: AxisArg };
-  export type Wrapper = (a: NDArray_non_0D | Kwargs, q: number | Kwargs, axis?: AxisArg | Kwargs) => ArrOrConst;
+  export type Wrapper = (a: NDArray_non_0D | Kwargs, q: number | Kwargs, axis?: AxisArg | Kwargs) => NDArray;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [["a", undefined], ["q", undefined], ["axis", null]];
   export const parsers = [
     frequently_used_parsers.a_axis_flatten,
-    (kwargs) => { kwargs.q = asarray(kwargs.q); },
+    (kwargs: any) => { kwargs.q = asarray(kwargs.q); },
   ];
   export const defaultDecorator = (implementation: Implementation) => decorator({
     defaults, implementation, parsers

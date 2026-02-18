@@ -1,12 +1,13 @@
 //@ts-check
 import { np } from "../np_circular_import";
 import { new_buffer, float64, DType } from "../dtypes";
+import { new_array } from "../array/js-interface";
 import type NDArray from "../NDArray";
 import type Shape from "../NDArray";
 
 
 export function random(shape: Shape, dtype: DType = float64) {
-  return np.modules.array.jsInterface.new_array(shape, dtype, (_) => Math.random())
+  return new_array(shape, dtype, (_) => Math.random())
 };
 export function uniform(a, b, shape) {
   return random(shape).multiply(b - a).add(a);

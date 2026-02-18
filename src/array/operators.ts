@@ -71,45 +71,72 @@ function apply_binary_operation(
 }
 
 
+export const add = freeze_args_bin_op(addition_out, (a, b) => a + b);
+export const subtract = freeze_args_bin_op(addition_out, (a, b) => a - b);
+export const multiply = freeze_args_bin_op(addition_out, (a, b) => a * b);
+export const divide = freeze_args_bin_op(float_out, (a, b) => a / b);
+export const mod = freeze_args_bin_op(addition_out, (a, b) => (a % b));
+export const divide_int = freeze_args_bin_op(addition_out, (a, b) => Math.floor(a / b));
+export const floor_divide = divide_int;
+export const pow = freeze_args_bin_op(addition_out, (a, b) => Math.pow(a, b));
+export const power = pow;
+export const bitwise_or = freeze_args_bin_op(addition_out, (a, b) => a | b);
+export const bitwise_and = freeze_args_bin_op(bitwise_out, (a, b) => a & b);
+export const bitwise_xor = freeze_args_bin_op(bitwise_out, (a, b) => a ^ b);
+export const bitwise_shift_left = freeze_args_bin_op(bitwise_out, (a, b) => a << b);
+export const bitwise_shift_right = freeze_args_bin_op(bitwise_out, (a, b) => a >> b);
+export const greater = freeze_args_bin_op(bool_out, (a, b) => a > b);
+export const less = freeze_args_bin_op(bool_out, (a, b) => a < b);
+export const greater_equal = freeze_args_bin_op(bool_out, (a, b) => a >= b);
+export const less_equal = freeze_args_bin_op(bool_out, (a, b) => a <= b);
+export const equal = freeze_args_bin_op(bool_out, (a, b) => a == b);
+export const not_equal = freeze_args_bin_op(bool_out, (a, b) => a != b);
+export const maximum = freeze_args_bin_op(bitwise_out, (a, b) => Math.max(a, b));
+export const minimum = freeze_args_bin_op(bitwise_out, (a, b) => Math.min(a, b));
+export const fmax = freeze_args_bin_op(bitwise_out, (a, b) => {
+  if (Number.isNaN(a)) return b;
+  if (Number.isNaN(b)) return a;
+  return Math.max(a, b);
+});
+export const fmin = freeze_args_bin_op(bitwise_out, (a, b) => {
+  if (Number.isNaN(a)) return b;
+  if (Number.isNaN(b)) return a;
+  return Math.min(a, b);
+});
+export const logical_or = freeze_args_bin_op(bool_out, (a, b) => a || b);
+export const logical_and = freeze_args_bin_op(bool_out, (a, b) => a && b);
+export const logical_xor = freeze_args_bin_op(bool_out, (a, b) => (!a) != (!b));
+export const hypot = freeze_args_bin_op(float_out, Math.hypot);
 
 export const op_binary = {
+  "+": add,
+  "-": subtract,
+  "*": multiply,
+  "/": divide,
+  "%": mod,
+  "|": bitwise_or,
+  "&": bitwise_and,
+  "^": bitwise_xor,
+  "<<": bitwise_shift_left,
+  ">>": bitwise_shift_right,
+  "**": pow,
+  "//": divide_int,
 
-  "+": freeze_args_bin_op(addition_out, (a, b) => a + b),
-  "-": freeze_args_bin_op(addition_out, (a, b) => a - b),
-  "*": freeze_args_bin_op(addition_out, (a, b) => a * b),
-  "/": freeze_args_bin_op(float_out, (a, b) => a / b),
-  "%": freeze_args_bin_op(addition_out, (a, b) => (a % b)),
-  "|": freeze_args_bin_op(addition_out, (a, b) => a | b),
-  "&": freeze_args_bin_op(bitwise_out, (a, b) => a & b),
-  "^": freeze_args_bin_op(bitwise_out, (a, b) => a ^ b),
-  "<<": freeze_args_bin_op(bitwise_out, (a, b) => a << b),
-  ">>": freeze_args_bin_op(bitwise_out, (a, b) => a >> b),
-  "**": freeze_args_bin_op(addition_out, (a, b) => Math.pow(a, b)),
-  "//": freeze_args_bin_op(addition_out, (a, b) => Math.floor(a / b)),
-
-  "<": freeze_args_bin_op(bool_out, (a, b) => a < b),
-  ">": freeze_args_bin_op(bool_out, (a, b) => a > b),
-  ">=": freeze_args_bin_op(bool_out, (a, b) => a >= b),
-  "<=": freeze_args_bin_op(bool_out, (a, b) => a <= b),
-  "==": freeze_args_bin_op(bool_out, (a, b) => a == b),
-  "!=": freeze_args_bin_op(bool_out, (a, b) => a != b),
+  "<": less,
+  ">": greater,
+  ">=": greater_equal,
+  "<=": less_equal,
+  "==": equal,
+  "!=": not_equal,
   // Operators with custom ascii identifiers:
-  "or": freeze_args_bin_op(bool_out, (a, b) => a || b),
-  "and": freeze_args_bin_op(bool_out, (a, b) => a && b),
-  "xor": freeze_args_bin_op(bool_out, (a, b) => (!a) != (!b)),
-  "max": freeze_args_bin_op(bitwise_out, (a, b) => Math.max(a, b)),
-  "min": freeze_args_bin_op(bitwise_out, (a, b) => Math.min(a, b)),
-  "hypot": freeze_args_bin_op(float_out, Math.hypot),
-  "fmax": freeze_args_bin_op(bitwise_out, (a, b) => {
-    if (Number.isNaN(a)) return b;
-    if (Number.isNaN(b)) return a;
-    return Math.max(a, b);
-  }),
-  "fmin": freeze_args_bin_op(bitwise_out, (a, b) => {
-    if (Number.isNaN(a)) return b;
-    if (Number.isNaN(b)) return a;
-    return Math.min(a, b);
-  }),
+  "or": logical_or,
+  "and": logical_and,
+  "xor": logical_xor,
+  "max": maximum,
+  "min": minimum,
+  "hypot": hypot,
+  "fmax": fmax,
+  "fmin": fmin,
   // "approx": ,
 }
 

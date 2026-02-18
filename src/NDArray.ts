@@ -32,9 +32,6 @@ class NDArray implements HasDType {
   /** @category Indexing / slicing */
   index: (...where: Where) => NDArray;
 
-  /** @ignore */
-  modules: typeof import("./array").modules;
-
   /** @category Reducers */
   any: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */

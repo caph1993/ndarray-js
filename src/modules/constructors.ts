@@ -1,9 +1,8 @@
 //@ts-check
 import { Shape, empty } from '../NDArray';
 import { float64, DType, int32 } from '../dtypes';
-
-import * as elementwise from '../array/elementwise';
 import { new_array, as_number } from '../array/js-interface';
+import { exp } from '../array/elementwise';
 
 export { empty };
 /**
@@ -35,5 +34,5 @@ export function linspace(start: number, stop: number, steps = 50, endpoint = tru
 export function geomspace(start: number, stop: number, steps = 50, endpoint = true) {
   start = Math.log(start);
   stop = Math.log(stop);
-  return elementwise.funcs.exp(linspace(start, stop, steps, endpoint));
+  return exp(linspace(start, stop, steps, endpoint));
 }

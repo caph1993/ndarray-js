@@ -59,126 +59,127 @@ function _applyFuncToArray(
 }
 
 
+export const sign = applyFuncToArray_freeze(float_out, Math.sign);
+export const sqrt = applyFuncToArray_freeze(float_out, Math.sqrt);
+export const square = applyFuncToArray_freeze(float_out, (a) => a * a);
+export const exp = applyFuncToArray_freeze(float_out, Math.exp);
+export const log = applyFuncToArray_freeze(float_out, Math.log);
+export const log2 = applyFuncToArray_freeze(float_out, Math.log2);
+export const log10 = applyFuncToArray_freeze(float_out, Math.log10);
+export const log1p = applyFuncToArray_freeze(float_out, Math.log1p);
+export const sin = applyFuncToArray_freeze(float_out, Math.sin);
+export const cos = applyFuncToArray_freeze(float_out, Math.cos);
+export const tan = applyFuncToArray_freeze(float_out, Math.tan);
+export const asin = applyFuncToArray_freeze(float_out, Math.asin);
+export const acos = applyFuncToArray_freeze(float_out, Math.acos);
+export const atan = applyFuncToArray_freeze(float_out, Math.atan);
+export const cosh = applyFuncToArray_freeze(float_out, Math.cosh);
+export const sinh = applyFuncToArray_freeze(float_out, Math.sinh);
+export const tanh = applyFuncToArray_freeze(float_out, Math.tanh);
+export const acosh = applyFuncToArray_freeze(float_out, Math.acosh);
+export const asinh = applyFuncToArray_freeze(float_out, Math.asinh);
+export const atanh = applyFuncToArray_freeze(float_out, Math.atanh);
+export const floor = applyFuncToArray_freeze(float_out, Math.floor);
+export const ceil = applyFuncToArray_freeze(float_out, Math.ceil);
+export const isfinite = applyFuncToArray_freeze(bool_out, (x) => isFinite(x));
+export const isinf = applyFuncToArray_freeze(bool_out, (x) => x === Infinity || x === -Infinity);
+export const isposinf = applyFuncToArray_freeze(bool_out, (x) => x === Infinity);
+export const isneginf = applyFuncToArray_freeze(bool_out, (x) => x === -Infinity);
+export const isnan = applyFuncToArray_freeze(bool_out, isNaN);
+export const iscomplex = applyFuncToArray_freeze(bool_out, (_x) => false);
+export const isreal = applyFuncToArray_freeze(bool_out, (_x) => true);
+export const reciprocal = applyFuncToArray_freeze(float_out, (x) => 1 / x);
+export const positive = applyFuncToArray_freeze(float_out, (x) => +x);
+export const angle = applyFuncToArray_freeze(float_out, (_x) => 0);
+export const real = applyFuncToArray_freeze(float_out, (x) => x);
+export const imag = applyFuncToArray_freeze(float_out, (_x) => 0);
+export const conj = applyFuncToArray_freeze(float_out, (x) => x);
+export const conjugate = applyFuncToArray_freeze(float_out, (x) => x);
+export const cbrt = applyFuncToArray_freeze(float_out, Math.cbrt);
+export const nan_to_num = applyFuncToArray_freeze(float_out, (x) => {
+  if (Number.isNaN(x)) return 0;
+  if (x === Infinity) return Number.MAX_VALUE;
+  if (x === -Infinity) return -Number.MAX_VALUE;
+  return x;
+});
+export const real_if_close = applyFuncToArray_freeze(float_out, (x) => x);
+export const round = function round(arr: NDArray, decimals: number, out: NDArray | DType = null) {
+  if (decimals == 0) applyFuncToArray(float_out, Math.round, arr, out);
+  return applyFuncToArray(float_out, (x => parseFloat(x.toFixed(decimals))), arr, out);
+};
+export const negative = applyFuncToArray_freeze(float_out, x => -x);
+export const bitwise_not = applyFuncToArray_freeze(float_out, x => ~x);
+export const logical_not = applyFuncToArray_freeze(bool_out, x => !x);
+export const valueOf = applyFuncToArray_freeze(float_out, x => +x);
+export const abs = applyFuncToArray_freeze(float_out, Math.abs);
+
 export const funcs = {
-  sign: applyFuncToArray_freeze(float_out, Math.sign),
-  sqrt: applyFuncToArray_freeze(float_out, Math.sqrt),
-  square: applyFuncToArray_freeze(float_out, (a) => a * a),
-  exp: applyFuncToArray_freeze(float_out, Math.exp),
-  log: applyFuncToArray_freeze(float_out, Math.log),
-  log2: applyFuncToArray_freeze(float_out, Math.log2),
-  log10: applyFuncToArray_freeze(float_out, Math.log10),
-  log1p: applyFuncToArray_freeze(float_out, Math.log1p),
-  sin: applyFuncToArray_freeze(float_out, Math.sin),
-  cos: applyFuncToArray_freeze(float_out, Math.cos),
-  tan: applyFuncToArray_freeze(float_out, Math.tan),
-  asin: applyFuncToArray_freeze(float_out, Math.asin),
-  acos: applyFuncToArray_freeze(float_out, Math.acos),
-  atan: applyFuncToArray_freeze(float_out, Math.atan),
-  cosh: applyFuncToArray_freeze(float_out, Math.cosh),
-  sinh: applyFuncToArray_freeze(float_out, Math.sinh),
-  tanh: applyFuncToArray_freeze(float_out, Math.tanh),
-  acosh: applyFuncToArray_freeze(float_out, Math.acosh),
-  asinh: applyFuncToArray_freeze(float_out, Math.asinh),
-  atanh: applyFuncToArray_freeze(float_out, Math.atanh),
-  floor: applyFuncToArray_freeze(float_out, Math.floor),
-  ceil: applyFuncToArray_freeze(float_out, Math.ceil),
-  isfinite: applyFuncToArray_freeze(bool_out, (x) => isFinite(x)),
-  isinf: applyFuncToArray_freeze(bool_out, (x) => x === Infinity || x === -Infinity),
-  isposinf: applyFuncToArray_freeze(bool_out, (x) => x === Infinity),
-  isneginf: applyFuncToArray_freeze(bool_out, (x) => x === -Infinity),
-  isnan: applyFuncToArray_freeze(bool_out, isNaN),
-  iscomplex: applyFuncToArray_freeze(bool_out, (_x) => false),
-  isreal: applyFuncToArray_freeze(bool_out, (_x) => true),
-  reciprocal: applyFuncToArray_freeze(float_out, (x) => 1 / x),
-  positive: applyFuncToArray_freeze(float_out, (x) => +x),
-  angle: applyFuncToArray_freeze(float_out, (_x) => 0),
-  real: applyFuncToArray_freeze(float_out, (x) => x),
-  imag: applyFuncToArray_freeze(float_out, (_x) => 0),
-  conj: applyFuncToArray_freeze(float_out, (x) => x),
-  conjugate: applyFuncToArray_freeze(float_out, (x) => x),
-  cbrt: applyFuncToArray_freeze(float_out, Math.cbrt),
-  nan_to_num: applyFuncToArray_freeze(float_out, (x) => {
-    if (Number.isNaN(x)) return 0;
-    if (x === Infinity) return Number.MAX_VALUE;
-    if (x === -Infinity) return -Number.MAX_VALUE;
-    return x;
-  }),
-  real_if_close: applyFuncToArray_freeze(float_out, (x) => x),
-  round: function round(arr: NDArray, decimals: number, out: NDArray | DType = null) {
-    if (decimals == 0) applyFuncToArray(float_out, Math.round, arr, out);
-    return applyFuncToArray(float_out, (x => parseFloat(x.toFixed(decimals))), arr, out);
-  },
-  negative: applyFuncToArray_freeze(float_out, x => -x),
-  bitwise_not: applyFuncToArray_freeze(float_out, x => ~x),
-  logical_not: applyFuncToArray_freeze(bool_out, x => !x),
-  valueOf: applyFuncToArray_freeze(float_out, x => +x),
-  abs: applyFuncToArray_freeze(float_out, Math.abs),
 }
 
 export const ops = {
   ...funcs,
-  "~": funcs.bitwise_not,
-  "not": funcs.logical_not,
-  "+": funcs.valueOf,
-  "-": funcs.negative,
+  "~": bitwise_not,
+  "not": logical_not,
+  "+": valueOf,
+  "-": negative,
 }
 
 
 export const kw_funcs = {
-  sign: Func_a_out.defaultDecorator(funcs.sign),
-  sqrt: Func_a_out.defaultDecorator(funcs.sqrt),
-  square: Func_a_out.defaultDecorator(funcs.square),
-  exp: Func_a_out.defaultDecorator(funcs.exp),
-  log: Func_a_out.defaultDecorator(funcs.log),
-  log2: Func_a_out.defaultDecorator(funcs.log2),
-  log10: Func_a_out.defaultDecorator(funcs.log10),
-  log1p: Func_a_out.defaultDecorator(funcs.log1p),
-  sin: Func_a_out.defaultDecorator(funcs.sin),
-  cos: Func_a_out.defaultDecorator(funcs.cos),
-  tan: Func_a_out.defaultDecorator(funcs.tan),
-  asin: Func_a_out.defaultDecorator(funcs.asin),
-  acos: Func_a_out.defaultDecorator(funcs.acos),
-  atan: Func_a_out.defaultDecorator(funcs.atan),
-  cosh: Func_a_out.defaultDecorator(funcs.cosh),
-  sinh: Func_a_out.defaultDecorator(funcs.sinh),
-  tanh: Func_a_out.defaultDecorator(funcs.tanh),
-  acosh: Func_a_out.defaultDecorator(funcs.acosh),
-  asinh: Func_a_out.defaultDecorator(funcs.asinh),
-  atanh: Func_a_out.defaultDecorator(funcs.atanh),
-  floor: Func_a_out.defaultDecorator(funcs.floor),
-  ceil: Func_a_out.defaultDecorator(funcs.ceil),
-  negative: Func_a_out.defaultDecorator(funcs.negative),
-  bitwise_not: Func_a_out.defaultDecorator(funcs.bitwise_not),
-  logical_not: Func_a_out.defaultDecorator(funcs.logical_not),
-  valueOf: Func_a_out.defaultDecorator(funcs.valueOf),
-  abs: Func_a_out.defaultDecorator(funcs.abs),
+  sign: Func_a_out.defaultDecorator(sign),
+  sqrt: Func_a_out.defaultDecorator(sqrt),
+  square: Func_a_out.defaultDecorator(square),
+  exp: Func_a_out.defaultDecorator(exp),
+  log: Func_a_out.defaultDecorator(log),
+  log2: Func_a_out.defaultDecorator(log2),
+  log10: Func_a_out.defaultDecorator(log10),
+  log1p: Func_a_out.defaultDecorator(log1p),
+  sin: Func_a_out.defaultDecorator(sin),
+  cos: Func_a_out.defaultDecorator(cos),
+  tan: Func_a_out.defaultDecorator(tan),
+  asin: Func_a_out.defaultDecorator(asin),
+  acos: Func_a_out.defaultDecorator(acos),
+  atan: Func_a_out.defaultDecorator(atan),
+  cosh: Func_a_out.defaultDecorator(cosh),
+  sinh: Func_a_out.defaultDecorator(sinh),
+  tanh: Func_a_out.defaultDecorator(tanh),
+  acosh: Func_a_out.defaultDecorator(acosh),
+  asinh: Func_a_out.defaultDecorator(asinh),
+  atanh: Func_a_out.defaultDecorator(atanh),
+  floor: Func_a_out.defaultDecorator(floor),
+  ceil: Func_a_out.defaultDecorator(ceil),
+  negative: Func_a_out.defaultDecorator(negative),
+  bitwise_not: Func_a_out.defaultDecorator(bitwise_not),
+  logical_not: Func_a_out.defaultDecorator(logical_not),
+  valueOf: Func_a_out.defaultDecorator(valueOf),
+  abs: Func_a_out.defaultDecorator(abs),
 
-  isfinite: Func_a_out.defaultDecorator(funcs.isfinite),
-  isinf: Func_a_out.defaultDecorator(funcs.isinf),
-  isposinf: Func_a_out.defaultDecorator(funcs.isposinf),
-  isneginf: Func_a_out.defaultDecorator(funcs.isneginf),
-  isnan: Func_a_out.defaultDecorator(funcs.isnan),
-  iscomplex: Func_a_out.defaultDecorator(funcs.iscomplex),
-  isreal: Func_a_out.defaultDecorator(funcs.isreal),
-  reciprocal: Func_a_out.defaultDecorator(funcs.reciprocal),
-  positive: Func_a_out.defaultDecorator(funcs.positive),
-  angle: Func_a_out.defaultDecorator(funcs.angle),
-  real: Func_a_out.defaultDecorator(funcs.real),
-  imag: Func_a_out.defaultDecorator(funcs.imag),
-  conj: Func_a_out.defaultDecorator(funcs.conj),
-  conjugate: Func_a_out.defaultDecorator(funcs.conjugate),
-  cbrt: Func_a_out.defaultDecorator(funcs.cbrt),
-  nan_to_num: Func_a_out.defaultDecorator(funcs.nan_to_num),
-  real_if_close: Func_a_out.defaultDecorator(funcs.real_if_close),
+  isfinite: Func_a_out.defaultDecorator(isfinite),
+  isinf: Func_a_out.defaultDecorator(isinf),
+  isposinf: Func_a_out.defaultDecorator(isposinf),
+  isneginf: Func_a_out.defaultDecorator(isneginf),
+  isnan: Func_a_out.defaultDecorator(isnan),
+  iscomplex: Func_a_out.defaultDecorator(iscomplex),
+  isreal: Func_a_out.defaultDecorator(isreal),
+  reciprocal: Func_a_out.defaultDecorator(reciprocal),
+  positive: Func_a_out.defaultDecorator(positive),
+  angle: Func_a_out.defaultDecorator(angle),
+  real: Func_a_out.defaultDecorator(real),
+  imag: Func_a_out.defaultDecorator(imag),
+  conj: Func_a_out.defaultDecorator(conj),
+  conjugate: Func_a_out.defaultDecorator(conjugate),
+  cbrt: Func_a_out.defaultDecorator(cbrt),
+  nan_to_num: Func_a_out.defaultDecorator(nan_to_num),
+  real_if_close: Func_a_out.defaultDecorator(real_if_close),
 
-  round: Func_a_decimals_out.defaultDecorator(funcs.round),
+  round: Func_a_decimals_out.defaultDecorator(round),
 }
 
 
 
 // Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_not = Method_out.defaultDecorator(funcs.bitwise_not);
-NDArray.prototype.logical_not = Method_out.defaultDecorator(funcs.logical_not);
-NDArray.prototype.negative = Method_out.defaultDecorator(funcs.negative);
-NDArray.prototype.abs = Method_out.defaultDecorator(funcs.abs);
-NDArray.prototype.round = Method_a_decimals_out.defaultDecorator(funcs.round);
+NDArray.prototype.bitwise_not = Method_out.defaultDecorator(bitwise_not);
+NDArray.prototype.logical_not = Method_out.defaultDecorator(logical_not);
+NDArray.prototype.negative = Method_out.defaultDecorator(negative);
+NDArray.prototype.abs = Method_out.defaultDecorator(abs);
+NDArray.prototype.round = Method_a_decimals_out.defaultDecorator(round);

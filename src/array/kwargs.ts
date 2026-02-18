@@ -1,5 +1,5 @@
 import { NDArray, broadcast_n_shapes } from '../NDArray';
-import { ArrOrAny, ArrOrConst } from "./js-interface";
+import { Arr, ArrOrAny, ArrOrConst } from "./js-interface";
 import { isarray } from '../NDArray';
 import { asarray } from '../NDArray';
 export type AxisArg = number | null;
@@ -9,6 +9,7 @@ export type ArrOrNull = NDArray | null;
 import { empty } from "../NDArray";
 import { Where } from './indexes';
 
+export { Arr, ArrOrAny, ArrOrConst };
 
 
 

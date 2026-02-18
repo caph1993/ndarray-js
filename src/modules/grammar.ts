@@ -1,6 +1,10 @@
 //@ts-check
 import * as ohm from 'ohm-js';
 import { isarray, asarray } from '../NDArray';
+import * as jsInterface from '../array/js-interface';
+import * as operators from '../array/operators';
+import * as elementwise from '../array/elementwise';
+
 import { np as np } from '../np_circular_import';
 
 export const grammar = String.raw`
@@ -124,10 +128,10 @@ export const __makeSemantics = () => {
       const symbol = $symbol.sourceString;
       const where = $where.parse();
       let tgt = asarray(_tgt);
-      np.modules.array.operators.op_assign[symbol](_tgt, where, _src);
+      operators.op_assign[symbol](_tgt, where, _src);
       if (tgt !== _tgt) {
         // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-        tgt = np.modules.array.jsInterface.tolist(tgt);
+        tgt = jsInterface.tolist(tgt);
         while (_tgt.length) _tgt.pop();
         // @ts-ignore
         _tgt.push(..._tgt);
@@ -139,7 +143,7 @@ export const __makeSemantics = () => {
       if (typeof arr === "number") return arr;
       if (typeof arr === "boolean") return arr;
       if (Array.isArray(arr)) return arr;
-      if (isarray(arr)) arr = np.modules.array.jsInterface.number_collapse(arr);
+      if (isarray(arr)) arr = jsInterface.number_collapse(arr);
       return arr;
     },
     Precedence11: BinaryOperation,
@@ -189,7 +193,7 @@ export const __makeSemantics = () => {
       const i = parseInt($i.sourceString);
       let value = semanticVariables[i];
       const isListOfArrays = Array.isArray(value) && value.length && isarray(value[0]);
-      if (Array.isArray(value) && !isListOfArrays) value = np.modules.array.jsInterface.array(value);
+      if (Array.isArray(value) && !isListOfArrays) value = jsInterface.array(value);
       return value;
     },
     int($sign, $value) {
@@ -232,7 +236,7 @@ export const __makeSemantics = () => {
       let entries = $kwArgs.parse() || [];
       let kwArgs = Object.fromEntries(entries.map(([k, v]) => {
         // The following is needed because minus integer gets parsed as array.
-        if (isarray(v)) v = np.modules.array.jsInterface.number_collapse(v);
+        if (isarray(v)) v = jsInterface.number_collapse(v);
         return [k, v];
       }));
       return { args, kwArgs };
@@ -248,7 +252,7 @@ export const __makeSemantics = () => {
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
-      const { tolist } = np.modules.array.jsInterface;
+      const { tolist } = jsInterface;
       for (let i in list) if (isarray(list[i])) list[i] = tolist(list[i]);
       return list;
     },
@@ -260,7 +264,7 @@ export const __makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
-    const { op_binary: op } = np.modules.array.operators;
+    const { op_binary: op } = operators;
     return op[symbol](A, B);
   }
 
@@ -268,7 +272,7 @@ export const __makeSemantics = () => {
     const B = $B.parse();
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
-    const { ops } = np.modules.array.elementwise;
+    const { ops } = elementwise;
     switch (symbol) {
       case "+": return ops["+"](B);
       case "-": return ops["-"](B);

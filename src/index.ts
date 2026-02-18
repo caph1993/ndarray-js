@@ -48,7 +48,7 @@ set_np(np);
 //    Define casting and core before importing any other module
 // ==============================
 import { NDArray, isarray, asarray } from './NDArray';
-import { modules as array_modules } from './array';
+import * as array from './array';
 /** @category Main */
 np.NDArray = NDArray;
 
@@ -56,73 +56,72 @@ np.NDArray = NDArray;
 //  Define core-related functions
 // ==============================
 
-const { tolist } = array_modules.jsInterface;
+const { tolist } = array;
 /** @category Casting and reshaping */
 np.tolist = (template: TemplateStringsArray | any[] | number | boolean | NDArray, ...variables: any[]) => {
   if (template instanceof NDArray) return tolist(template);
   return tolist(np(template, ...variables));
 }
 /** @category Casting and reshaping */
-np.fromlist = array_modules.jsInterface.fromlist;
+np.fromlist = array.fromlist;
 
 /** @category Casting and reshaping */
-np.ravel = array_modules.shape.ravel;
+np.ravel = array.ravel;
 /** @category Casting and reshaping */
-np.reshape = array_modules.shape.reshape;
+np.reshape = array.reshape;
 /** @category Casting and reshaping */
-np.array = array_modules.jsInterface.array;
+np.array = array.array;
 /** @category Casting and reshaping */
 np.asarray = asarray;
 
-const reduce = array_modules.reduce;
+import { kw_reducers } from './array/reduce';
 /** @category Reducers */
-np.sum = reduce.kw_reducers.sum;
+np.sum = kw_reducers.sum;
 /** @category Reducers */
-np.product = reduce.kw_reducers.product;
+np.product = kw_reducers.product;
 /** @category Reducers */
 np.prod = np.product;
 /** @category Reducers */
-np.any = reduce.kw_reducers.any;
+np.any = kw_reducers.any;
 /** @category Reducers */
-np.all = reduce.kw_reducers.all;
+np.all = kw_reducers.all;
 /** @category Reducers */
-np.max = reduce.kw_reducers.max;
+np.max = kw_reducers.max;
 /** @category Reducers */
-np.min = reduce.kw_reducers.min;
+np.min = kw_reducers.min;
 /** @category Reducers */
-np.argmax = reduce.kw_reducers.argmax;
+np.argmax = kw_reducers.argmax;
 /** @category Reducers */
-np.argmin = reduce.kw_reducers.argmin;
+np.argmin = kw_reducers.argmin;
 /** @category Reducers */
-np.mean = reduce.kw_reducers.mean;
+np.mean = kw_reducers.mean;
 /** @category Reducers */
-np.norm = reduce.kw_reducers.norm;
+np.norm = kw_reducers.norm;
 /** @category Reducers */
-np.var = reduce.kw_reducers.var;
+np.var = kw_reducers.var;
 /** @category Reducers */
-np.std = reduce.kw_reducers.std;
+np.std = kw_reducers.std;
 
 
 
-const transform = array_modules.transform;
+import { kw_exported } from './array/transform';
 
 /** @category Transformations */
-np.transpose = transform.transpose;
+np.transpose = array.transpose;
 /** @category Transformations */
-np.apply_along_axis = transform.apply_along_axis;
+np.apply_along_axis = array.apply_along_axis;
 /** @category Transformations */
-np.sort = transform.kw_exported.sort;
+np.sort = kw_exported.sort;
 /** @category Transformations */
-np.argsort = transform.kw_exported.argsort;
+np.argsort = kw_exported.argsort;
 /** @category Transformations */
-np.concatenate = transform.concatenate;
+np.concatenate = array.concatenate;
 /** @category Transformations */
-np.stack = transform.stack;
+np.stack = array.stack;
 
 import { Func_a_other_out } from './array/kwargs';
 
-const operators = array_modules.operators;
-
+import * as operators from './array/operators';
 
 /** @category Binary operators */
 np.add = Func_a_other_out.defaultDecorator(operators.op_binary["+"]);
@@ -198,7 +197,7 @@ np.array_equal = operators.array_equal;
 np.array_equiv = operators.array_equiv;
 
 
-const ew = array_modules.elementwise;
+import * as ew from './array/elementwise';
 
 /** @category Elementwise operators */
 np.sign = ew.kw_funcs.sign;
@@ -303,9 +302,9 @@ np.sqrt = ew.kw_funcs.sqrt;
 np.square = ew.kw_funcs.square;
 np.sign = ew.kw_funcs.sign;
 
-np.max = array_modules.reduce.kw_reducers.max;
+np.max = kw_reducers.max;
 np.amax = np.max;
-np.min = array_modules.reduce.kw_reducers.min;
+np.min = kw_reducers.min;
 np.amin = np.min;
 
 np.divmod = operators.divmod;
