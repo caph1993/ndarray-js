@@ -5,7 +5,7 @@ import { DType, HasDType, bool, infer_dtype, new_buffer, object, Buffer } from '
 export type ArrayOrConstant = NDArray | number | boolean;
 
 
-import type { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
+import type { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './kwargs/kwargs';
 
 
 /**
@@ -295,62 +295,12 @@ export { NDArray };
 
 export default NDArray;
 
-
-// import { modules } from "./array";
-// // // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
-// // import { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
-// NDArray.prototype.modules = modules;
-
-
-
-// // ==============================
-// //    Basic methods
-// // ==============================
-
-// // ==============================
-// //    Indexing
-// // ==============================
-
-
-
-// // ==============================
-// //    Printing
-// // ==============================
-
-
-
-// // ==============================
-// //    Reduce
-// // ==============================
-
-
-
-// // ==============================
-// //    array instantiation and reshaping
-// // ==============================
-
-
-// // ==============================
-// //    elementwise methods
-// // ==============================
-
-
-// // ==============================
-// //    transform methods
-// // ==============================
-
-
-
 // //=============================
-
-
 
 type BinaryOpSymbol = "+" | "-" | "*" | "/" | "%" | "//" | "**" | "<" | ">" | ">=" | "<=" | "==" | "!=" | " | " | "&" | "^" | "<<" | ">>" | "or" | "and" | "xor" | "max" | "min";
 type AssignmentOpSymbol = "=" | "+=" | "-=" | "*=" | "/=" | "%=" | "//=" | "**=" | "|=" | "&=" | "^=" | "<<=" | ">>=" | "max=" | "min=" | "or=" | "and=";
 type UnaryOpSymbol = "~" | "not" | "-";
 type Where = import("./array/indexes").Where;
-
-
 
 /**
  * Generic function to apply an operation to an array.

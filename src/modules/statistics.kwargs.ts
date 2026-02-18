@@ -17,14 +17,14 @@ export namespace Func_a_q_axis {
     frequently_used_parsers.a_axis_flatten,
     (kwargs: any) => { kwargs.q = asarray(kwargs.q); },
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   })
 }
 
-export const quantile = Func_a_q_axis.defaultDecorator(stats.quantile);
-export const nanquantile = Func_a_q_axis.defaultDecorator(stats.nanquantile);
-export const percentile = Func_a_q_axis.defaultDecorator(stats.percentile);
-export const nanpercentile = Func_a_q_axis.defaultDecorator(stats.nanpercentile);
-export const median = Func_a_axis_keepdims.defaultDecorator(stats.median);
-export const nanmedian = Func_a_axis_keepdims.defaultDecorator(stats.nanmedian);
+export const quantile = Func_a_q_axis.decorate(stats.quantile);
+export const nanquantile = Func_a_q_axis.decorate(stats.nanquantile);
+export const percentile = Func_a_q_axis.decorate(stats.percentile);
+export const nanpercentile = Func_a_q_axis.decorate(stats.nanpercentile);
+export const median = Func_a_axis_keepdims.decorate(stats.median);
+export const nanmedian = Func_a_axis_keepdims.decorate(stats.nanmedian);

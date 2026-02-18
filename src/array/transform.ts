@@ -6,7 +6,6 @@ import { ravel, reshape } from "./shape_operations";
 import { fromlist } from './js-interface';
 import { allEq, extend } from '../utils-js';
 import { ArrayOrConstant } from './operators';
-import { Func_a_lastAxis } from './kwargs';
 import { argmax_out, bitwise_out, DType, dtype_max, DtypeResolver, new_buffer } from '../dtypes';
 
 
@@ -183,24 +182,3 @@ export function stack(arrays: NDArray[], axis: number = 0) {
   return concatenate(bArrays, axis);
 }
 
-
-
-
-
-
-
-export const kw_exported = {
-  sort: Func_a_lastAxis.defaultDecorator(sort),
-  argsort: Func_a_lastAxis.defaultDecorator(argsort),
-}
-
-
-/** @param {null|number[]} axes */
-NDArray.prototype.transpose = function (axes: null | number[] = null) {
-  return transpose(this, axes);
-};
-
-NDArray.prototype.sort = function (axis = -1) {
-  sort(this, axis);
-  return null;
-};

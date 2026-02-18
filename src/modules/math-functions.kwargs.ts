@@ -19,9 +19,9 @@
 //     frequently_used_parsers.asarray('a_max'),
 //     frequently_used_parsers.out_broadcast(['a', 'a_min', 'a_max'], 'out', true),
 //   ];
-//   export const defaultDecorator = (implementation: Implementation) => decorator({
+//   export const decorate = (implementation: Implementation) => decorator({
 //     defaults, implementation, parsers
 //   });
 // }
 
-// export const clip = Func_clip.defaultDecorator(math.clip);
+// export const clip = Func_clip.decorate(math.clip);

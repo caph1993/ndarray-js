@@ -1,10 +1,9 @@
 //@ts-check
 import { asarray } from '../NDArray';
-import { as_boolean, number_collapse } from "./js-interface";
 import { shape_shifts } from "../NDArray";
 import { op_binary } from './operators';
 import NDArray from "../NDArray";
-import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_ord_axis_keepdims } from './kwargs';
+import { AxisArg } from '../kwargs/kwargs';
 import { addition_out, argmax_out, bitwise_out, bool_out, DType, DtypeResolver, float_out, new_buffer } from '../dtypes';
 
 const multiply = op_binary["*"];
@@ -96,41 +95,3 @@ export const std = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean
   return pow(variance(arr, axis, ddof, keepdims), 0.5);
 }
 
-
-export const kw_reducers = {
-  sum: Func_a_axis_keepdims.defaultDecorator(sum),
-  product: Func_a_axis_keepdims.defaultDecorator(product),
-  mean: Func_a_axis_keepdims.defaultDecorator(mean),
-  max: Func_a_axis_keepdims.defaultDecorator(max),
-  min: Func_a_axis_keepdims.defaultDecorator(min),
-
-  argmax: Func_a_axis_keepdims.defaultDecorator(argmax),
-  argmin: Func_a_axis_keepdims.defaultDecorator(argmin),
-  len: Func_a_axis_keepdims.defaultDecorator(len),
-
-  any: Func_a_axis_keepdims.defaultDecorator(any),
-  all: Func_a_axis_keepdims.defaultDecorator(all),
-
-  norm: Func_a_ord_axis_keepdims.defaultDecorator(norm),
-
-  var: Func_a_axis_ddof_keepdims.defaultDecorator(variance),
-  std: Func_a_axis_ddof_keepdims.defaultDecorator(std),
-};
-
-
-
-NDArray.prototype.any = Method_a_axis_keepdims.defaultDecorator(any);
-NDArray.prototype.all = Method_a_axis_keepdims.defaultDecorator(all);
-
-NDArray.prototype.sum = Method_a_axis_keepdims.defaultDecorator(sum);
-NDArray.prototype.product = Method_a_axis_keepdims.defaultDecorator(product);
-NDArray.prototype.max = Method_a_axis_keepdims.defaultDecorator(max);
-NDArray.prototype.min = Method_a_axis_keepdims.defaultDecorator(min);
-NDArray.prototype.argmax = Method_a_axis_keepdims.defaultDecorator(argmax);
-NDArray.prototype.argmin = Method_a_axis_keepdims.defaultDecorator(argmin);
-NDArray.prototype.mean = Method_a_axis_keepdims.defaultDecorator(mean);
-
-NDArray.prototype.var = Method_a_axis_ddof_keepdims.defaultDecorator(variance);
-
-NDArray.prototype.std = Method_a_axis_ddof_keepdims.defaultDecorator(std);
-NDArray.prototype.norm = Method_a_ord_axis_keepdims.defaultDecorator(norm);

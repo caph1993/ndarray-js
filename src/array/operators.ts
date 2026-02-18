@@ -8,7 +8,6 @@ import { tolist } from './js-interface';
 
 import { NDArray } from "../NDArray";
 import { isarray } from '../NDArray';
-import { Func_y_x_out, Func_a_a_min_a_max_out, Func_x1_x2_out, Method_other_out, Method_values_where } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
@@ -141,9 +140,8 @@ export const op_binary = {
 }
 
 
-export const heaviside = Func_x1_x2_out.defaultDecorator(
-  freeze_args_bin_op(float_out, (x1, x2) => x1 > 0 ? 1 : (x1 === 0 ? x2 : 0))
-);
+export const heaviside = freeze_args_bin_op(float_out, (x1, x2) => x1 > 0 ? 1 : (x1 === 0 ? x2 : 0));
+
 
 op_binary["↑"] = op_binary["max"];
 op_binary["↓"] = op_binary["min"];
@@ -329,7 +327,7 @@ export function array_equiv(A, B, equal_nan = false) {
 
 //op_binary["≈≈"] = op[MyArray.prototype.isclose,
 
-export const atan2 = Func_y_x_out.defaultDecorator(freeze_args_bin_op(float_out, Math.atan2));
+export const atan2 = freeze_args_bin_op(float_out, Math.atan2);
 
 export function divmod(x: any, y: any) {
   x = asarray(x);
@@ -462,66 +460,3 @@ export function clip(a: NDArray, a_min: NDArray = null, a_max: NDArray = null, o
     return apply_binary_operation(bitwise_out, (v, maxVal) => Math.min(maxVal, v), a, a_max, out);
   }
 }
-
-export const kw_export = {
-  clip: Func_a_a_min_a_max_out.defaultDecorator(clip),
-}
-
-
-
-// // ==============================
-// //       Operators: Binary operations, assignment operations and unary boolean_not
-// // ==============================
-
-NDArray.prototype.add = Method_other_out.defaultDecorator(op_binary["+"]);
-NDArray.prototype.subtract = Method_other_out.defaultDecorator(op_binary["-"]);
-NDArray.prototype.multiply = Method_other_out.defaultDecorator(op_binary["*"]);
-NDArray.prototype.divide = Method_other_out.defaultDecorator(op_binary["/"]);
-NDArray.prototype.mod = Method_other_out.defaultDecorator(op_binary["%"]);
-NDArray.prototype.divide_int = Method_other_out.defaultDecorator(op_binary["//"]);
-NDArray.prototype.pow = Method_other_out.defaultDecorator(op_binary["**"]);
-NDArray.prototype.maximum = Method_other_out.defaultDecorator(op_binary["max"]);
-NDArray.prototype.minimum = Method_other_out.defaultDecorator(op_binary["min"]);
-
-NDArray.prototype.bitwise_or = Method_other_out.defaultDecorator(op_binary["|"]);
-NDArray.prototype.bitwise_and = Method_other_out.defaultDecorator(op_binary["&"]);
-// NDArray.prototype.bitwise_xor = Method_other_out.defaultDecorator(op_binary["^"]);
-// NDArray.prototype.bitwise_shift_left = Method_other_out.defaultDecorator(op_binary["<<"]);
-NDArray.prototype.bitwise_shift_right = Method_other_out.defaultDecorator(op_binary[">>"]);
-
-NDArray.prototype.logical_or = Method_other_out.defaultDecorator(op_binary["or"]);
-NDArray.prototype.logical_and = Method_other_out.defaultDecorator(op_binary["and"]);
-NDArray.prototype.logical_xor = Method_other_out.defaultDecorator(op_binary["xor"]);
-
-NDArray.prototype.greater = Method_other_out.defaultDecorator(op_binary[">"]);
-NDArray.prototype.less = Method_other_out.defaultDecorator(op_binary["<"]);
-NDArray.prototype.greater_equal = Method_other_out.defaultDecorator(op_binary[">="]);
-NDArray.prototype.less_equal = Method_other_out.defaultDecorator(op_binary["<="]);
-NDArray.prototype.equal = Method_other_out.defaultDecorator(op_binary["=="]);
-NDArray.prototype.not_equal = Method_other_out.defaultDecorator(op_binary["!="]);
-
-
-
-NDArray.prototype.isclose = isclose;
-NDArray.prototype.allclose = allclose;
-
-
-NDArray.prototype.assign = Method_values_where.defaultDecorator(op_assign["="]);
-NDArray.prototype.add_assign = Method_values_where.defaultDecorator(op_assign["+="]);
-NDArray.prototype.subtract_assign = Method_values_where.defaultDecorator(op_assign["-="]);
-NDArray.prototype.multiply_assign = Method_values_where.defaultDecorator(op_assign["*="]);
-NDArray.prototype.divide_assign = Method_values_where.defaultDecorator(op_assign["/="]);
-NDArray.prototype.mod_assign = Method_values_where.defaultDecorator(op_assign["%="]);
-NDArray.prototype.divide_int_assign = Method_values_where.defaultDecorator(op_assign["//="]);
-NDArray.prototype.pow_assign = Method_values_where.defaultDecorator(op_assign["**="]);
-
-NDArray.prototype.maximum_assign = Method_values_where.defaultDecorator(op_assign["max="]);
-NDArray.prototype.minimum_assign = Method_values_where.defaultDecorator(op_assign["min="]);
-
-NDArray.prototype.bitwise_or_assign = Method_values_where.defaultDecorator(op_assign["|="]);
-NDArray.prototype.bitwise_and_assign = Method_values_where.defaultDecorator(op_assign["&="]);
-NDArray.prototype.bitwise_shift_left_assign = Method_values_where.defaultDecorator(op_assign["<<="]);
-NDArray.prototype.bitwise_shift_right_assign = Method_values_where.defaultDecorator(op_assign[">>="]);
-
-NDArray.prototype.logical_or_assign = Method_values_where.defaultDecorator(op_assign["or="]);
-NDArray.prototype.logical_and_assign = Method_values_where.defaultDecorator(op_assign["and="]);

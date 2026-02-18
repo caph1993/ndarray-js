@@ -1,13 +1,13 @@
 import { NDArray, broadcast_n_shapes } from '../NDArray';
-import { Arr, ArrOrAny, ArrOrConst } from "./js-interface";
-import { isarray } from '../NDArray';
-import { asarray } from '../NDArray';
+import { Arr, ArrOrAny, ArrOrConst } from "../array/js-interface";
+import { isarray, asarray } from '../NDArray';
 export type AxisArg = number | null;
 
 export type ArrOrNull = NDArray | null;
 
 import { empty } from "../NDArray";
-import { Where } from './indexes';
+import { Where } from '../array/indexes';
+import { DType } from '../dtypes';
 
 export { Arr, ArrOrAny, ArrOrConst };
 
@@ -180,7 +180,7 @@ export namespace Func_a_lastAxis {
   export const parsers = [
     frequently_used_parsers['a_axis'],
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -197,7 +197,7 @@ export namespace Func_a_out {
     frequently_used_parsers.asarray('a'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -210,7 +210,7 @@ export namespace Method_out {
     frequently_used_parsers.isarray('a'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults, implementation, parsers, this_as_first_arg: true,
     });
@@ -228,7 +228,7 @@ export namespace Func_a_decimals_out {
     frequently_used_parsers.is_integer_non_neg('decimals'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -243,7 +243,7 @@ export namespace Method_a_decimals_out {
     frequently_used_parsers.is_integer_non_neg('decimals'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers, this_as_first_arg: true,
   });
 }
@@ -262,7 +262,7 @@ export namespace Func_a_other_out {
     frequently_used_parsers.asarray('other'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -276,7 +276,7 @@ export namespace Method_other_out {
     frequently_used_parsers.asarray('other'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults, implementation, parsers, this_as_first_arg: true,
     });
@@ -294,7 +294,7 @@ export namespace Func_a_values_where {
     frequently_used_parsers.asarray('a'),
     frequently_used_parsers.asarray('values'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -308,7 +308,7 @@ export namespace Method_values_where {
     frequently_used_parsers.isarray('a'),
     frequently_used_parsers.asarray('values'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers, this_as_first_arg: true,
   });
 }
@@ -323,7 +323,7 @@ export namespace Func_a_axis_keepdims {
   export const parsers = [
     frequently_used_parsers.a_axis_flatten,
   ];
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults, implementation, parsers
     });
@@ -340,7 +340,7 @@ export namespace Method_a_axis_keepdims {
     frequently_used_parsers.isarray('a'),
     frequently_used_parsers.a_axis_flatten,
   ];
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults, implementation, parsers, this_as_first_arg: true,
     });
@@ -358,7 +358,7 @@ export namespace Func_a_ord_axis_keepdims {
     frequently_used_parsers.a_axis_flatten,
     frequently_used_parsers.is_pnorm('ord'),
   ];
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults, implementation, parsers,
     });
@@ -368,7 +368,7 @@ export namespace Method_a_ord_axis_keepdims {
   export type Kwargs = { ord?: number, axis?: AxisArg, keepdims?: boolean };
   export type Wrapper = (ord?: number | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray;
   export type Implementation = Func_a_ord_axis_keepdims.Implementation;
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults: Func_a_ord_axis_keepdims.defaults,
       parsers: Func_a_ord_axis_keepdims.parsers,
@@ -388,7 +388,7 @@ export namespace Func_a_axis_ddof_keepdims {
     frequently_used_parsers.a_axis_flatten,
     frequently_used_parsers.is_integer_non_neg('ddof'),
   ];
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults, implementation, parsers,
     });
@@ -398,7 +398,7 @@ export namespace Method_a_axis_ddof_keepdims {
   export type Implementation = Func_a_axis_ddof_keepdims.Implementation;
   export type Kwargs = { ddof?: number, axis?: AxisArg, keepdims?: boolean };
   export type Wrapper = (ddof?: number | Kwargs, axis?: AxisArg | Kwargs, keepdims?: boolean | Kwargs) => NDArray;
-  export function defaultDecorator(implementation: Implementation) {
+  export function decorate(implementation: Implementation) {
     return kwargs_decorator<Wrapper, Implementation>({
       defaults: Func_a_axis_ddof_keepdims.defaults,
       parsers: Func_a_axis_ddof_keepdims.parsers,
@@ -421,7 +421,7 @@ export namespace Func_y_x_out {
     frequently_used_parsers.asarray('y'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -440,7 +440,7 @@ export namespace Func_a_a_min_a_max_out {
     frequently_used_parsers.asarray_or_null('a_max'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
@@ -457,8 +457,75 @@ export namespace Func_x1_x2_out {
     frequently_used_parsers.asarray('x2'),
     frequently_used_parsers.isarray_or_null('out'),
   ];
-  export const defaultDecorator = (implementation: Implementation) => decorator({
+  export const decorate = (implementation: Implementation) => decorator({
     defaults, implementation, parsers
   });
 }
 
+
+export namespace Func_isarray {
+  export type Implementation = (A: any) => A is NDArray;
+  export type Kwargs = { A?: any };
+  export type Wrapper = (A: any | Kwargs) => boolean;
+  export const decorator = kwargs_decorator<Wrapper, Implementation, boolean>;
+  export const defaults: [string, any][] = [
+    ["A", undefined],
+  ];
+  export const parsers = [
+  ];
+}
+
+export namespace Func_new_NDArray {
+  export type Implementation = (flat: Buffer, shape: number[], dtype?: DType) => NDArray;
+  export type Kwargs = { flat?: Buffer, shape?: number[], dtype?: DType };
+  export type Wrapper = (flat: Buffer | Kwargs, shape?: number[], dtype?: DType) => NDArray;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["flat", undefined],
+    ["shape", []],
+    ["dtype", null],
+  ];
+}
+
+export namespace Func_asarray {
+  export type Implementation = (A: NDArray | any, dtype: DType) => NDArray;
+  export type Kwargs = { A?: NDArray | any, dtype?: DType };
+  export type Wrapper = (A: NDArray | any | Kwargs, dtype?: DType) => NDArray;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["A", undefined],
+    ["dtype", null],
+  ];
+}
+
+export namespace Func_array {
+  export type Implementation = (A: NDArray | any, dtype: DType) => NDArray;
+  export type Kwargs = { A?: NDArray | any, dtype?: DType };
+  export type Wrapper = (A: NDArray | any | Kwargs, dtype?: DType) => NDArray;
+  export const decorator = kwargs_decorator<Wrapper, Implementation>;
+  export const defaults: [string, any][] = [
+    ["A", undefined],
+    ["dtype", null],
+  ];
+}
+
+export namespace Func_broadcast_shapes {
+  export type Implementation = (shapeA: number[], shapeB: number[]) => [number[], number[], number[]];
+  export type Kwargs = { shapeA?: number[], shapeB?: number[] };
+  export type Wrapper = (shapeA: number[] | Kwargs, shapeB?: number[]) => [number[], number[], number[]];
+  export const decorator = kwargs_decorator<Wrapper, Implementation, [number[], number[], number[]]>;
+  export const defaults: [string, any][] = [
+    ["shapeA", []],
+    ["shapeB", []],
+  ];
+}
+
+export namespace Func_broadcast_n_shapes {
+  export type Implementation = (...shapes: number[][]) => [number[][], number[]];
+  export type Kwargs = { shapes?: number[][] };
+  export type Wrapper = (shape: number[] | Kwargs[], ...shapes: number[][]) => [number[][], number[]];
+  export const decorator = kwargs_decorator<Wrapper, Implementation, [number[][], number[]]>;
+  export const defaults: [string, any][] = [
+    ["shapes", []],
+  ];
+}

@@ -3,7 +3,7 @@
 import { isarray } from '../NDArray';
 import { asarray } from '../NDArray';
 import NDArray from "../NDArray";
-import { Func_a_out, Func_a_decimals_out, Method_out, Method_a_decimals_out } from './kwargs';
+
 import { DType, dtype_cmp, new_buffer, float_out, bool, bool_out, DtypeResolver, HasDType } from "../dtypes";
 
 // Here, we declare only the core functions (those that are methods)
@@ -124,62 +124,3 @@ export const ops = {
   "-": negative,
 }
 
-
-export const kw_funcs = {
-  sign: Func_a_out.defaultDecorator(sign),
-  sqrt: Func_a_out.defaultDecorator(sqrt),
-  square: Func_a_out.defaultDecorator(square),
-  exp: Func_a_out.defaultDecorator(exp),
-  log: Func_a_out.defaultDecorator(log),
-  log2: Func_a_out.defaultDecorator(log2),
-  log10: Func_a_out.defaultDecorator(log10),
-  log1p: Func_a_out.defaultDecorator(log1p),
-  sin: Func_a_out.defaultDecorator(sin),
-  cos: Func_a_out.defaultDecorator(cos),
-  tan: Func_a_out.defaultDecorator(tan),
-  asin: Func_a_out.defaultDecorator(asin),
-  acos: Func_a_out.defaultDecorator(acos),
-  atan: Func_a_out.defaultDecorator(atan),
-  cosh: Func_a_out.defaultDecorator(cosh),
-  sinh: Func_a_out.defaultDecorator(sinh),
-  tanh: Func_a_out.defaultDecorator(tanh),
-  acosh: Func_a_out.defaultDecorator(acosh),
-  asinh: Func_a_out.defaultDecorator(asinh),
-  atanh: Func_a_out.defaultDecorator(atanh),
-  floor: Func_a_out.defaultDecorator(floor),
-  ceil: Func_a_out.defaultDecorator(ceil),
-  negative: Func_a_out.defaultDecorator(negative),
-  bitwise_not: Func_a_out.defaultDecorator(bitwise_not),
-  logical_not: Func_a_out.defaultDecorator(logical_not),
-  valueOf: Func_a_out.defaultDecorator(valueOf),
-  abs: Func_a_out.defaultDecorator(abs),
-
-  isfinite: Func_a_out.defaultDecorator(isfinite),
-  isinf: Func_a_out.defaultDecorator(isinf),
-  isposinf: Func_a_out.defaultDecorator(isposinf),
-  isneginf: Func_a_out.defaultDecorator(isneginf),
-  isnan: Func_a_out.defaultDecorator(isnan),
-  iscomplex: Func_a_out.defaultDecorator(iscomplex),
-  isreal: Func_a_out.defaultDecorator(isreal),
-  reciprocal: Func_a_out.defaultDecorator(reciprocal),
-  positive: Func_a_out.defaultDecorator(positive),
-  angle: Func_a_out.defaultDecorator(angle),
-  real: Func_a_out.defaultDecorator(real),
-  imag: Func_a_out.defaultDecorator(imag),
-  conj: Func_a_out.defaultDecorator(conj),
-  conjugate: Func_a_out.defaultDecorator(conjugate),
-  cbrt: Func_a_out.defaultDecorator(cbrt),
-  nan_to_num: Func_a_out.defaultDecorator(nan_to_num),
-  real_if_close: Func_a_out.defaultDecorator(real_if_close),
-
-  round: Func_a_decimals_out.defaultDecorator(round),
-}
-
-
-
-// Unary operations: only boolean_not. Positive is useless and negative is almost useless
-NDArray.prototype.bitwise_not = Method_out.defaultDecorator(bitwise_not);
-NDArray.prototype.logical_not = Method_out.defaultDecorator(logical_not);
-NDArray.prototype.negative = Method_out.defaultDecorator(negative);
-NDArray.prototype.abs = Method_out.defaultDecorator(abs);
-NDArray.prototype.round = Method_a_decimals_out.defaultDecorator(round);
