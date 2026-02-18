@@ -1,5 +1,7 @@
 //@ts-check
-import { asarray, new_NDArray, as_boolean, number_collapse, shape_shifts } from './basic';
+import { asarray } from '../NDArray';
+import { as_boolean, number_collapse } from "./js-interface";
+import { shape_shifts } from "../NDArray";
 import { op_binary } from './operators';
 import NDArray from "../NDArray";
 import { AxisArg, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_ord_axis_keepdims } from './kwargs';
@@ -43,7 +45,7 @@ function apply_on_axis(
   if (keepdims) shape[axis] = 1;
   else shape = shape.filter((_, i) => i != axis);
   let dtype = dtype_resolver([arr.dtype], null);
-  const out = new_NDArray(new_buffer(flat, dtype), shape);
+  const out = new NDArray(new_buffer(flat, dtype), shape);
   return out.size == 1 ? (out.flat[0] as any) : out;
 };
 

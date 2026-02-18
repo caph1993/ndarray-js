@@ -1,15 +1,18 @@
 //@ts-check
 import * as indexes from './indexes';
-import { isarray, asarray, empty, ravel, shape_shifts, new_NDArray } from './basic';
+import { asarray } from '../NDArray';
+import { empty, shape_shifts } from "../NDArray";
+import { ravel } from "./shape_operations";
 import { addition_out, bitwise_out, bool, bool_out, DType, DtypeResolver, float_out } from '../dtypes';
 import { tolist } from './js-interface';
 
-import NDArray from "../NDArray";
+import { NDArray } from "../NDArray";
+import { isarray } from '../NDArray';
 import { Func_y_x_out, Func_a_a_min_a_max_out, Func_x1_x2_out, Method_other_out, Method_values_where } from './kwargs';
 import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
-import { broadcast_n_shapes, broadcast_shapes } from './_globals';
+import { broadcast_n_shapes, broadcast_shapes } from "../NDArray";
 import { new_buffer } from '../dtypes';
 
 export type ArrayOrConstant = NDArray | number | boolean;
@@ -366,7 +369,7 @@ export function n_ary_operation<
   // if (arrs.length == 1 && elem_shape.length == 0) {
   //   const a = arrs[0];
   //   //@ts-ignore
-  //   return new_NDArray(a.flat.map(x => number_collapse(func(x))), a.shape, Number); // FIX
+  //   return new NDArray(a.flat.map(x => number_collapse(func(x))), a.shape, Number); // FIX
   // } else if (arrs.length == 1) {
   //   const a = arrs[0];
   //   const a_size = a.size;
@@ -379,7 +382,7 @@ export function n_ary_operation<
   //     for (let j = i * out_elem_size; j < end; j++) outs[j] = values[i];
   //   });
   //   //@ts-ignore
-  //   return new_NDArray(outs, a.shape, Number); // FIX
+  //   return new NDArray(outs, a.shape, Number); // FIX
   // }
 
   const rawShapes = arrs.map(a => a.shape);

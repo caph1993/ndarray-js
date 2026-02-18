@@ -1,18 +1,19 @@
 //@ts-check
 
 import { bool, DType, float64, int32, new_buffer, object } from '../dtypes';
-import { isarray, number_collapse, new_NDArray } from './basic';
-import NDArray from "../NDArray";
+import { asarray, isarray, NDArray, Shape, parse_shape } from "../NDArray";
+
+
 
 export function fromlist(arr: any, dtype?: DType) {
   if (isarray(arr)) return arr;
   if (typeof arr === "number") {
     if (!dtype && Number.isInteger(arr)) dtype = int32;
     else if (!dtype) dtype = float64;
-    return new_NDArray(new_buffer([arr], dtype), [], dtype);
+    return new NDArray(new_buffer([arr], dtype), [], dtype);
   }
   if (typeof arr === "boolean") {
-    return new_NDArray(new_buffer([arr ? 1 : 0], bool), [], bool);
+    return new NDArray(new_buffer([arr ? 1 : 0], bool), [], bool);
   }
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
   const shape: number[] = [];
@@ -48,8 +49,10 @@ export function fromlist(arr: any, dtype?: DType) {
     else if (flat.every(x => typeof x === "number")) dtype = float64;
     else dtype = object;
   }
-  return new_NDArray(new_buffer(flat, dtype), shape, dtype);
+  return new NDArray(new_buffer(flat, dtype), shape, dtype);
 }
+
+NDArray.prototype.fromlist = fromlist;
 
 export function tolist(arr) {
   if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
@@ -92,6 +95,59 @@ export function tolist(arr) {
 NDArray.prototype.tolist = function () {
   return tolist(this);
 }
-// NDArray.prototype.fromJS = function (A) {
-//   return fromJS(A);
-// }
+
+export function array(A: NDArray | any, dtype: DType = null) {
+  if (isarray(A)) { // copy if it's a view
+    let flat = A._simpleIndexes == null ? new_buffer(A.flat, A.dtype) : A.flat;
+    if (dtype && dtype !== A.dtype) {
+      flat = new_buffer(flat, dtype);
+    }
+    return new NDArray(flat, A.shape);
+  }
+  else return asarray(A, dtype);
+}
+
+/**
+ * If the array is 0D, it returns it's unique element (number or boolean).
+ * The signature is kept as NDArray for type consistency, even though the
+ * output is a number or a boolean. This is consistent with the facts that
+ * (1) all functions requiring arrays work with numbers as well because they call asarray,
+ * and (2) semantically, a constant is an array.
+ */
+export function number_collapse(arr: NDArray, expect = false): NDArray | number {
+  if (!arr.shape.length) return arr.item() as NDArray | number;
+  if (expect) throw new Error(`Expected constant. Got array with shape ${arr.shape}`);
+  return arr;
+}
+
+export function as_boolean(obj) {
+  if (isarray(obj)) obj = number_collapse(obj, true);
+  else if (typeof obj == 'string') throw new Error(`'string' object can not be interpreted as boolean: ${obj}`);
+  return !!(0 + obj);
+}
+export function as_number(obj) {
+  if (isarray(obj)) obj = number_collapse(obj, true);
+  else if (typeof obj == 'string') throw new Error(`'string' object can not be interpreted as boolean: ${obj}`);
+  return parseFloat(obj);
+}
+// Types used everywhere
+
+export type Arr = NDArray;
+export type ArrOrAny = NDArray | number | boolean | any[];
+export type ArrOrConst = NDArray | number | boolean;
+export function new_array(shape: Shape, dtype?: DType, fill?: Function | number | boolean) {
+  const size = parse_shape(shape).reduce((a, b) => a * b, 1);
+  const buffer = new_buffer(size, dtype);
+  // If callable, call fill for each element. Otherwise, fill with the value.
+  if (typeof fill == 'function') {
+    for (let i = 0; i < size; i++) {
+      buffer[i] = fill(i);
+    }
+  } else if (fill !== undefined) {
+    for (let i = 0; i < size; i++) {
+      buffer[i] = fill;
+    }
+  }
+  return new NDArray(buffer, parse_shape(shape), dtype);
+}
+

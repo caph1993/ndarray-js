@@ -8,7 +8,6 @@ export type ArrayOrConstant = NDArray | number | boolean;
 import type { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './array/kwargs';
 
 
-
 /**
  * Multi dimensional array.
  */
@@ -167,7 +166,7 @@ class NDArray implements HasDType {
 
   /** @category Casting */
   tolist: () => any;
-  // fromJS: (A: any) => NDArray;
+  fromlist: (A: any, dtype?: DType) => NDArray;
 
   /**
    * Generic operator function. See {@link GenericOperatorFunction} for details.
@@ -240,13 +239,65 @@ class NDArray implements HasDType {
   }
 }
 
+export type Shape = number | number[] | NDArray;
+
+
+export function shape_shifts(shape) {
+  // increasing one by one on a given axis is increasing by shifts[axis] in flat representation
+  const shifts = Array.from({ length: shape.length }, (_) => 0);
+  shifts[shape.length - 1] = 1;
+  for (let i = shape.length - 2; i >= 0; i--) shifts[i] = shifts[i + 1] * shape[i + 1];
+  return shifts;
+}
+
+export function parse_shape(shape: Shape): number[] {
+  if (typeof shape == "number") return [shape];
+  if (isarray(shape)) {
+    if (shape.shape.length > 1) {
+      throw new Error(`Expected flat shape. Got array with shape ${shape.shape}`);
+    }
+    return [...shape.flat] as number[];
+  }
+  if (Array.isArray(shape)) return shape;
+  throw new Error(`Expected shape. Got ${shape}`);
+}
+
+export function broadcast_shapes(shapeA: number[], shapeB: number[]) {
+  const shape = [];
+  const maxDim = Math.max(shapeA.length, shapeB.length);
+  shapeA = [...Array.from({ length: maxDim - shapeA.length }, () => 1), ...shapeA];
+  shapeB = [...Array.from({ length: maxDim - shapeB.length }, () => 1), ...shapeB];
+  for (let axis = maxDim - 1; axis >= 0; axis--) {
+    const dim1 = shapeA[axis];
+    const dim2 = shapeB[axis];
+    if (dim1 !== 1 && dim2 !== 1 && dim1 !== dim2)
+      throw new Error(`Can not broadcast axis ${axis} with sizes ${dim1} and ${dim2}`);
+    shape.unshift(Math.max(dim1, dim2));
+  }
+  return [shape, shapeA, shapeB];
+}
+
+export function broadcast_n_shapes(...shapes: number[][]) {
+  const maxDim = Math.max(...shapes.map(shape => shape.length));
+  const broadcastShapes = shapes.map(shape => {
+    return [...Array.from({ length: maxDim - shape.length }, () => 1), ...shape];
+  });
+  const outputShape = [];
+  for (let axis = maxDim - 1; axis >= 0; axis--) {
+    const dims = broadcastShapes.map(shape => shape[axis]);
+    const dim = Math.max(...dims);
+    if (dims.some(d => d !== 1 && d !== dim)) throw new Error(`Can not broadcast axis ${axis} with sizes ${dims}`);
+    outputShape.unshift(dim);
+  }
+  return [broadcastShapes, outputShape];
+}
+
+
+
 export { NDArray };
 
 export default NDArray;
 
-
-// import { GLOBALS } from './_globals';
-// GLOBALS.NDArray = NDArray;
 
 // import { modules } from "./array";
 // // // import { AxisArg, ReduceKwArgs } from './NDArray/reduce';
@@ -316,6 +367,27 @@ type Where = import("./array/indexes").Where;
  * ```
  */
 export type GenericOperatorFunction = { (): NDArray; (where: Where): ArrayOrConstant; (where: Where, op: AssignmentOpSymbol, B: ArrayOrConstant): NDArray; (op: AssignmentOpSymbol, B: ArrayOrConstant): NDArray; (op: BinaryOpSymbol, B: ArrayOrConstant): NDArray; (UnaryOpSymbol): NDArray; };
+export function copy(A: NDArray) {
+  return new NDArray(new_buffer(A.flat, A.dtype), A.shape);
+}
+NDArray.prototype.copy = function () {
+  return copy(this);
+};
+// ====================
+// Constructors
+// ====================
+export function empty(shape: Shape, dtype?: DType) {
+  const size = parse_shape(shape).reduce((a, b) => a * b, 1);
+  const buffer = new_buffer(size, dtype);
+  return new NDArray(buffer, parse_shape(shape));
+}
+export function asarray(A: NDArray | any, dtype: DType = null): NDArray {
+  if (isarray(A)) return A;
+  else return NDArray.prototype.fromlist(A, dtype);
+}
+export function isarray(A: any): A is NDArray {
+  return A instanceof NDArray;
+}
 
 // const op: GenericOperatorFunction = function (...args): NDArray {
 //   if (!args.length) return this;

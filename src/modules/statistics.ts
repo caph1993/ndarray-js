@@ -1,11 +1,12 @@
 //@ts-check
 import assert = require("assert");
 import NDArray from "../NDArray";
-import { Arr, AxisArg } from "../array/kwargs";
+import { AxisArg } from "../array/kwargs";
 
 import { cmp_nan_at_the_end, swapAxes } from "../array/transform";
 import { np } from "../np_circular_import";
-import { ArrOrAny, asarray, new_NDArray } from "../array/_globals";
+import { Arr } from "../array/js-interface";
+import { asarray } from '../NDArray';
 
 
 
@@ -165,7 +166,7 @@ export function quantile(a: Arr, q: Arr | number, axis: number, discard_nans = f
       j += nrows;
     }
   }
-  return new_NDArray(out, [...outer_shape, ...inner_shape]);
+  return new NDArray(out, [...outer_shape, ...inner_shape]);
 
   // a = np.sort(a, { axis: null });
   // const n = discard_nans ? np.isnan(a).logical_not().sum(0) : a.shape[0];

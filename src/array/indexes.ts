@@ -1,6 +1,5 @@
 //@ts-check
-import { isarray, asarray, new_NDArray, shape_shifts } from './basic';
-import NDArray from "../NDArray";
+import { NDArray, isarray, asarray, shape_shifts } from "../NDArray";
 import { dtype_is_boolean, dtype_is_integer, new_buffer } from '../dtypes';
 
 export type RangeSpec = string;
@@ -21,7 +20,7 @@ export function index(arr: NDArray, where: Where) {
     return arr.flat[index] as any as NDArray;
   } else if (axesIndex.isSimple) {
     const composition = __compose_simpleIndexes(arr._simpleIndexes, axesIndex);
-    const out = new_NDArray(arr._flat, axesIndex.shape);
+    const out = new NDArray(arr._flat, axesIndex.shape);
     out._simpleIndexes = composition;
     if (arr['__warnAssignments']) out['__warnAssignments'] = true;
     return copy ? out.copy() : out;
@@ -29,7 +28,7 @@ export function index(arr: NDArray, where: Where) {
     const src_flat = arr.flat;
     const buffer = new_buffer(axesIndex.size, arr.dtype);
     for (let i = 0; i < axesIndex.size; i++) buffer[i] = src_flat[axesIndex.indices[i]];
-    const out = new_NDArray(buffer, axesIndex.shape);
+    const out = new NDArray(buffer, axesIndex.shape);
     if (!copy) out['__warnAssignments'] = true;
     return out;
   }

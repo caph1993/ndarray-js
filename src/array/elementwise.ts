@@ -1,6 +1,7 @@
 //@ts-check
 
-import { asarray, isarray, new_NDArray } from './basic';
+import { isarray } from '../NDArray';
+import { asarray } from '../NDArray';
 import NDArray from "../NDArray";
 import { Func_a_out, Func_a_decimals_out, Method_out, Method_a_decimals_out } from './kwargs';
 import { DType, dtype_cmp, new_buffer, float_out, bool, bool_out, DtypeResolver, HasDType } from "../dtypes";
@@ -45,7 +46,7 @@ function _applyFuncToArray(
     for (let i = 0; i < A.flat.length; i++) {
       out_buffer[i] = func(A.flat[i]);
     }
-    _out = new_NDArray(out_buffer, A.shape);
+    _out = new NDArray(out_buffer, A.shape);
   } else {
     if (dtype_cmp(_out.dtype, out.dtype) > 0) {
       throw new Error(`Output array has dtype ${out.dtype}, which cannot hold all values of type ${dtype}.`);

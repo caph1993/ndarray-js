@@ -47,9 +47,8 @@ set_np(np);
 // ==============================
 //    Define casting and core before importing any other module
 // ==============================
-import NDArray from './NDArray';
+import { NDArray, isarray, asarray } from './NDArray';
 import { modules as array_modules } from './array';
-import { isarray } from './array/basic';
 /** @category Main */
 np.NDArray = NDArray;
 
@@ -67,13 +66,13 @@ np.tolist = (template: TemplateStringsArray | any[] | number | boolean | NDArray
 np.fromlist = array_modules.jsInterface.fromlist;
 
 /** @category Casting and reshaping */
-np.ravel = array_modules.basic.ravel;
+np.ravel = array_modules.shape.ravel;
 /** @category Casting and reshaping */
-np.reshape = array_modules.basic.reshape;
+np.reshape = array_modules.shape.reshape;
 /** @category Casting and reshaping */
-np.array = array_modules.basic.array;
+np.array = array_modules.jsInterface.array;
 /** @category Casting and reshaping */
-np.asarray = array_modules.basic.asarray;
+np.asarray = asarray;
 
 const reduce = array_modules.reduce;
 /** @category Reducers */

@@ -1,8 +1,12 @@
-import { NDArray } from '../NDArray';
-import { broadcast_n_shapes, isarray } from "./_globals";
-import { asarray, NDArray, ArrOrAny, ArrOrConst, AxisArg, ArrOrNull, } from './_globals';
-export { asarray, NDArray as Arr, ArrOrAny, ArrOrConst, AxisArg, ArrOrNull } from './_globals';
-import { empty } from './basic';
+import { NDArray, broadcast_n_shapes } from '../NDArray';
+import { ArrOrAny, ArrOrConst } from "./js-interface";
+import { isarray } from '../NDArray';
+import { asarray } from '../NDArray';
+export type AxisArg = number | null;
+
+export type ArrOrNull = NDArray | null;
+
+import { empty } from "../NDArray";
 import { Where } from './indexes';
 
 
@@ -17,8 +21,9 @@ import { Where } from './indexes';
 
 
 export function kwargs_decorator<
-  Wrapper extends (...args: any[]) => ArrOrConst,
-  Implementation extends (...args: any[]) => NDArray,
+  Wrapper extends (...args: any[]) => T,
+  Implementation extends (...args: any[]) => T,
+  T = NDArray
 >({ defaults, implementation, parsers, this_as_first_arg }: {
   defaults: [string, any][],
   implementation: Implementation,

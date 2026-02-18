@@ -1,39 +1,32 @@
 //@ts-check
-import NDArray from '../NDArray';
-import { Shape } from '../array/basic';
+import { Shape, empty } from '../NDArray';
 import { float64, DType, int32 } from '../dtypes';
 
-import * as basic from '../array/basic';
 import * as elementwise from '../array/elementwise';
+import { new_array, as_number } from '../array/js-interface';
 
-/**
- * Creates a new array with the specified shape and type, without initializing entries.
- */
-export function empty(shape: Shape, dtype: DType = float64) {
-  return basic.empty(shape, dtype);
-};
-
+export { empty };
 /**
  * Creates a new array of zeros with the specified shape and dtype.
  */
 export function zeros(shape: Shape, dtype: DType = float64) {
-  return basic.new_array(shape, dtype, (_) => 0)
+  return new_array(shape, dtype, (_) => 0)
 };
 
 export function ones(shape: Shape, dtype: DType = float64) {
-  return basic.new_array(shape, dtype, (_) => 1)
+  return new_array(shape, dtype, (_) => 1)
 };
 
 export function arange(arg0, arg1 = null, dtype: DType = int32) {
   let start, end;
   if (arg1 === null) start = 0, end = arg0;
   else start = arg0, end = arg1;
-  return basic.new_array(end - start, dtype, (i) => start + i)
+  return new_array(end - start, dtype, (i) => start + i)
 };
 
 export function linspace(start: number, stop: number, steps = 50, endpoint = true) {
-  start = basic.as_number(start);
-  stop = basic.as_number(stop);
+  start = as_number(start);
+  stop = as_number(stop);
   let n = (steps - (endpoint ? 1 : 0));
   let arr = arange(steps).divide(n).multiply(stop - start).add(start);
   return arr;

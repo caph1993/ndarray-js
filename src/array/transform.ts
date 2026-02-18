@@ -1,9 +1,10 @@
 //@ts-check
 
-import { isarray, asarray, new_NDArray, number_collapse, ravel, shape_shifts, reshape, empty } from './basic';
+import { NDArray, isarray, asarray, shape_shifts, empty } from '../NDArray';
+import { number_collapse } from "./js-interface";
+import { ravel, reshape } from "./shape_operations";
 import { fromlist } from './js-interface';
 import { allEq, extend } from '../utils-js';
-import NDArray from "../NDArray";
 import { ArrayOrConstant } from './operators';
 import { Func_a_lastAxis } from './kwargs';
 import { argmax_out, bitwise_out, DType, dtype_max, DtypeResolver, new_buffer } from '../dtypes';
@@ -46,7 +47,7 @@ export function apply_along_axis(
   const shape = [...arr.shape.slice(0, axis), ...tmp.shape.slice(1), ...arr.shape.slice(axis + 1),];
 
   const dtype = dtype_resolver([arr.dtype], null);
-  const out = new_NDArray(new_buffer(tmp.flat, dtype), shape);
+  const out = new NDArray(new_buffer(tmp.flat, dtype), shape);
   return number_collapse(out);
 }
 
@@ -113,7 +114,7 @@ export function transpose(arr: NDArray, axes: null | number[] = null) {
   }
   // Now, just copy the data:
   const src = arr.flat;
-  const out = new_NDArray(new_buffer(src.length, arr.dtype), shape);
+  const out = new NDArray(new_buffer(src.length, arr.dtype), shape);
   for (let i = 0; i < indices.length; i++) out.flat[i] = src[indices[i]];
   return out;
 }

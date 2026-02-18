@@ -1,5 +1,5 @@
-import type NDArray from "../NDArray";
-import { asarray, new_NDArray } from "../array/basic";
+import { NDArray } from "../NDArray";
+import { asarray } from "../NDArray";
 import { Where, IndexSpec } from "../array/indexes";
 import { new_buffer } from "../dtypes";
 
@@ -31,5 +31,5 @@ export function nonzero(a: NDArray) {
       v = Math.floor(v / a.shape[i]);
     }
   });
-  return indices.map(buffer => new_NDArray(buffer, [buffer.length], 'int32'));
+  return indices.map(buffer => new NDArray(buffer, [buffer.length], 'int32'));
 }
