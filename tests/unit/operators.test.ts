@@ -18,6 +18,6 @@ describe("operators", () => {
   it("compares arrays elementwise", () => {
     const a = np.array([1, 2, 3]);
     const result = np.greater_equal(a, 2);
-    expect(np.tolist(result)).toEqual([0, 1, 1]);
+    expect(np.tolist(result)).toEqual([false, true, true]);
   });
 });

@@ -234,6 +234,10 @@ class NDArray implements HasDType {
     if (this.size != 1) throw new Error(`Can't convert array of size ${this.size} to scalar`);
     return this.dtype === bool ? !!this._flat[0] : this._flat[0];
   }
+  item_if_scalar() {
+    if (this.size == 1) return this.item();
+    else return this;
+  }
 }
 
 export type Shape = number | number[] | NDArray;

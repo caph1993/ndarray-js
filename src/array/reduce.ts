@@ -1,15 +1,11 @@
 //@ts-check
 import { asarray } from '../NDArray';
 import { shape_shifts } from "../NDArray";
-import { op_binary } from './operators';
+import { multiply, divide, subtract, pow } from './operators';
 import NDArray from "../NDArray";
 import { AxisArg } from '../kwargs/kwargs';
 import { addition_out, argmax_out, bitwise_out, bool_out, DType, DtypeResolver, float_out, new_buffer } from '../dtypes';
 
-const multiply = op_binary["*"];
-const divide = op_binary["/"];
-const subtract = op_binary["-"];
-const pow = op_binary["**"];
 
 
 /**
@@ -45,7 +41,7 @@ function apply_on_axis(
   else shape = shape.filter((_, i) => i != axis);
   let dtype = dtype_resolver([arr.dtype], null);
   const out = new NDArray(new_buffer(flat, dtype), shape);
-  return out.size == 1 ? (out.flat[0] as any) : out;
+  return out.item_if_scalar() as NDArray;
 };
 
 

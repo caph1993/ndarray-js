@@ -334,6 +334,7 @@ np.isscalar = (obj: any) => {
 
 import { modules } from './modules';
 import { op_assign } from './array/operators';
+import { fromlist } from './array';
 
 /** @category Main @namespace*/
 np.modules = modules;
@@ -442,6 +443,10 @@ NDArray.prototype.var = Method_a_axis_ddof_keepdims.decorate(reducers.variance);
 NDArray.prototype.std = Method_a_axis_ddof_keepdims.decorate(reducers.std);
 NDArray.prototype.norm = Method_a_ord_axis_keepdims.decorate(reducers.norm);
 
+NDArray.prototype.fromlist = fromlist;
+NDArray.prototype.tolist = function () {
+  return tolist(this);
+}
 
 /** @category Math constants */
 np.pi = Math.PI;

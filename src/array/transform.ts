@@ -1,7 +1,6 @@
 //@ts-check
 
 import { NDArray, isarray, asarray, shape_shifts, empty } from '../NDArray';
-import { number_collapse } from "./js-interface";
 import { ravel, reshape } from "./shape_operations";
 import { fromlist } from './js-interface';
 import { allEq, extend } from '../utils-js';
@@ -47,7 +46,7 @@ export function apply_along_axis(
 
   const dtype = dtype_resolver([arr.dtype], null);
   const out = new NDArray(new_buffer(tmp.flat, dtype), shape);
-  return number_collapse(out);
+  return shape.length ? out : (out.item() as any);
 }
 
 export const cmp_nan_at_the_end = (a: number, b: number) => {

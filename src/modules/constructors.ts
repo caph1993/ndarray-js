@@ -1,7 +1,7 @@
 //@ts-check
 import { Shape, empty } from '../NDArray';
 import { float64, DType, int32 } from '../dtypes';
-import { new_array, as_number } from '../array/js-interface';
+import { new_array } from '../array/js-interface';
 import { exp } from '../array/elementwise';
 
 export { empty };
@@ -24,8 +24,6 @@ export function arange(arg0, arg1 = null, dtype: DType = int32) {
 };
 
 export function linspace(start: number, stop: number, steps = 50, endpoint = true) {
-  start = as_number(start);
-  stop = as_number(stop);
   let n = (steps - (endpoint ? 1 : 0));
   let arr = arange(steps).divide(n).multiply(stop - start).add(start);
   return arr;

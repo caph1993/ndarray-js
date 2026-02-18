@@ -99,6 +99,19 @@ function kwargs_parser<
 }
 
 
+export function as_boolean(obj: boolean | number | NDArray) {
+  if (isarray(obj)) obj = obj.item();
+  if (typeof obj === 'boolean') return obj;
+  if (typeof obj === 'number' && (obj == 0 || obj == 1)) return !!obj;
+  throw new Error(`'${typeof obj}' object can not be interpreted as boolean: ${obj}`);
+}
+export function as_number(obj: number | boolean | NDArray) {
+  if (isarray(obj)) obj = obj.item();
+  if (typeof obj === 'number') return obj;
+  if (typeof obj === 'boolean') return obj ? 1 : 0;
+  throw new Error(`'${typeof obj}' object can not be interpreted as number: ${obj}`);
+}
+
 export const frequently_used_parsers = {
   'a': (kwargs: any) => { kwargs.a = asarray(kwargs.a); },
   'a_axis': (kwargs: any) => {
@@ -167,7 +180,13 @@ export const frequently_used_parsers = {
     if (typeof kwargs[key] !== 'number' || kwargs[key] <= 0) {
       throw new Error(`Invalid "${key}" argument. Expected non-negative integer. Found ${kwargs[key]}`);
     }
-  }
+  },
+  'as_boolean': (key: string) => (kwargs: any) => {
+    kwargs[key] = as_boolean(kwargs[key]);
+  },
+  'as_number': (key: string) => (kwargs: any) => {
+    kwargs[key] = as_number(kwargs[key]);
+  },
 }
 
 // Used by sort:

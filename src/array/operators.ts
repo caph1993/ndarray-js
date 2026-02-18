@@ -66,7 +66,7 @@ function apply_binary_operation(
     flatOut.push(func(flatA[idxA], flatB[idxB]));
   };
   out.flat = new_buffer(flatOut, dtype);
-  return out;
+  return out.item_if_scalar() as NDArray;
 }
 
 
@@ -376,7 +376,7 @@ export function ternary_operation(dtype_resolver: DtypeResolver, func, A: ArrayO
     flatOut.push(func(flatA[idxA], flatB[idxB], flatC[idxC]));
   };
   out.flat = new_buffer(flatOut, dtype);
-  return out;
+  return out.item_if_scalar() as NDArray;
 }
 
 
@@ -389,26 +389,6 @@ export function n_ary_operation<
 ): NDArray {
   // Find output shape and input broadcast shapes
   arrs = arrs.map((a) => asarray(a));
-
-  // // Some optimization for common low-complexity cases
-  // if (arrs.length == 1 && elem_shape.length == 0) {
-  //   const a = arrs[0];
-  //   //@ts-ignore
-  //   return new NDArray(a.flat.map(x => number_collapse(func(x))), a.shape, Number); // FIX
-  // } else if (arrs.length == 1) {
-  //   const a = arrs[0];
-  //   const a_size = a.size;
-  //   const out_elem_size = elem_shape.reduce((a, b) => a * b, 1);
-  //   const outs = [];
-  //   a.flat.forEach((x, i) => {
-  //     //@ts-ignore
-  //     const values = number_collapse(func(x));
-  //     const end = (i + 1) * out_elem_size;
-  //     for (let j = i * out_elem_size; j < end; j++) outs[j] = values[i];
-  //   });
-  //   //@ts-ignore
-  //   return new NDArray(outs, a.shape, Number); // FIX
-  // }
 
   const rawShapes = arrs.map(a => a.shape);
   // Broadcast shapes
@@ -445,7 +425,7 @@ export function n_ary_operation<
   };
   let out = funcOutIsNDArray ? concatenate(flat) : asarray(flat);
   out = out.reshape([shape, ...out.shape.slice(1)]);
-  return out;
+  return out.item_if_scalar() as NDArray;
 }
 
 

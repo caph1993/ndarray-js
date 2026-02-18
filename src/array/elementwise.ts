@@ -55,7 +55,7 @@ function _applyFuncToArray(
     out.flat = _out.flat;
     _out = out;
   }
-  return _out;
+  return _out.item_if_scalar() as NDArray;
 }
 
 

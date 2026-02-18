@@ -1,5 +1,4 @@
 //@ts-check
-
 import { bool, DType, float64, int32, new_buffer, object } from '../dtypes';
 import { asarray, isarray, NDArray, Shape, parse_shape } from "../NDArray";
 
@@ -52,15 +51,12 @@ export function fromlist(arr: any, dtype?: DType) {
   return new NDArray(new_buffer(flat, dtype), shape, dtype);
 }
 
-NDArray.prototype.fromlist = fromlist;
 
 export function tolist(arr) {
   if (arr === null || typeof arr == "number" || typeof arr == "boolean") return arr;
   if (Array.isArray(arr)) return arr.map(tolist);
-  if (!(isarray(arr))) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
-  arr = number_collapse(arr);
-  if (!(isarray(arr))) return arr;
-
+  if (!isarray(arr)) throw new Error(`Expected MyArray. Got ${typeof arr}: ${arr}`);
+  if (!arr.shape.length) return arr.item();
   // let out = [], top;
   // let q = /**@type {[MyArray, any][]}*/([[arr, out]])
   // while (top = q.pop()) {
@@ -88,13 +84,12 @@ export function tolist(arr) {
     }
     return innerArray;
   }
-  const out = recursiveReshape([...arr.flat], arr.shape);
+  let flat = [...arr.flat];
+  if (arr.dtype === bool) flat = flat.map(x => !!x);
+  const out = recursiveReshape(flat, arr.shape);
   return out;
 }
 
-NDArray.prototype.tolist = function () {
-  return tolist(this);
-}
 
 export function array(A: NDArray | any, dtype: DType = null) {
   if (isarray(A)) { // copy if it's a view
@@ -107,30 +102,6 @@ export function array(A: NDArray | any, dtype: DType = null) {
   else return asarray(A, dtype);
 }
 
-/**
- * If the array is 0D, it returns it's unique element (number or boolean).
- * The signature is kept as NDArray for type consistency, even though the
- * output is a number or a boolean. This is consistent with the facts that
- * (1) all functions requiring arrays work with numbers as well because they call asarray,
- * and (2) semantically, a constant is an array.
- */
-export function number_collapse(arr: NDArray, expect = false): NDArray | number {
-  if (!arr.shape.length) return arr.item() as NDArray | number;
-  if (expect) throw new Error(`Expected constant. Got array with shape ${arr.shape}`);
-  return arr;
-}
-
-export function as_boolean(obj) {
-  if (isarray(obj)) obj = number_collapse(obj, true);
-  else if (typeof obj == 'string') throw new Error(`'string' object can not be interpreted as boolean: ${obj}`);
-  return !!(0 + obj);
-}
-export function as_number(obj) {
-  if (isarray(obj)) obj = number_collapse(obj, true);
-  else if (typeof obj == 'string') throw new Error(`'string' object can not be interpreted as boolean: ${obj}`);
-  return parseFloat(obj);
-}
-// Types used everywhere
 
 export type Arr = NDArray;
 export type ArrOrAny = NDArray | number | boolean | any[];

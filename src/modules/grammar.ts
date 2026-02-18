@@ -143,7 +143,7 @@ export const __makeSemantics = () => {
       if (typeof arr === "number") return arr;
       if (typeof arr === "boolean") return arr;
       if (Array.isArray(arr)) return arr;
-      if (isarray(arr)) arr = jsInterface.number_collapse(arr);
+      if (isarray(arr)) arr = arr.item_if_scalar();
       return arr;
     },
     Precedence11: BinaryOperation,
@@ -236,7 +236,7 @@ export const __makeSemantics = () => {
       let entries = $kwArgs.parse() || [];
       let kwArgs = Object.fromEntries(entries.map(([k, v]) => {
         // The following is needed because minus integer gets parsed as array.
-        if (isarray(v)) v = jsInterface.number_collapse(v);
+        if (isarray(v)) v = v.item_if_scalar();
         return [k, v];
       }));
       return { args, kwArgs };
