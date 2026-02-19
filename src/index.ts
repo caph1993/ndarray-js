@@ -319,6 +319,8 @@ np.atan2 = Func_y_x_out.decorate(operators.atan2);
 
 
 
+
+
 np.isscalar = (obj: any) => {
   if (isarray(obj)) return false;
   if (Array.isArray(obj)) return false;
@@ -326,6 +328,18 @@ np.isscalar = (obj: any) => {
   const t = typeof obj;
   return t === 'number' || t === 'boolean' || t === 'string' || t === 'bigint' || t === 'symbol';
 }
+
+
+import { Func_a_q_axis } from './kwargs/statistics.kwargs';
+import * as stats from './modules/statistics';
+
+np.quantile = Func_a_q_axis.decorate(stats.quantile);
+np.nanquantile = Func_a_q_axis.decorate(stats.nanquantile);
+np.percentile = Func_a_q_axis.decorate(stats.percentile);
+np.nanpercentile = Func_a_q_axis.decorate(stats.nanpercentile);
+np.median = Func_a_axis_keepdims.decorate(stats.median);
+np.nanmedian = Func_a_axis_keepdims.decorate(stats.nanmedian);
+
 
 
 // ==============================
@@ -341,28 +355,34 @@ np.modules = modules;
 /** @category Modules */
 np.random = np.modules.random;
 
+import * as constructors from './modules/constructors';
+import * as statistics from './modules/statistics';
+import * as indexing from './modules/indexing';
+import { Func_shape_dtype, Func_arg0_arg1_dtype, Func_start_stop_steps_endpoint } from './kwargs/constructors.kwargs';
+import { Func_a, Func_a_indices_axis, Func_condition_x_y_out } from './kwargs/indexing.kwargs';
+
 /** @category Constructors */
-np.empty = np.modules.constructors.empty;
+np.empty = Func_shape_dtype.decorate(constructors.empty);
 /** @category Constructors */
-np.zeros = np.modules.constructors.zeros;
+np.zeros = Func_shape_dtype.decorate(constructors.zeros);
 /** @category Constructors */
-np.ones = np.modules.constructors.ones;
+np.ones = Func_shape_dtype.decorate(constructors.ones);
 /** @category Constructors */
-np.arange = np.modules.constructors.arange;
+np.arange = Func_arg0_arg1_dtype.decorate(constructors.arange);
 /** @category Constructors */
-np.linspace = np.modules.constructors.linspace;
+np.linspace = Func_start_stop_steps_endpoint.decorate(constructors.linspace);
 /** @category Constructors */
-np.geomspace = np.modules.constructors.geomspace;
+np.geomspace = Func_start_stop_steps_endpoint.decorate(constructors.geomspace);
 
 
-np.take = np.modules.indexing.take;
-np.where = np.modules.indexing.where;
-np.nonzero = np.modules.indexing.nonzero;
-np.quantile = np.modules.statistics.quantile;
-np.nanquantile = np.modules.statistics.nanquantile;
-// np.percentile = np.modules.statistics.kw_exported.percentile;
-// np.median = np.modules.statistics.kw_exported.median;
-// np.average = np.modules.statistics.kw_exported.average;
+np.take = Func_a_indices_axis.decorate(indexing.take);
+np.where = Func_condition_x_y_out.decorate(indexing.where);
+np.nonzero = Func_a.decorate(indexing.nonzero);
+np.quantile = statistics.quantile;
+np.nanquantile = statistics.nanquantile;
+// np.percentile = statistics.kw_exported.percentile;
+// np.median = statistics.kw_exported.median;
+// np.average = statistics.kw_exported.average;
 
 
 

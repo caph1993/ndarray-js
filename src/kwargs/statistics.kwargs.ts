@@ -1,7 +1,6 @@
 //@ts-check
-import { AxisArg, kwargs_decorator, frequently_used_parsers, Func_a_axis_keepdims, ArrOrConst, Arr } from "../array/kwargs";
+import { AxisArg, kwargs_decorator, frequently_used_parsers, Arr } from "./kwargs";
 import NDArray, { asarray } from "../NDArray";
-import * as stats from "./statistics";
 
 
 type NDArray_non_0D = Arr | number[];
@@ -21,10 +20,3 @@ export namespace Func_a_q_axis {
     defaults, implementation, parsers
   })
 }
-
-export const quantile = Func_a_q_axis.decorate(stats.quantile);
-export const nanquantile = Func_a_q_axis.decorate(stats.nanquantile);
-export const percentile = Func_a_q_axis.decorate(stats.percentile);
-export const nanpercentile = Func_a_q_axis.decorate(stats.nanpercentile);
-export const median = Func_a_axis_keepdims.decorate(stats.median);
-export const nanmedian = Func_a_axis_keepdims.decorate(stats.nanmedian);

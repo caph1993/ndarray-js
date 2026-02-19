@@ -16,7 +16,7 @@ export function ones(shape: Shape, dtype: DType = float64) {
   return new_array(shape, dtype, (_) => 1)
 };
 
-export function arange(arg0, arg1 = null, dtype: DType = int32) {
+export function arange(arg0: number, arg1: number = null, dtype: DType = int32) {
   let start, end;
   if (arg1 === null) start = 0, end = arg0;
   else start = arg0, end = arg1;
