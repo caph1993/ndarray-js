@@ -201,3 +201,82 @@ export const stack = signature<typeof transform.stack>()(
 export const apply_along_axis = signature<(func1d: (lane: any, ...args: any[]) => any, axis: number, arr: import("../NDArray").NDArray, args: any[]) => import("../NDArray").NDArray>()(
   [["func1d", undefined], ["axis", undefined], ["arr", undefined], ["...args", []]] as const,
   [P.asarray('arr'), axis_int]);
+
+// ==============================
+//   Group 2: array creation and manipulation
+// ==============================
+import * as manip from "../modules/manipulation";
+import { float64 as _float64 } from "../dtypes";
+const nonneg_int = (...keys: string[]): Parser => (kwargs: any) => {
+  for (const k of keys) if (kwargs[k] !== null && (typeof kwargs[k] !== "number" || kwargs[k] < 0 || !Number.isInteger(kwargs[k]))) throw new Error(`Invalid "${k}" argument. Expected non-negative integer. Found ${kwargs[k]}`);
+};
+const int_arg = (...keys: string[]): Parser => (kwargs: any) => {
+  for (const k of keys) if (typeof kwargs[k] !== "number" || !Number.isInteger(kwargs[k])) throw new Error(`Invalid "${k}" argument. Expected integer. Found ${kwargs[k]}`);
+};
+const shape_arg: Parser = (kwargs: any) => { if (kwargs.shape !== null && kwargs.shape !== undefined) kwargs.shape = Array.isArray(kwargs.shape) ? kwargs.shape : (typeof kwargs.shape === "number" ? [kwargs.shape] : Array.from(asarray(kwargs.shape).flat as any)); };
+const as_array_list = (key: string): Parser => (kwargs: any) => { kwargs[key] = (kwargs[key] as any[]).map(a => asarray(a)); };
+const kwargs_list = (key: string): Parser => (kwargs: any) => { /* varargs collected by the engine */ };
+
+export const eye = signature<typeof manip.eye>()(
+  [["N", undefined], ["M", null], ["k", 0], ["dtype", _float64]] as const, [nonneg_int("N", "M"), int_arg("k"), P.dtype_or_null]);
+export const identity = signature<typeof manip.identity>()(
+  [["n", undefined], ["dtype", _float64]] as const, [nonneg_int("n"), P.dtype_or_null]);
+export const tri = signature<typeof manip.tri>()(
+  [["N", undefined], ["M", null], ["k", 0], ["dtype", _float64]] as const, [nonneg_int("N", "M"), int_arg("k"), P.dtype_or_null]);
+export const tril = signature<typeof manip.tril>()([["m", undefined], ["k", 0]] as const, [P.asarray('m'), int_arg("k")]);
+export const diag = signature<typeof manip.diag>()([["v", undefined], ["k", 0]] as const, [P.asarray('v'), int_arg("k")]);
+export const full = signature<typeof manip.full>()(
+  [["shape", undefined], ["fill_value", undefined], ["dtype", null]] as const, [shape_arg, P.dtype_or_null], { keep_weak: ["fill_value"] });
+export const full_like = signature<typeof manip.full_like>()(
+  [["a", undefined], ["fill_value", undefined], ["dtype", null], ["shape", null]] as const, [P.asarray('a'), P.dtype_or_null, shape_arg], { keep_weak: ["fill_value"] });
+export const like = signature<typeof manip.zeros_like>()(
+  [["a", undefined], ["dtype", null], ["shape", null]] as const, [P.asarray('a'), P.dtype_or_null, shape_arg]);
+export const logspace = signature<typeof manip.logspace>()(
+  [["start", undefined], ["stop", undefined], ["num", 50], ["endpoint", true], ["base", 10.0], ["dtype", null]] as const,
+  [P.as_number('start'), P.as_number('stop'), P.dtype_or_null, boolean('endpoint')]);
+export const meshgrid = signature<typeof manip.meshgrid>()(
+  [["...xi", []], ["indexing", 'xy'], ["sparse", false], ["copy", true]] as const, [as_array_list('xi'), boolean('sparse', 'copy')]);
+export const grid = signature<(specs: any[]) => any>()(
+  [["...specs", []]] as const, []);
+export const ndim_ = signature<typeof manip.ndim>()([["a", undefined]] as const, [P.asarray('a')]);
+export const size_ = signature<typeof manip.size>()([["a", undefined], ["axis", null]] as const, [P.asarray('a'), axis_or_null]);
+export const astype = signature<typeof manip.astype>()(
+  [["x", undefined], ["dtype", undefined], ["copy", true]] as const, [P.asarray('x'), P.dtype_or_null, boolean('copy')]);
+export const copy_ = signature<typeof manip.copy>()([["a", undefined]] as const, [P.asarray('a')]);
+export const copyto = signature<typeof manip.copyto>()(
+  [["dst", undefined], ["src", undefined], ["casting", 'same_kind'], ["where", true]] as const, [P.isarray('dst'), P.asarray('src')]);
+export const moveaxis = signature<typeof manip.moveaxis>()(
+  [["a", undefined], ["source", undefined], ["destination", undefined]] as const, [P.asarray('a')]);
+export const rollaxis = signature<typeof manip.rollaxis>()(
+  [["a", undefined], ["axis", undefined], ["start", 0]] as const, [P.asarray('a'), int_arg("axis", "start")]);
+export const swapaxes = signature<typeof transform.swapAxes>()(
+  [["a", undefined], ["axis1", undefined], ["axis2", undefined]] as const, [P.asarray('a'), int_arg("axis1", "axis2")]);
+export const a_only_arr = signature<typeof manip.matrix_transpose>()([["x", undefined]] as const, [P.asarray('x')]);
+export const atleast = signature<(...arys: any[]) => any>()([["...arys", []]] as const, [as_array_list('arys')]);
+export const broadcast_to = signature<typeof manip.broadcast_to>()([["array", undefined], ["shape", undefined]] as const, [P.asarray('array'), shape_arg]);
+export const broadcast_arrays = signature<(...args: any[]) => any>()([["...args", []]] as const, [as_array_list('args')]);
+export const expand_dims = signature<typeof manip.expand_dims>()([["a", undefined], ["axis", undefined]] as const, [P.asarray('a')]);
+export const squeeze = signature<typeof manip.squeeze>()([["a", undefined], ["axis", null]] as const, [P.asarray('a')]);
+export const require_ = signature<(a: any, dtype: any, requirements: any) => any>()(
+  [["a", undefined], ["dtype", null], ["requirements", null]] as const, [P.dtype_or_null]);
+export const stack_like = signature<(tup: any) => any>()([["tup", undefined]] as const, [(kwargs: any) => { kwargs.tup = Array.from(kwargs.tup as any).map(a => asarray(a)); }]);
+export const block = signature<typeof manip.block>()([["arrays", undefined]] as const, []);
+export const split = signature<typeof manip.split>()(
+  [["ary", undefined], ["indices_or_sections", undefined], ["axis", 0]] as const, [P.asarray('ary'), int_arg("axis")]);
+export const hsplit = signature<typeof manip.hsplit>()(
+  [["ary", undefined], ["indices_or_sections", undefined]] as const, [P.asarray('ary')]);
+export const unstack = signature<typeof manip.unstack>()([["x", undefined], ["axis", 0]] as const, [P.asarray('x'), int_arg("axis")]);
+export const tile = signature<typeof manip.tile>()([["A", undefined], ["reps", undefined]] as const, [P.asarray('A')]);
+export const repeat = signature<typeof manip.repeat>()([["a", undefined], ["repeats", undefined], ["axis", null]] as const, [P.asarray('a'), axis_or_null]);
+export const del = signature<typeof manip.del>()([["arr", undefined], ["obj", undefined], ["axis", null]] as const, [P.asarray('arr'), axis_or_null]);
+export const insert = signature<typeof manip.insert>()([["arr", undefined], ["obj", undefined], ["values", undefined], ["axis", null]] as const, [P.asarray('arr'), axis_or_null]);
+export const append = signature<typeof manip.append>()([["arr", undefined], ["values", undefined], ["axis", null]] as const, [P.asarray('arr'), P.asarray('values'), axis_or_null]);
+export const resize = signature<typeof manip.resize>()([["a", undefined], ["new_shape", undefined]] as const, [P.asarray('a')]);
+export const trim_zeros = signature<typeof manip.trim_zeros>()([["filt", undefined], ["trim", 'fb'], ["axis", null]] as const, [P.asarray('filt')]);
+export const pad = signature<(array: any, pad_width: any, mode: manip.PadMode, constant_values: any, end_values: any, stat_length: any, reflect_type: any) => any>()(
+  [["array", undefined], ["pad_width", undefined], ["mode", 'constant'], ["constant_values", null], ["end_values", null], ["stat_length", null], ["reflect_type", 'even']] as const, [P.asarray('array')]);
+export const flip = signature<typeof manip.flip>()([["m", undefined], ["axis", null]] as const, [P.asarray('m')]);
+export const flip1 = signature<typeof manip.fliplr>()([["m", undefined]] as const, [P.asarray('m')]);
+export const roll = signature<typeof manip.roll>()([["a", undefined], ["shift", undefined], ["axis", null]] as const, [P.asarray('a')]);
+export const rot90 = signature<typeof manip.rot90>()([["m", undefined], ["k", 1], ["axes", [0, 1]]] as const, [P.asarray('m'), int_arg("k")]);
+export const bitwise_count = signature<typeof manip.bitwise_count>()([["x", undefined]] as const, [P.asarray('x')]);

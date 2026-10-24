@@ -192,6 +192,16 @@ class NDArray implements HasDType {
 
 
   /** @category Casting */
+  astype: ReturnType<typeof sigs.astype.method>;
+  /** @category Transformations */
+  flatten: () => NDArray;
+  /** @category Transformations */
+  squeeze: ReturnType<typeof sigs.squeeze.method>;
+  /** @category Transformations */
+  swapaxes: ReturnType<typeof sigs.swapaxes.method>;
+  /** @category Transformations */
+  repeat: ReturnType<typeof sigs.repeat.method>;
+  /** @category Casting */
   tolist: () => any;
   fromlist: (A: any, dtype?: DType) => NDArray;
 
@@ -304,7 +314,7 @@ export function broadcast_shapes(shapeA: number[], shapeB: number[]) {
     const dim2 = shapeB[axis];
     if (dim1 !== 1 && dim2 !== 1 && dim1 !== dim2)
       throw new Error(`Can not broadcast axis ${axis} with sizes ${dim1} and ${dim2}`);
-    shape.unshift(Math.max(dim1, dim2));
+    shape.unshift(dim1 === 1 ? dim2 : dim1);
   }
   return [shape, shapeA, shapeB];
 }
@@ -327,7 +337,7 @@ export function broadcast_n_shapes(...shapes: number[][]) {
   const outputShape = [];
   for (let axis = maxDim - 1; axis >= 0; axis--) {
     const dims = broadcastShapes.map(shape => shape[axis]);
-    const dim = Math.max(...dims);
+    const dim = dims.find(d => d !== 1) ?? 1;
     if (dims.some(d => d !== 1 && d !== dim)) throw new Error(`Can not broadcast axis ${axis} with sizes ${dims}`);
     outputShape.unshift(dim);
   }

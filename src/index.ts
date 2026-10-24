@@ -506,6 +506,136 @@ np.digitize = sig.digitize.func(stats.digitize);
 /** @category Searching */
 np.searchsorted = sig.searchsorted.func(stats.searchsorted);
 
+import * as manip from './modules/manipulation';
+/** @category Constructors */
+np.eye = sig.eye.func(manip.eye);
+/** @category Constructors */
+np.identity = sig.identity.func(manip.identity);
+/** @category Constructors */
+np.tri = sig.tri.func(manip.tri);
+/** @category Constructors */
+np.tril = sig.tril.func(manip.tril);
+/** @category Constructors */
+np.triu = sig.tril.func(manip.triu);
+/** @category Constructors */
+np.diag = sig.diag.func(manip.diag);
+/** @category Constructors */
+np.diagflat = sig.diag.func(manip.diagflat);
+/** @category Constructors */
+np.full = sig.full.func(manip.full);
+/** @category Constructors */
+np.full_like = sig.full_like.func(manip.full_like);
+/** @category Constructors */
+np.zeros_like = sig.like.func(manip.zeros_like);
+/** @category Constructors */
+np.ones_like = sig.like.func(manip.ones_like);
+/** @category Constructors */
+np.empty_like = sig.like.func(manip.empty_like);
+/** @category Constructors */
+np.logspace = sig.logspace.func(manip.logspace);
+/** @category Constructors */
+np.meshgrid = sig.meshgrid.func(manip.meshgrid);
+/** Dense multi-dimensional grid from slice strings: `np.mgrid('0:3', '0:2')`. @category Constructors */
+np.mgrid = sig.grid.func((specs: any[]) => manip.mgrid(...specs));
+/** Open multi-dimensional grid from slice strings: `np.ogrid('0:3', '0:2')`. @category Constructors */
+np.ogrid = sig.grid.func((specs: any[]) => manip.ogrid(...specs));
+/** @category Attributes */
+np.ndim = sig.ndim_.func(manip.ndim);
+/** @category Attributes */
+np.shape = sig.ndim_.func(manip.shape as any);
+/** @category Attributes */
+np.size = sig.size_.func(manip.size);
+/** @category Casting and reshaping */
+np.astype = sig.astype.func(manip.astype);
+/** @category Casting and reshaping */
+np.copy = sig.copy_.func(manip.copy);
+/** @category Casting and reshaping */
+np.asanyarray = np.asarray;
+/** @category Casting and reshaping */
+np.require = sig.require_.func((a, dtype) => asarray(a, dtype));
+/** @category Casting and reshaping */
+np.copyto = sig.copyto.func(manip.copyto);
+/** @category Axes */
+np.moveaxis = sig.moveaxis.func(manip.moveaxis);
+/** @category Axes */
+np.rollaxis = sig.rollaxis.func(manip.rollaxis);
+/** @category Axes */
+np.swapaxes = sig.swapaxes.func(array.swapAxes);
+/** @category Axes */
+np.permute_dims = np.transpose;
+/** @category Axes */
+np.matrix_transpose = sig.a_only_arr.func(manip.matrix_transpose);
+/** @category Axes */
+np.atleast_1d = sig.atleast.func((arys: any) => manip.atleast_nd(arys, 1));
+/** @category Axes */
+np.atleast_2d = sig.atleast.func((arys: any) => manip.atleast_nd(arys, 2));
+/** @category Axes */
+np.atleast_3d = sig.atleast.func((arys: any) => manip.atleast_nd(arys, 3));
+/** @category Broadcasting */
+np.broadcast_to = sig.broadcast_to.func(manip.broadcast_to);
+/** @category Broadcasting */
+np.broadcast_arrays = sig.broadcast_arrays.func(manip.broadcast_arrays);
+/** @category Broadcasting */
+np.broadcast = sig.broadcast_arrays.func(manip.broadcast as any);
+/** @category Axes */
+np.expand_dims = sig.expand_dims.func(manip.expand_dims);
+/** @category Axes */
+np.squeeze = sig.squeeze.func(manip.squeeze);
+/** @category Joining */
+np.concat = np.concatenate;
+/** @category Joining */
+np.block = sig.block.func(manip.block);
+/** @category Joining */
+np.vstack = sig.stack_like.func(manip.vstack);
+/** @category Joining */
+np.hstack = sig.stack_like.func(manip.hstack);
+/** @category Joining */
+np.dstack = sig.stack_like.func(manip.dstack);
+/** @category Joining */
+np.column_stack = sig.stack_like.func(manip.column_stack);
+/** @category Splitting */
+np.split = sig.split.func(manip.split);
+/** @category Splitting */
+np.array_split = sig.split.func((ary, ios, axis) => manip.array_split(ary, ios, axis));
+/** @category Splitting */
+np.hsplit = sig.hsplit.func(manip.hsplit);
+/** @category Splitting */
+np.vsplit = sig.hsplit.func(manip.vsplit);
+/** @category Splitting */
+np.dsplit = sig.hsplit.func(manip.dsplit);
+/** @category Splitting */
+np.unstack = sig.unstack.func(manip.unstack);
+/** @category Repeating */
+np.tile = sig.tile.func(manip.tile);
+/** @category Repeating */
+np.repeat = sig.repeat.func(manip.repeat);
+/** @category Inserting and deleting */
+np.delete = sig.del.func(manip.del);
+/** @category Inserting and deleting */
+np.insert = sig.insert.func(manip.insert);
+/** @category Inserting and deleting */
+np.append = sig.append.func(manip.append);
+/** @category Inserting and deleting */
+np.resize = sig.resize.func(manip.resize);
+/** @category Inserting and deleting */
+np.trim_zeros = sig.trim_zeros.func(manip.trim_zeros);
+/** @category Padding */
+np.pad = sig.pad.func((array, pad_width, mode, constant_values, end_values, stat_length, reflect_type) => manip.pad(array, pad_width, mode, { constant_values, end_values, stat_length, reflect_type }));
+/** @category Reordering */
+np.flip = sig.flip.func(manip.flip);
+/** @category Reordering */
+np.fliplr = sig.flip1.func(manip.fliplr);
+/** @category Reordering */
+np.flipud = sig.flip1.func(manip.flipud);
+/** @category Reordering */
+np.roll = sig.roll.func(manip.roll);
+/** @category Reordering */
+np.rot90 = sig.rot90.func(manip.rot90);
+/** @category Binary operators */
+np.bitwise_invert = np.bitwise_not;
+/** @category Binary operators */
+np.bitwise_count = sig.bitwise_count.func(manip.bitwise_count);
+
 import * as misc from './modules/misc';
 /** @category Memory */
 np.shares_memory = misc.shares_memory;
@@ -667,6 +797,11 @@ NDArray.prototype.nonzero = sig.a_only.method(indexing.nonzero as any);
 NDArray.prototype.searchsorted = sig.searchsorted.method(stats.searchsorted);
 NDArray.prototype.clip = Method_a_min_a_max_out.decorate(operators.clip);
 
+NDArray.prototype.astype = sig.astype.method(manip.astype);
+NDArray.prototype.flatten = function () { return manip.copy(array.ravel(this)); };
+NDArray.prototype.squeeze = sig.squeeze.method(manip.squeeze);
+NDArray.prototype.swapaxes = sig.swapaxes.method(array.swapAxes);
+NDArray.prototype.repeat = sig.repeat.method(manip.repeat);
 NDArray.prototype.fromlist = fromlist;
 NDArray.prototype.tolist = function () {
   return tolist(this);
