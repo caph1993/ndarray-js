@@ -882,6 +882,36 @@ np.get_printoptions = fmt.get_printoptions;
 /** @category Formatting */
 np.printoptions = (opts: any, fn?: () => any) => fmt.printoptions(opts, fn);
 
+import * as strs from './modules/strings';
+const S1 = (impl: any, names: string[] = ["a"]) => kw(names.map(n => [n, undefined] as [string, any]), impl);
+const strings_api: { [name: string]: any } = {
+  add: kw([["x1", undefined], ["x2", undefined]], strs.add), multiply: kw([["a", undefined], ["i", undefined]], strs.multiply), mod: kw([["a", undefined], ["values", undefined]], strs.mod),
+  capitalize: S1(strs.capitalize), lower: S1(strs.lower), upper: S1(strs.upper), swapcase: S1(strs.swapcase), title: S1(strs.title),
+  center: kw([["a", undefined], ["width", undefined], ["fillchar", ' ']], strs.center), ljust: kw([["a", undefined], ["width", undefined], ["fillchar", ' ']], strs.ljust), rjust: kw([["a", undefined], ["width", undefined], ["fillchar", ' ']], strs.rjust),
+  zfill: kw([["a", undefined], ["width", undefined]], strs.zfill), expandtabs: kw([["a", undefined], ["tabsize", 8]], strs.expandtabs),
+  strip: kw([["a", undefined], ["chars", null]], strs.strip), lstrip: kw([["a", undefined], ["chars", null]], strs.lstrip), rstrip: kw([["a", undefined], ["chars", null]], strs.rstrip),
+  replace: kw([["a", undefined], ["old", undefined], ["new", undefined], ["count", -1]], strs.replace), slice: kw([["a", undefined], ["start", null], ["stop", strs.NO_VALUE], ["step", null]], strs.slice),
+  translate: kw([["a", undefined], ["table", undefined], ["deletechars", null]], strs.translate), decode: kw([["a", undefined], ["encoding", 'utf-8'], ["errors", 'strict']], strs.decode), encode: kw([["a", undefined], ["encoding", 'utf-8'], ["errors", 'strict']], strs.encode),
+  partition: kw([["a", undefined], ["sep", undefined]], strs.partition), rpartition: kw([["a", undefined], ["sep", undefined]], strs.rpartition),
+  equal: kw([["x1", undefined], ["x2", undefined]], strs.equal), not_equal: kw([["x1", undefined], ["x2", undefined]], strs.not_equal), greater: kw([["x1", undefined], ["x2", undefined]], strs.greater),
+  greater_equal: kw([["x1", undefined], ["x2", undefined]], strs.greater_equal), less: kw([["x1", undefined], ["x2", undefined]], strs.less), less_equal: kw([["x1", undefined], ["x2", undefined]], strs.less_equal),
+  count: kw([["a", undefined], ["sub", undefined], ["start", 0], ["end", null]], strs.count), find: kw([["a", undefined], ["sub", undefined], ["start", 0], ["end", null]], strs.find), rfind: kw([["a", undefined], ["sub", undefined], ["start", 0], ["end", null]], strs.rfind),
+  index: kw([["a", undefined], ["sub", undefined], ["start", 0], ["end", null]], strs.index), rindex: kw([["a", undefined], ["sub", undefined], ["start", 0], ["end", null]], strs.rindex),
+  startswith: kw([["a", undefined], ["prefix", undefined], ["start", 0], ["end", null]], strs.startswith), endswith: kw([["a", undefined], ["suffix", undefined], ["start", 0], ["end", null]], strs.endswith),
+  isalpha: S1(strs.isalpha, ["x"]), isalnum: S1(strs.isalnum, ["x"]), isdecimal: S1(strs.isdecimal, ["x"]), isdigit: S1(strs.isdigit, ["x"]), isnumeric: S1(strs.isnumeric, ["x"]),
+  isspace: S1(strs.isspace, ["x"]), islower: S1(strs.islower, ["x"]), isupper: S1(strs.isupper, ["x"]), istitle: S1(strs.istitle, ["x"]), str_len: S1(strs.str_len, ["x"]),
+};
+/** Elementwise string functions (numpy.strings) @category Strings */
+np.strings = strings_api;
+/** Legacy string functions (numpy.char) @category Strings */
+np.char = {
+  ...strings_api,
+  join: kw([["sep", undefined], ["seq", undefined]], strs.join), split: kw([["a", undefined], ["sep", null], ["maxsplit", null]], strs.split), rsplit: kw([["a", undefined], ["sep", null], ["maxsplit", null]], strs.rsplit),
+  splitlines: kw([["a", undefined], ["keepends", false]], strs.splitlines),
+  array: kw([["obj", undefined], ["itemsize", null], ["copy", true], ["unicode", null]], strs.char_array), asarray: kw([["obj", undefined], ["itemsize", null], ["unicode", null]], (obj: any, i: any, u: any) => strs.char_array(obj, i, false, u)),
+};
+(np.char as any).chararray = np.char.array;
+
 import * as misc from './modules/misc';
 /** @category Memory */
 np.shares_memory = misc.shares_memory;

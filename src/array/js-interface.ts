@@ -20,6 +20,10 @@ export function fromlist(arr: any, dtype?: DType) {
     if (weak) out._weak = true;
     return out;
   }
+  if (typeof arr === "string" || arr === null || arr === undefined) {
+    // strings (and None) are stored in object arrays
+    return new NDArray([arr] as any, [], object);
+  }
   if (arr instanceof Complex) {
     const out = new NDArray(convert_buffer([arr], dtype || complex128), [], dtype || complex128);
     if (!dtype) out._weak = true;

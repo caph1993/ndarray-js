@@ -101,7 +101,12 @@ ArrayGrammar {
     | "(" ListOf<ArgValue, ","> ","? ")"
 
   String = stringLiteral
-  stringLiteral = "\'" (~"\'" any)* "\'" | "\"" (~"\"" any)* "\""
+  stringLiteral = "\'" sqChar* "\'" | "\"" dqChar* "\""
+  escChar = "\\" any
+  sqPlain = ~"\'" any
+  dqPlain = ~"\"" any
+  sqChar = escChar | sqPlain
+  dqChar = escChar | dqPlain
    
   Slice = NonemptyListOf<SliceTerm, ",">
   SliceTerm
@@ -124,6 +129,17 @@ ArrayGrammar {
 `;
 
 export const ohmGrammar = ohm.grammar(grammar);
+
+/** Python string escapes */
+function unescape_string(s: string): string {
+  return s.replace(/\\(x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|.)/g, (_m, c: string) => {
+    switch (c[0]) {
+      case 'n': return '\n'; case 't': return '\t'; case 'r': return '\r'; case '0': return '\0'; case 'b': return '\b'; case 'f': return '\f'; case 'v': return '\v'; case 'a': return '\x07';
+      case 'x': case 'u': return c.length > 1 ? String.fromCharCode(parseInt(c.slice(1), 16)) : c;
+      default: return c;
+    }
+  });
+}
 
 const FLOAT_LITERAL = /^[+-]?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+|\d*\.\d+[eE][+-]?\d+)$/;
 
@@ -283,8 +299,7 @@ export const __makeSemantics = () => {
       throw new Error(`Unrecognized constant ${$x.sourceString}`)
     },
     String($lit) {
-      const src = $lit.sourceString;
-      return src.slice(1, -1);
+      return unescape_string($lit.sourceString.slice(1, -1));
     },
     CallArgs(_open, $args, _comma, $kwArgs, _trailing, _close) {
       const args = ($args.parse() || []).map(unwrap_scalar);
