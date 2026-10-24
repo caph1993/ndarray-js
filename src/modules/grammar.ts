@@ -100,7 +100,8 @@ ArrayGrammar {
     = "[" ListOf<ArgValue, ","> ","? "]"
     | "(" ListOf<ArgValue, ","> ","? ")"
 
-  String = "\'" (~"\'" any)* "\'" | "\"" (~"\"" any)* "\""
+  String = stringLiteral
+  stringLiteral = "\'" (~"\'" any)* "\'" | "\"" (~"\"" any)* "\""
    
   Slice = NonemptyListOf<SliceTerm, ",">
   SliceTerm
@@ -281,8 +282,9 @@ export const __makeSemantics = () => {
       }
       throw new Error(`Unrecognized constant ${$x.sourceString}`)
     },
-    String(_open, $str, _close) {
-      return $str.sourceString;
+    String($lit) {
+      const src = $lit.sourceString;
+      return src.slice(1, -1);
     },
     CallArgs(_open, $args, _comma, $kwArgs, _trailing, _close) {
       const args = ($args.parse() || []).map(unwrap_scalar);
