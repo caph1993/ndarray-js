@@ -132,6 +132,9 @@ function py_format(fmt: string, value: any): string {
   return out;
 }
 
+/** printf-style formatting (format % value); arrays of values are several arguments */
+export const py_format_values = (fmt: string, value: any) => py_format(fmt, value);
+
 // ==============================
 //   Elementwise functions
 // ==============================

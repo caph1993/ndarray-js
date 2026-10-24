@@ -809,6 +809,7 @@ np.polymul = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polym
 np.polydiv = legacy([["u", undefined], ["v", undefined]], polyapi.legacy_polydiv);
 
 import * as dtu from './modules/dtype-utils';
+import { to_bytes } from './modules/binary';
 import * as fmt from './modules/format';
 const unwrap0d = (a: any) => (isarray(a) && a.shape.length == 0) ? a.item() : a;
 const kw = (defaults: [string, any][], impl: (...a: any[]) => any) => kwargs_decorator<any, any, any>({ defaults, implementation: (...args: any[]) => impl(...args.map(unwrap0d)), parsers: [] }) as (...args: any[]) => any;
@@ -911,6 +912,69 @@ np.char = {
   array: kw([["obj", undefined], ["itemsize", null], ["copy", true], ["unicode", null]], strs.char_array), asarray: kw([["obj", undefined], ["itemsize", null], ["unicode", null]], (obj: any, i: any, u: any) => strs.char_array(obj, i, false, u)),
 };
 (np.char as any).chararray = np.char.array;
+
+import * as ioMod from './modules/io';
+import * as cre from './modules/creation';
+/** Saves an array in .npy format (path, or null to get the bytes). @category Input and output */
+np.save = kw([["file", undefined], ["arr", undefined], ["allow_pickle", true], ["fix_imports", true]], ioMod.save);
+/** @category Input and output */
+np.savez = (file: any, ...args: any[]) => { const kw_ = args.length && args[args.length - 1] && Object.getPrototypeOf(args[args.length - 1]) === Object.prototype ? args.pop() : {}; return ioMod.savez(file, args, kw_); };
+/** @category Input and output */
+np.savez_compressed = (file: any, ...args: any[]) => { const kw_ = args.length && args[args.length - 1] && Object.getPrototypeOf(args[args.length - 1]) === Object.prototype ? args.pop() : {}; return ioMod.savez_compressed(file, args, kw_); };
+/** Loads .npy / .npz files (path or bytes). @category Input and output */
+np.load = kw([["file", undefined], ["mmap_mode", null], ["allow_pickle", false], ["fix_imports", true], ["encoding", 'ASCII'], ["max_header_size", 10000]], ioMod.load);
+/** @category Input and output */
+np.loadtxt = kw([["fname", undefined], ["dtype", 'float64'], ["comments", '#'], ["delimiter", null], ["converters", null], ["skiprows", 0], ["usecols", null], ["unpack", false], ["ndmin", 0], ["encoding", null], ["max_rows", null], ["quotechar", null]],
+  (fname, dtype, comments, delimiter, converters, skiprows, usecols, unpack, ndmin, encoding, max_rows, quotechar) => ioMod.loadtxt(fname, { dtype, comments, delimiter, converters, skiprows, usecols, unpack, ndmin, max_rows, quotechar }));
+/** @category Input and output */
+np.genfromtxt = kw([["fname", undefined], ["dtype", 'float64'], ["comments", '#'], ["delimiter", null], ["skip_header", 0], ["skip_footer", 0], ["converters", null], ["missing_values", null], ["filling_values", null], ["usecols", null], ["unpack", false], ["invalid_raise", true], ["max_rows", null]],
+  (fname, dtype, comments, delimiter, skip_header, skip_footer, converters, missing_values, filling_values, usecols, unpack, invalid_raise, max_rows) => ioMod.genfromtxt(fname, { dtype, comments, delimiter, skip_header, skip_footer, converters, missing_values: missing_values ?? undefined, filling_values: filling_values ?? undefined, usecols, unpack, invalid_raise, max_rows }));
+/** @category Input and output */
+np.savetxt = kw([["fname", undefined], ["X", undefined], ["fmt", '%.18e'], ["delimiter", ' '], ["newline", '\n'], ["header", ''], ["footer", ''], ["comments", '# '], ["encoding", null]], ioMod.savetxt);
+/** @category Input and output */
+np.fromregex = kw([["file", undefined], ["regexp", undefined], ["dtype", undefined]], ioMod.fromregex);
+/** @category Input and output */
+np.fromstring = kw([["string", undefined], ["dtype", 'float64'], ["count", -1], ["sep", '']], ioMod.fromstring);
+/** @category Input and output */
+np.fromfile = kw([["file", undefined], ["dtype", 'float64'], ["count", -1], ["sep", ''], ["offset", 0]], ioMod.fromfile);
+/** @category Input and output */
+np.memmap = kw([["filename", undefined], ["dtype", 'uint8'], ["mode", 'r+'], ["offset", 0], ["shape", null], ["order", 'C']], ioMod.memmap);
+/** @category Input and output */
+np.lib = { format: { ...ioMod.lib_format }, npyio: { NpzFile: ioMod.NpzFile, DataSource: ioMod.DataSource } };
+np.DataSource = ioMod.DataSource;
+NDArray.prototype.tofile = function (fid: any, sep: string = '', format: string = '%s') { ioMod.tofile(this, fid, sep, format); };
+NDArray.prototype.tobytes = function () { return to_bytes(this); };
+/** @category Index tricks */
+np.r_ = cre.r_;
+/** @category Index tricks */
+np.c_ = cre.c_;
+/** @category Index tricks */
+np.s_ = cre.s_;
+/** @category Index tricks */
+np.index_exp = cre.index_exp;
+(np.mgrid as any).index = np.mgrid; (np.ogrid as any).index = np.ogrid;
+/** @category Constructors */
+np.asmatrix = kw([["data", undefined], ["dtype", null]], cre.asmatrix);
+/** @category Constructors */
+np.mat = np.asmatrix;
+/** @category Constructors */
+np.bmat = kw([["obj", undefined], ["ldict", null], ["gdict", null]], cre.bmat);
+/** @category Constructors */
+np.ascontiguousarray = kw([["a", undefined], ["dtype", null]], cre.ascontiguousarray);
+/** @category Constructors */
+np.asfortranarray = kw([["a", undefined], ["dtype", null]], cre.asfortranarray);
+/** @category Constructors */
+np.asarray_chkfinite = kw([["a", undefined], ["dtype", null], ["order", null]], cre.asarray_chkfinite);
+/** @category Constructors */
+np.frombuffer = kw([["buffer", undefined], ["dtype", 'float64'], ["count", -1], ["offset", 0]], cre.frombuffer);
+/** @category Constructors */
+np.fromiter = kw([["iter", undefined], ["dtype", undefined], ["count", -1]], cre.fromiter);
+/** @category Constructors */
+np.fromfunction = kw([["function", undefined], ["shape", undefined], ["dtype", 'float64'], ["kwargs", {}]], cre.fromfunction);
+/** @category Constructors */
+np.from_dlpack = cre.from_dlpack;
+/** Record arrays are not supported (only the format parser is available). @category Constructors */
+np.rec = cre.rec;
 
 import * as misc from './modules/misc';
 /** @category Memory */

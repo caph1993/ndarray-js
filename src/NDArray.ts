@@ -203,6 +203,10 @@ class NDArray implements HasDType {
   repeat: ReturnType<typeof sigs.repeat.method>;
   /** @category Casting */
   tolist: () => any;
+  /** Writes the array to a file (binary, or text with `sep`) @category Casting */
+  tofile: (fid: any, sep?: string, format?: string) => void;
+  /** Bytes of the array (little endian, C order) @category Casting */
+  tobytes: () => Uint8Array;
   fromlist: (A: any, dtype?: DType) => NDArray;
 
   /**

@@ -117,14 +117,15 @@ ArrayGrammar {
     | ArithmeticLogicExp
   
   SliceRange
-    = int ":" int ":" int
-    | int ":" int ""  ""
-    | int ":" ""  ":" int
-    | int ":" ""  ""  ""
-    | ""  ":" int ":" int
-    | ""  ":" int ""  ""
-    | ""  ":" ""  ":" int
+    = sliceNum ":" sliceNum ":" sliceNum
+    | sliceNum ":" sliceNum ""  ""
+    | sliceNum ":" ""  ":" sliceNum
+    | sliceNum ":" ""  ""  ""
+    | ""  ":" sliceNum ":" sliceNum
+    | ""  ":" sliceNum ""  ""
+    | ""  ":" ""  ":" sliceNum
     | ""  ":" ""  ""  ""
+  sliceNum = ("+"|"-")? digit+ ("." digit*)? (("e"|"E") ("+"|"-")? digit+)? ("j"|"J")?
 }
 `;
 
