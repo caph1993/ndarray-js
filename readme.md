@@ -53,10 +53,32 @@ Numpy-js can be used in:
 
 Check the [documentation website](https://caph1993.github.io/ndarray-js/) for details.
 
+## Differences with numpy
+
+ - Dtypes: `bool`, `int32`, `int64` (stored in a Float64Array, exact up to 2**53), `float32`, `float64` and `object`. There are no complex numbers.
+   `sum`, `prod` and `cumsum` of ints/bools are `int64`, like in numpy.
+ - JS numbers do not distinguish `2` from `2.0`: `np.array([1, 2])` is `int32`. Inside the template parser, float literals are kept as floats: ``np`np.array([1., 2])` `` is `float64`.
+ - 0-d results are returned as plain JS numbers/booleans.
+ - Reducers take `keepdims` as the third argument: `x.sum(axis, keepdims, dtype, out)`.
+ - Indexing with several lists/masks is orthogonal (one per axis) instead of numpy's "zipped" fancy indexing.
+ - Python scalars are "weak" as in numpy 2: `np.array([1, 2], 'float32') + 1.5` stays `float32`.
+
+## Development
+
+```bash
+npm install --legacy-peer-deps
+npx vitest run                         # unit tests, and differential tests against real numpy
+NDARRAYJS_PYTHON=/path/to/venv/bin/python npx vitest run   # python with numpy installed (default: python3)
+```
+
+The tests in `tests/numpy/` evaluate the same numpy expression with python/numpy and with ndarray-js
+(through its numpy-syntax parser) and compare values, shapes and dtype kinds.
+They are skipped when numpy is not available.
+
 ## ToDo
 
 It does not provide yet:
- - trapz, binning.
- - a simple group_by operator.
  - the linear algebra module
+ - a simple group_by operator.
  - all the random module. Only uniform, normal, exponential, gamma, beta and some others are provided.
+ - the functions of `numpy-scrap/toc-todo.txt` groups 2 and above.

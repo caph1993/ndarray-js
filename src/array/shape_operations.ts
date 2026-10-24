@@ -29,12 +29,13 @@ export function reshape(A: NDArray, shape_or_first: Shape, ...more_shape: number
       throw new Error(`Invalid target shape [${shape}] from source [${A.shape}]. Expected size ${n}. Found ${m}.`);
     }
   }
-  return new NDArray(A.flat, shape);
+  if (shape.some(d => !Number.isInteger(d) || d < 0)) throw new Error(`Invalid shape [${shape}]`);
+  return new NDArray(A.flat, shape, A.dtype);
 }
 
 export function ravel(A: NDArray) {
   A = asarray(A);
-  return new NDArray(A.flat, [A.size]);
+  return new NDArray(A.flat, [A.size], A.dtype);
 }
 
 NDArray.prototype.reshape = function (shape, ...more_shape) {

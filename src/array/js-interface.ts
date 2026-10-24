@@ -1,18 +1,33 @@
 //@ts-check
-import { bool, DType, float64, int32, new_buffer, object } from '../dtypes';
+import { bool, DType, float64, int32, int64, new_buffer, object, convert_buffer } from '../dtypes';
 import { asarray, isarray, NDArray, Shape, parse_shape } from "../NDArray";
 
 
 
+const TYPED_ARRAY_DTYPES: { [name: string]: DType } = {
+  Float64Array: float64, Float32Array: "float32", Int32Array: int32, Uint8Array: bool,
+  Int8Array: int32, Int16Array: int32, Uint16Array: int32, Uint8ClampedArray: int32, Uint32Array: float64,
+};
+
 export function fromlist(arr: any, dtype?: DType) {
-  if (isarray(arr)) return arr;
+  if (isarray(arr)) return dtype && arr.dtype !== dtype ? new NDArray(convert_buffer(arr.flat, dtype), arr.shape, dtype) : arr;
   if (typeof arr === "number") {
-    if (!dtype && Number.isInteger(arr)) dtype = int32;
+    const weak = !dtype;
+    if (!dtype && Number.isInteger(arr)) dtype = Math.abs(arr) <= 2147483647 ? int32 : (Number.isSafeInteger(arr) ? int64 : float64);
     else if (!dtype) dtype = float64;
-    return new NDArray(new_buffer([arr], dtype), [], dtype);
+    const out = new NDArray(convert_buffer([arr], dtype), [], dtype);
+    if (weak) out._weak = true;
+    return out;
   }
   if (typeof arr === "boolean") {
-    return new NDArray(new_buffer([arr ? 1 : 0], bool), [], bool);
+    const out = new NDArray(convert_buffer([arr], dtype || bool), [], dtype || bool);
+    if (!dtype) out._weak = true;
+    return out;
+  }
+  if (ArrayBuffer.isView(arr) && !(arr instanceof DataView)) {
+    const own: DType = TYPED_ARRAY_DTYPES[arr.constructor.name] || float64;
+    const flat = new_buffer(arr as any, own === float64 && arr.constructor.name === "Uint32Array" ? float64 : own);
+    return new NDArray(dtype && dtype !== own ? convert_buffer(flat, dtype) : flat, [(arr as any).length], dtype || own);
   }
   if (!Array.isArray(arr)) throw new Error(`Can't parse input of type ${typeof arr}: ${arr}`);
   const shape: number[] = [];
@@ -22,33 +37,40 @@ export function fromlist(arr: any, dtype?: DType) {
     root = root[0];
     if (shape.length > 256) throw new Error(`Circular reference or excessive array depth`);
   }
-  const flat: number[] = [];
+  const flat: any[] = [];
   const pushToFlat = (arr, axis) => {
-    // Check consistency
+    if (!Array.isArray(arr)) throw new Error(`Inconsistent shape`);
+    if (arr.length != shape[axis]) throw new Error(`Inconsistent shape: found sibling arrays of lengths ${arr.length} and ${shape[axis]}`);
     if (axis == shape.length - 1) {
       for (let elem of arr) {
         if (Array.isArray(elem)) throw new Error(`Inconsistent shape`);
         flat.push(elem);
-        // Update dtype
       }
     } else {
-      if (!Array.isArray(arr)) throw new Error(`Inconsistent shape`);
-      for (let sub of arr) {
-        if (sub.length != shape[axis + 1])
-          throw new Error(`Inconsistent shape: found sibling arrays of lengths ${sub.length} and ${shape[axis + 1]}`);
-        pushToFlat(sub, axis + 1);
-      }
+      for (let sub of arr) pushToFlat(sub, axis + 1);
     }
   }
   pushToFlat(arr, 0);
   // Infer dtype
+  const float_flag = (arr as any).__float === true || (shape.length > 1 && arr.some((x: any) => x.__float === true));
   if (!dtype) {
-    if (flat.every(x => typeof x === "boolean")) dtype = bool;
-    else if (flat.every(x => typeof x === "number" && Number.isInteger(x))) dtype = int32;
-    else if (flat.every(x => typeof x === "number")) dtype = float64;
-    else dtype = object;
+    let n_bool = 0, n_int = 0, n_num = 0, n_safe = 0;
+    for (const x of flat) {
+      if (typeof x === "boolean") n_bool++;
+      else if (typeof x === "number") {
+        n_num++;
+        if (Number.isInteger(x) && Math.abs(x) <= 2147483647) n_int++;
+        if (Number.isSafeInteger(x)) n_safe++;
+      }
+    }
+    if (flat.length == 0) dtype = float64;
+    else if (n_bool == flat.length) dtype = bool;
+    else if (n_bool + n_num < flat.length) dtype = object;
+    else if (n_bool + n_int == flat.length && !float_flag) dtype = int32;
+    else if (n_bool + n_safe == flat.length && !float_flag) dtype = int64;
+    else dtype = float64;
   }
-  return new NDArray(new_buffer(flat, dtype), shape, dtype);
+  return new NDArray(convert_buffer(flat, dtype), shape, dtype);
 }
 
 
@@ -72,34 +94,38 @@ export function tolist(arr) {
   //   }
   // }
   // return out;
-  function recursiveReshape(flatArr, shapeArr) {
-    if (shapeArr.length === 0) {
-      return flatArr.shift();
+  const flat = arr.flat;
+  const isBool = arr.dtype === bool;
+  let pos = 0;
+  function build(axis: number): any {
+    const n = arr.shape[axis];
+    const out = new Array(n);
+    if (axis == arr.shape.length - 1) {
+      if (isBool) for (let i = 0; i < n; i++) out[i] = !!flat[pos++];
+      else for (let i = 0; i < n; i++) out[i] = flat[pos++];
+    } else {
+      for (let i = 0; i < n; i++) out[i] = build(axis + 1);
     }
-    const innerShape = shapeArr.slice(1);
-    const outerSize = shapeArr[0];
-    const innerArray: number[] = [];
-    for (let i = 0; i < outerSize; i++) {
-      innerArray.push(recursiveReshape(flatArr, innerShape));
-    }
-    return innerArray;
+    return out;
   }
-  let flat = [...arr.flat];
-  if (arr.dtype === bool) flat = flat.map(x => !!x);
-  const out = recursiveReshape(flat, arr.shape);
-  return out;
+  return build(0);
 }
 
 
-export function array(A: NDArray | any, dtype: DType = null) {
-  if (isarray(A)) { // copy if it's a view
-    let flat = A._simpleIndexes == null ? new_buffer(A.flat, A.dtype) : A.flat;
-    if (dtype && dtype !== A.dtype) {
-      flat = new_buffer(flat, dtype);
-    }
-    return new NDArray(flat, A.shape);
+export function array(A: NDArray | any, dtype: DType = null, copy: boolean = true, ndmin: number = 0): NDArray {
+  let out: NDArray;
+  if (isarray(A)) {
+    const target = dtype || A.dtype;
+    // Views are always copied; plain arrays only if requested (or if the dtype changes)
+    out = (copy || A._simpleIndexes || target !== A.dtype)
+      ? new NDArray(convert_buffer(A.flat, target), A.shape, target)
+      : A;
+  } else {
+    out = asarray(A, dtype);
+    if (out._weak) out = new NDArray(out._flat, [], out.dtype); // np.array(5) is a regular (strong) 0-d array
   }
-  else return asarray(A, dtype);
+  if (out.shape.length < ndmin) out = new NDArray(out.flat, [...Array(ndmin - out.shape.length).fill(1), ...out.shape], out.dtype);
+  return out;
 }
 
 

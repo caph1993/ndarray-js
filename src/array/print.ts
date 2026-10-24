@@ -1,91 +1,69 @@
 //@ts-check
 
-import { ops as ew_ops } from './elementwise';
-import { tolist } from './js-interface';
 import NDArray from "../NDArray";
-import { dtype_is_float } from '../dtypes';
+import { bool, dtype_is_float, object } from '../dtypes';
 
-const round = ew_ops.round;
+const EDGE_ITEMS = 3;
+const SUMMARIZE_THRESHOLD = 1000;
 
-export function humanReadable(arr: NDArray) {
-  if (arr.shape.length == 0) return arr.flat[0].toString();
-  let budgets = arr.shape.map(_ => 1);
-  let lBudget = 30;
-  for (let i = 0; i < arr.shape.length; i++) {
-    let before = budgets[i];
-    budgets[i] = Math.min(arr.shape[i], lBudget);
-    if (budgets[i] > before) lBudget = Math.floor(lBudget / (budgets[i] - before));
-  }
-  let rBudget = 30;
-  for (let i = arr.shape.length - 1; i >= 0; i--) {
-    let before = budgets[i];
-    budgets[i] = Math.min(arr.shape[i], rBudget);
-    if (budgets[i] > before) rBudget = Math.floor(rBudget / (budgets[i] - before));
-  }
-  function simplify(list, depth = 0) {
-    if (depth == arr.shape.length) return list;
-    if (2 * budgets[depth] >= list.length) {
-      return list.map(l => simplify(l, depth + 1));
+function format_number(x: number): string {
+  if (Number.isNaN(x)) return "nan";
+  if (x === Infinity) return "inf";
+  if (x === -Infinity) return "-inf";
+  if (Number.isInteger(x) && Math.abs(x) < 1e16) return String(x);
+  // 8 significant digits, as numpy
+  const s = String(Number(x.toPrecision(8)));
+  return s;
+}
+
+/**
+ * Human readable representation, e.g.
+ * np([[1, 2],
+ *     [3, 4]], shape=(2, 2), dtype=int32)
+ * Large arrays are summarized with "...".
+ */
+export function humanReadable(arr: NDArray): string {
+  const shape = arr.shape;
+  const dtype = arr.dtype;
+  const suffix = `shape=(${shape.join(', ')}${shape.length == 1 ? ',' : ''}), dtype=${dtype}`;
+  const fmt = (v: any) => {
+    if (dtype === bool) return v ? "true" : "false";
+    if (typeof v === "number") return format_number(v);
+    return typeof v === "string" ? JSON.stringify(v) : String(v);
+  };
+  if (shape.length == 0) return `np(${fmt(arr.flat[0])}, ${suffix})`;
+  const summarize = arr.size > SUMMARIZE_THRESHOLD;
+  const flat = arr.flat as any;
+  const strides: number[] = [];
+  let acc = 1;
+  for (let i = shape.length - 1; i >= 0; i--) { strides[i] = acc; acc *= shape[i]; }
+  // Positions to show along each axis
+  const shown = shape.map(n => (summarize && n > 2 * EDGE_ITEMS)
+    ? [...Array.from({ length: EDGE_ITEMS }, (_, i) => i), -1, ...Array.from({ length: EDGE_ITEMS }, (_, i) => n - EDGE_ITEMS + i)]
+    : Array.from({ length: n }, (_, i) => i));
+  // Common width for aligned columns
+  let width = 0;
+  const collect = (axis: number, offset: number): void => {
+    for (const i of shown[axis]) {
+      if (i < 0) continue;
+      if (axis == shape.length - 1) width = Math.max(width, fmt(flat[offset + i]).length);
+      else collect(axis + 1, offset + i * strides[axis]);
     }
-    const left = list.slice(0, budgets[depth]).map(l => simplify(l, depth + 1));
-    const right = list.slice(-budgets[depth]).map(l => simplify(l, depth + 1));
-    return [...left, '...', ...right];
-  }
-  let rLimit = arr.shape.length - 1;
-  while (rLimit > 0 && arr.shape[rLimit] == 1) {
-    rLimit--;
-  }
-  if (dtype_is_float(arr.dtype)) arr = round(arr, 2);
-  let list = tolist(arr);
-
-  function str(list, indent = 0, depth = 0) {
-    if (list == '...' || depth >= arr.shape.length) return list;
-    if (depth == arr.shape.length - 1) return `[${list.join(', ')}]`;
-    let sep = depth >= rLimit ? ' ' : '\n' + ' '.repeat(indent + 1);
-    const out = [];
-    for (let i = 0; i < list.length; i++) {
-      let s = str(list[i], indent + 1, depth + 1) + ',';
-      out.push(i < list.length - 1 ? s : s.slice(0, -1));
-    }
-    return `[${out.join(sep)}]`;
-  }
-
-  let prefix = 'np';
-  let suffix = `, shape=(${arr.shape}), dtype=${arr.dtype}`;
-  let out = str(simplify(list), 1 + prefix.length);
-  function alignColumns(inputString, delimiter = ',') {
-    // Split the input string into rows
-    const rows = inputString.split('\n');
-    // Initialize an array to store the maximum width of each column
-    const columnWidths = Array(rows[0].split(delimiter).length).fill(0);
-    // Find the maximum width for each column
-    for (const row of rows) {
-      let columns = row.split(delimiter);
-      for (let i = 0; i < columns.length; i++) {
-        columnWidths[i] = Math.max(columnWidths[i], columns[i].trim().length);
-      }
-    }
-    // Build the formatted outputs
-    let formattedString = '';
-    for (const row of rows) {
-      let columns = row.split(delimiter);
-      columns = columns.map((s, i) => i == columns.length - 1 ? s : s + delimiter);
-      for (let i = 0; i < columns.length; i++) {
-        const column = columns[i].trim();
-        formattedString += column.padStart(columnWidths[i] + 1).padEnd(columnWidths[i] + 2); // Add 1 for padding
-      }
-      formattedString += '\n';
-    }
-    return formattedString;
-  }
-  out = out.replace(/.*?(\n|$)/g, (match) => {
-    // Split with a newline every 0 characters, but only after a comma,
-    return match.replace(/(.{60,}?,)/g, '$1\n');
-  }).replace(/\n+/g, '\n');
-  out = alignColumns(`${prefix}(${out}`).trim();
-  out = `${out}${suffix})`;
-  return out;
-
+  };
+  collect(0, 0);
+  const prefix = "np(";
+  const render = (axis: number, offset: number, indent: number): string => {
+    const last = axis == shape.length - 1;
+    const parts: string[] = shown[axis].map(i => {
+      if (i < 0) return "...";
+      return last ? fmt(flat[offset + i]).padStart(width) : render(axis + 1, offset + i * strides[axis], indent + 1);
+    });
+    if (last) return `[${parts.join(', ')}]`;
+    const sep = ",\n".repeat(1) + " ".repeat(indent + 1) + "";
+    const blank = shape.length - axis > 2 ? "\n" : "";
+    return `[${parts.join("," + "\n" + blank + " ".repeat(indent + 1))}]`;
+  };
+  return `${prefix}${render(0, 0, prefix.length)}, ${suffix})`;
 }
 
 NDArray.prototype.toString = function () {

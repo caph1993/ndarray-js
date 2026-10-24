@@ -5,7 +5,8 @@ import { DType, HasDType, bool, infer_dtype, new_buffer, object, Buffer } from '
 export type ArrayOrConstant = NDArray | number | boolean;
 
 
-import type { Method_other_out, Method_a_axis_keepdims, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './kwargs/kwargs';
+import type * as sigs from './kwargs/signatures';
+import type { Method_other_out, Method_a_axis_keepdims, Method_a_axis_keepdims_dtype_out, Method_a_min_a_max_out, Method_values_where, Method_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_a_axis_ddof_keepdims } from './kwargs/kwargs';
 
 
 /**
@@ -23,6 +24,13 @@ class NDArray implements HasDType {
   /** @ignore */
   _dtype?: DType;
 
+  /**
+   * True for 0-d arrays that come from a plain JS number/boolean (like python scalars,
+   * they do not upcast the dtype of the other operand in binary operations).
+   * @ignore
+   */
+  _weak?: boolean;
+
   /** @category Attributes @readonly */
   get dtype(): DType {
     if (this._dtype) return this._dtype;
@@ -37,9 +45,25 @@ class NDArray implements HasDType {
   /** @category Reducers */
   all: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
-  sum: Method_a_axis_keepdims.Wrapper;
+  sum: Method_a_axis_keepdims_dtype_out.Wrapper;
   /** @category Reducers */
-  product: Method_a_axis_keepdims.Wrapper;
+  product: Method_a_axis_keepdims_dtype_out.Wrapper;
+  /** @category Reducers */
+  prod: Method_a_axis_keepdims_dtype_out.Wrapper;
+  /** @category Reducers */
+  ptp: Method_a_axis_keepdims.Wrapper;
+  /** @category Cumulative */
+  cumsum: ReturnType<typeof sigs.cumulative.method>;
+  /** @category Cumulative */
+  cumprod: ReturnType<typeof sigs.cumulative.method>;
+  /** @category Searching */
+  nonzero: ReturnType<typeof sigs.a_only.method>;
+  /** @category Searching */
+  searchsorted: ReturnType<typeof sigs.searchsorted.method>;
+  /** @category Elementwise operators */
+  clip: Method_a_min_a_max_out.Wrapper;
+  /** @category Elementwise operators */
+  conj: Method_out.Wrapper;
   /** @category Reducers */
   max: Method_a_axis_keepdims.Wrapper;
   /** @category Reducers */
@@ -50,7 +74,7 @@ class NDArray implements HasDType {
   argmin: Method_a_axis_keepdims.Wrapper;
 
   /** @category Reducers */
-  mean: Method_a_axis_keepdims.Wrapper;
+  mean: Method_a_axis_keepdims_dtype_out.Wrapper;
   /** @category Reducers */
   var: Method_a_axis_ddof_keepdims.Wrapper;
   /** @category Reducers */
@@ -81,6 +105,10 @@ class NDArray implements HasDType {
   /** @category Binary operators */
   bitwise_and: Method_other_out.Wrapper;
   /** @category Binary operators */
+  bitwise_xor: Method_other_out.Wrapper;
+  /** @category Binary operators */
+  bitwise_shift_left: Method_other_out.Wrapper;
+  /** @category Binary operators */
   bitwise_shift_right: Method_other_out.Wrapper;
 
   /** @category Binary logical operators */
@@ -103,9 +131,9 @@ class NDArray implements HasDType {
   /** @category Comparison operators */
   not_equal: Method_other_out.Wrapper;
   /** @category Comparison operators */
-  isclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => number | boolean | NDArray;
+  isclose: ReturnType<typeof sigs.isclose.method>;
   /** @category Comparison operators */
-  allclose: (A: any, B: any, rtol?: number, atol?: number, equal_nan?: boolean) => boolean;
+  allclose: ReturnType<typeof sigs.allclose.method>;
 
   /** @category Unary operators */
   round: Method_a_decimals_out.Wrapper;
@@ -156,7 +184,9 @@ class NDArray implements HasDType {
   /** @category Transformations */
   reshape: (shape: any, ...more_shape: any[]) => NDArray;
   /** @category Transformations */
-  sort: (axis?: number) => NDArray;
+  sort: (axis?: number | { axis?: number }) => NDArray;
+  /** @category Sorting */
+  argsort: (axis?: number | { axis?: number }) => NDArray;
   /** @category Transformations */
   transpose: (axes?: number[]) => NDArray;
 
@@ -234,8 +264,9 @@ class NDArray implements HasDType {
     if (this.size != 1) throw new Error(`Can't convert array of size ${this.size} to scalar`);
     return this.dtype === bool ? !!this._flat[0] : this._flat[0];
   }
+  /** Returns a plain JS value for 0-d arrays, and the array itself otherwise */
   item_if_scalar() {
-    if (this.size == 1) return this.item();
+    if (this.shape.length == 0) return this.item();
     else return this;
   }
 }
@@ -276,6 +307,16 @@ export function broadcast_shapes(shapeA: number[], shapeB: number[]) {
     shape.unshift(Math.max(dim1, dim2));
   }
   return [shape, shapeA, shapeB];
+}
+
+/**
+ * Strides (in the flat buffer of an array with shape `srcShape`) to iterate it as if it had
+ * been broadcast to `shape`. Broadcast axes have stride 0.
+ */
+export function broadcast_strides(shape: number[], srcShape: number[]): number[] {
+  const offset = shape.length - srcShape.length;
+  const strides = shape_shifts(srcShape);
+  return shape.map((_, i) => (i < offset || srcShape[i - offset] === 1) ? 0 : strides[i - offset]);
 }
 
 export function broadcast_n_shapes(...shapes: number[][]) {
@@ -330,10 +371,10 @@ NDArray.prototype.copy = function () {
 export function empty(shape: Shape, dtype?: DType) {
   const size = parse_shape(shape).reduce((a, b) => a * b, 1);
   const buffer = new_buffer(size, dtype);
-  return new NDArray(buffer, parse_shape(shape));
+  return new NDArray(buffer, parse_shape(shape), dtype);
 }
 export function asarray(A: NDArray | any, dtype: DType = null): NDArray {
-  if (isarray(A)) return A;
+  if (isarray(A) && (!dtype || A.dtype === dtype)) return A;
   else return NDArray.prototype.fromlist(A, dtype);
 }
 export function isarray(A: any): A is NDArray {

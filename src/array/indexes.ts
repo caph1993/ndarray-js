@@ -15,20 +15,23 @@ export function index(arr: NDArray, where: Where) {
   let copy = false;
   if (!(isarray(arr))) throw new Error(`Expected NDArray. Found ${typeof arr}: ${arr}`);
   const axesIndex = AxesIndex.prototype.parse(arr.shape, where);
-  if (axesIndex.isConstant && arr.shape.length == 1) {
-    let [index] = axesIndex.indices;
-    return arr.flat[index] as any as NDArray;
-  } else if (axesIndex.isSimple) {
+  if (axesIndex.isSimple) {
     const composition = __compose_simpleIndexes(arr._simpleIndexes, axesIndex);
-    const out = new NDArray(arr._flat, axesIndex.shape);
+    if (composition.isConstant && composition.shape.length == 0) {
+      // Full integer index: return a plain value
+      const value = arr._flat[composition.indices[0]];
+      return (arr.dtype === "bool" ? !!value : value) as any as NDArray;
+    }
+    const out = new NDArray(arr._flat, axesIndex.shape, arr.dtype);
     out._simpleIndexes = composition;
     if (arr['__warnAssignments']) out['__warnAssignments'] = true;
     return copy ? out.copy() : out;
   } else {
     const src_flat = arr.flat;
     const buffer = new_buffer(axesIndex.size, arr.dtype);
-    for (let i = 0; i < axesIndex.size; i++) buffer[i] = src_flat[axesIndex.indices[i]];
-    const out = new NDArray(buffer, axesIndex.shape);
+    const indices = axesIndex.indices;
+    for (let i = 0; i < axesIndex.size; i++) buffer[i] = src_flat[indices[i]];
+    const out = new NDArray(buffer, axesIndex.shape, arr.dtype);
     if (!copy) out['__warnAssignments'] = true;
     return out;
   }
@@ -74,47 +77,47 @@ export class AxesIndex {
 
 
 
+function __as_range(spec: AxisIndexSpec): { start: number, step: number, nSteps: number } {
+  if (spec.type === ':') return { start: 0, step: 1, nSteps: spec.size };
+  if (spec.type === 'range') return spec.range;
+  if (spec.type === 'new') return { start: 0, step: 1, nSteps: 1 };
+  if (spec.type === false) return { start: 0, step: 1, nSteps: 0 };
+  throw new Error(`Expected simple range. Found ${spec.type}`);
+}
+
 function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): AxesIndex {
+  // `second` was parsed against the apparent shape of `first`.
   if (first == null) return second;
   const axisIndexes = [];
   let j = 0;
   for (let i = 0; i < first.axisIndexes.length; i++) {
-    let { spec: specA } = first.axisIndexes[i];
-    let { spec: specB } = second.axisIndexes[j];
+    const specA = first.axisIndexes[i].spec;
     if (specA.type == "array") throw new Error(`Expected simple index. Found advanced: ${specA.type}`);
-    if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
     let spec: AxisIndexSpec;
-    if (specA.type == "number") spec = specA;
+    if (specA.type == "number") spec = specA; // axis already removed from the apparent shape
     else {
-      j++;
-      if (specA.type === false) spec = specA;
+      if (j >= second.axisIndexes.length) throw new Error(`Programming error: index too short`);
+      const specB = second.axisIndexes[j++].spec;
+      if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
+      if (specB.type == ":") spec = specA;
       else if (specB.type === false) spec = specB;
-      else if (specA.type == ":") spec = specB;
-      else if (specB.type == ":") spec = specA;
+      else if (specB.type == "new") spec = specB;
       else {
-        let { start: startA, step: stepA, nSteps: nStepsA } = specA.range;
+        const { start: startA, step: stepA, nSteps: nStepsA } = __as_range(specA);
         if (specB.type == "number") {
-          let { index } = specB;
-          if (index < 0) index = nStepsA + index;
+          const index = specB.index;
           if (index < 0 || index >= nStepsA) throw new Error(`Index ${index} out of bounds [0..${nStepsA})`);
-          index = startA + index * stepA;
-          spec = { type: "number", index };
+          spec = { type: "number", index: startA + index * stepA };
         } else {
-          let { start: startB, step: stepB, nSteps: nStepsB } = specB.range;
-          let sub = AxisIndex.prototype.parse_range(nStepsA, startB, startB + nStepsB * stepB, stepB);
-          let step = sub.step * stepA;
-          let start = startA + sub.start * step;
-          let nSteps = sub.nSteps;
-          spec = { type: "range", range: { start, step, nSteps } };
+          const { start: startB, step: stepB, nSteps } = specB.range;
+          spec = { type: "range", range: { start: startA + startB * stepA, step: stepA * stepB, nSteps } };
         }
       }
     }
     axisIndexes.push(new AxisIndex(spec));
   }
-  if (j < second.axisIndexes.length) throw new Error(`Index too long. Expected ${j} axes. Found ${second.axisIndexes.length}`)
-  const apparentShape = second.shape;
-  const internalShape = first.internalShape;
-  return new AxesIndex(apparentShape, internalShape, axisIndexes);
+  if (j != second.axisIndexes.length) throw new Error(`Programming error: composed ${j} of ${second.axisIndexes.length} axes`);
+  return new AxesIndex(second.shape, first.internalShape, axisIndexes);
 }
 
 
@@ -181,7 +184,7 @@ export function __parse_sliceRange(axis_size, { start, stop, step }) {
 }
 
 
-export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] } | { type: false };
+export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] } | { type: 'new' } | { type: false };
 
 export class AxisIndex {
   spec: AxisIndexSpec;
@@ -209,6 +212,7 @@ export class AxisIndex {
     else if (this.spec.type === "number") indices = [this.spec.index];
     else if (this.spec.type === "array") indices = this.spec.indices;
     else if (this.spec.type === false) indices = [];
+    else if (this.spec.type === "new") indices = [0];
     else if (this.spec.type == "range") {
       const { nSteps, step, start } = this.spec.range;
       indices = Array.from({ length: nSteps }, (_, i) => start + i * step);
@@ -221,26 +225,31 @@ export class AxisIndex {
     else if (this.spec.type === "array") return this.spec.indices.length;
     else if (this.spec.type == "range") return this.spec.range.nSteps;
     else if (this.spec.type === false) return 0;
+    else if (this.spec.type === "new") return 1;
     else throw new Error(`Unknown spec type ${this.spec['type']}`);
   }
 }
 
 
 AxisIndex.prototype.parse_range = function (size: number, start: number | null = null, stop: number | null = null, step: number | null = null) {
+  // Same semantics as python's slice(start, stop, step).indices(size)
   if (step == null) step = 1;
   else if (step == 0) throw new Error(`Index specification error. Step must be different from zero.`);
-  /**
-   *  @param {number|null} i @param {number} ifNull @param {number} min @param {number} max */
-  const parse = (i: number | null, ifNull: number, min: number, max: number) => {
+  const clamp = (i: number | null, ifNull: number, lo: number, hi: number) => {
     if (i == null) return ifNull;
-    if (i < 0) i = Math.max(0, size - i);
-    return Math.min(max, Math.max(min, i));
+    if (i < 0) i += size;
+    return Math.min(hi, Math.max(lo, i));
   }
   let nSteps;
-  if (step > 0) start = parse(start, 0, 0, size - 1), stop = parse(stop, size, 0, size);
-  else start = parse(start, size - 1, 0, size - 1), stop = parse(stop, size - 1, -1, size - 1);
-  stop = Math.max(stop, start);
-  nSteps = Math.floor(Math.abs(stop - start) / step);
+  if (step > 0) {
+    start = clamp(start, 0, 0, size);
+    stop = clamp(stop, size, 0, size);
+    nSteps = Math.max(0, Math.ceil((stop - start) / step));
+  } else {
+    start = clamp(start, size - 1, -1, size - 1);
+    stop = clamp(stop, -1, -1, size - 1);
+    nSteps = Math.max(0, Math.ceil((start - stop) / -step));
+  }
   return { start, step, nSteps };
 }
 
@@ -311,16 +320,20 @@ AxisIndex.prototype.parse = function (indexSpec: IndexSpec | undefined, size) {
       span = Math.max(1, arr.shape.length);
       // Multiply the (possibly inverted) interval
     } else {
-      // Array of indices
-      indices = arr.flat;
+      // Array of indices (negative values count from the end)
+      const raw = arr.flat;
       if (!dtype_is_integer(arr.dtype) && arr.size > 0) {
-        // If the array is not integer, we should throw an error. Manual check
-        const new_indices = new Int32Array(indices);
-        if (new_indices.some((v, i) => v != indices[i])) throw new Error(
+        for (let i = 0; i < raw.length; i++) if (!Number.isInteger(raw[i])) throw new Error(
           `Expected 1D array of indices or nD array of booleans. ` +
           `Found shape=${arr.shape} and dtype=${arr.dtype}`
         );
-        indices = new_indices;
+      }
+      indices = new Array(raw.length);
+      for (let i = 0; i < raw.length; i++) {
+        let v = +raw[i];
+        if (v < 0) v += size;
+        if (v < 0 || v >= size) throw new Error(`Index ${raw[i]} out of bounds [0..${size})`);
+        indices[i] = v;
       }
     }
     spec = { type: "array", indices };
@@ -343,60 +356,62 @@ AxisIndex.prototype.parse = function (indexSpec: IndexSpec | undefined, size) {
 }
 
 
-AxesIndex.prototype.parse = function (shape: number[], where: Where): AxesIndex {
-  const _where: Array<GeneralIndexSpec | undefined> = where == null ? [] : [...where];
+function __is_new_axis(item: any) {
+  return item === null || item === "None" || item === true;
+}
 
-  const buffers = {
-    axisIndexes: [] as AxisIndex[],
-    apparentShape: [] as number[],
-    internalShape: [] as number[],
+/** Number of array axes consumed by an item of the index tuple */
+function __consumed_axes(item: any): number {
+  if (__is_new_axis(item) || item === false) return 0;
+  if (isarray(item)) {
+    if (item.shape.length == 0) return typeof item.item() === "boolean" ? 0 : 1;
+    return dtype_is_boolean(item.dtype) ? item.shape.length : 1;
   }
-  let readDir = 1;
-  const reversedAfter = { axisIndexes: NaN, apparentShape: NaN, internalShape: NaN };
-  let axis = 0, j = 0, remainingAxes = shape.length, remainingWhere = _where.length;
-  while (remainingWhere > 0 || remainingAxes > 0) {
-    let axisWhere = _where[j];
-    if (remainingWhere > 0) {
-      if (j < 0 || j >= _where.length) axisWhere = ":";
-      remainingWhere--;
-      //else _where[j] = undefined; // For ellipsis to avoid reading twice in opposite reading directions
-      j += readDir;
-      if (axisWhere == "None" || axisWhere === null || axisWhere === true) {
-        buffers.apparentShape.push(1);
-        continue;
-      } else if (axisWhere === false) {
-        buffers.apparentShape.push(0);
-        continue;
-      } else if (axisWhere == "...") {
-        if (readDir == -1) throw new Error(`Index can only have a single ellipsis. Found index(${where})`)
-        readDir = -1;
-        for (let key in reversedAfter) reversedAfter[key] = buffers[key].length;
-        j = _where.length - 1;
-        axis = shape.length - 1;
-        continue;
-      }
-    } else {
-      axisWhere = ":"; // If there are no more axes, fill with ":"
-    }
-    // if (remainingAxes <= 0) throw Error(`Too many axes`);
-    const { axisIndex, span } = AxisIndex.prototype.parse(axisWhere, shape[axis]);
-    // Advance the axis cursor span axes in readDir and compute the total size of consumed axes
-    remainingAxes -= span;
+  if (Array.isArray(item)) {
+    const arr = asarray(item);
+    return dtype_is_boolean(arr.dtype) ? Math.max(1, arr.shape.length) : 1;
+  }
+  return 1;
+}
+
+AxesIndex.prototype.parse = function (shape: number[], where: Where): AxesIndex {
+  const items: any[] = where == null ? [] : where.map(w => (isarray(w) && w.shape.length == 0) ? w.item() : w);
+  const ellipsis = items.indexOf("...");
+  if (ellipsis != items.lastIndexOf("...")) throw new Error(`Index can only have a single ellipsis. Found index(${where})`);
+  const consumed = items.reduce((n, item) => n + (item === "..." ? 0 : __consumed_axes(item)), 0);
+  const nFill = shape.length - consumed;
+  if (nFill < 0) throw new Error(`Too many indices for array: array is ${shape.length}-dimensional, but ${consumed} were indexed`);
+  const fill = Array.from({ length: nFill }, () => ":");
+  if (ellipsis >= 0) items.splice(ellipsis, 1, ...fill);
+  else items.push(...fill);
+
+  const axisIndexes: AxisIndex[] = [];
+  const apparentShape: number[] = [];
+  const internalShape: number[] = [];
+  let axis = 0;
+  for (const item of items) {
+    let axisIndex: AxisIndex;
     let refSize = 1;
-    for (let i = 0; i < span; i++) {
-      if (axis < 0 || axis >= shape.length) throw new Error(`Index where=${JSON.stringify(where)} spans over more dimensions than available in shape=${JSON.stringify(shape)}`);
-      refSize *= shape[axis];
-      axis += readDir;
+    if (__is_new_axis(item)) axisIndex = new AxisIndex({ type: 'new' });
+    else if (item === false) axisIndex = new AxisIndex({ type: false });
+    else {
+      const span = __consumed_axes(item);
+      if (axis + span > shape.length) throw new Error(`Index where=${JSON.stringify(where)} spans over more dimensions than available in shape=${JSON.stringify(shape)}`);
+      if (span > 1 || (span == 1 && (isarray(item) || Array.isArray(item)) && dtype_is_boolean(asarray(item).dtype))) {
+        const maskShape = asarray(item).shape;
+        for (let i = 0; i < span; i++) if (maskShape[i] !== shape[axis + i]) {
+          throw new Error(`Boolean index of shape [${maskShape}] does not match array axes [${shape.slice(axis, axis + span)}]`);
+        }
+      }
+      axisIndex = AxisIndex.prototype.parse(item, shape[axis]).axisIndex;
+      for (let i = 0; i < span; i++) refSize *= shape[axis + i];
+      axis += span;
     }
-    buffers.axisIndexes.push(axisIndex);
-    if (axisIndex.spec.type != "number") buffers.apparentShape.push(axisIndex.size);
-    buffers.internalShape.push(refSize);
+    axisIndexes.push(axisIndex);
+    if (axisIndex.spec.type != "number") apparentShape.push(axisIndex.size);
+    internalShape.push(refSize);
   }
-  if (readDir == -1) { // reverse the right to left elements
-    for (let key in buffers) buffers[key].splice(0, reversedAfter[key]).concat(buffers[key].reverse());
-  }
-  const axesIndex = new AxesIndex(buffers.apparentShape, buffers.internalShape, buffers.axisIndexes)
-  return axesIndex;
+  return new AxesIndex(apparentShape, internalShape, axisIndexes);
 }
 
 

@@ -8,10 +8,12 @@
 // https://stackoverflow.com/questions/49242232/
 // https://stackoverflow.com/questions/69783310/
 
-export type DType = "bool" | "int32" | "float32" | "float64" | "object";
+export type DType = "bool" | "int32" | "int64" | "float32" | "float64" | "object";
 
 export const bool = "bool";
 export const int32 = "int32";
+/** Integers stored in a Float64Array: exact up to 2**53. Values are truncated to integers when stored. */
+export const int64 = "int64";
 export const float32 = "float32";
 export const float64 = "float64";
 export const object = "object";
@@ -90,6 +92,7 @@ export type Promote<
 
 export const infer_dtype = {
   Float32Array: float32,
+  Float64Array: float64,
   Int32Array: int32,
   Uint8Array: bool,
   Array: object,
@@ -98,6 +101,7 @@ export const infer_dtype = {
 export const dtype_constructors = {
   bool: Uint8Array,
   int32: Int32Array,
+  int64: Float64Array,
   float32: Float32Array,
   float64: Float64Array,
   object: Array,
@@ -134,10 +138,33 @@ export function new_buffer(
   return new dtype_constructors[dtype](size_or_array as any) as InstanceType<any>;
 }
 
+/** Copies (and casts) a buffer or array into a new buffer of the given dtype */
+export function convert_buffer(src: ArrayLike<any>, dtype: DType): any {
+  const n = src.length;
+  const out = new_buffer(n, dtype);
+  if (dtype === "bool") for (let i = 0; i < n; i++) out[i] = truthy(src[i]) ? 1 : 0;
+  else if (dtype === "int64") for (let i = 0; i < n; i++) { const v = Math.trunc(+src[i]); out[i] = Number.isFinite(v) ? v : 0; }
+  else if (dtype === "object") for (let i = 0; i < n; i++) out[i] = src[i];
+  else for (let i = 0; i < n; i++) out[i] = +src[i];
+  return out;
+}
+
+/** Python-like truthiness, except that nan is true (as in numpy) */
+export function truthy(x: any): boolean { return x !== x ? true : !!x; }
+
+/** Makes sure that the values of a buffer are valid for the dtype (int64 values are stored as truncated floats) */
+export function fix_buffer(buffer: any, dtype: DType): any {
+  if (dtype === "int64") for (let i = 0; i < buffer.length; i++) buffer[i] = Number.isFinite(buffer[i]) ? Math.trunc(buffer[i]) : 0;
+  return buffer;
+}
+
 export function promote(a: DType, b: DType): DType {
   if (a === "object" || b === "object") return object
   if (a === "float64" || b === "float64") return float64
+  // As in numpy, int32 does not fit in float32
+  if ((a === "float32" && (b === "int32" || b === "int64")) || (b === "float32" && (a === "int32" || a === "int64"))) return float64
   if (a === "float32" || b === "float32") return float32
+  if (a === "int64" || b === "int64") return int64
   if (a === "int32" || b === "int32") return int32
   return bool
 }
@@ -150,6 +177,8 @@ export function dtype_cmp(t1: DType, t2: DType): number {
   if (t2 === "float64") return -1;
   if (t1 === "float32") return 1;
   if (t2 === "float32") return -1;
+  if (t1 === "int64") return 1;
+  if (t2 === "int64") return -1;
   if (t1 === "int32") return 1;
   if (t2 === "int32") return -1;
   return 0; // Should not happen
@@ -159,8 +188,20 @@ export function dtype_max(...dtypes: DType[]): DType {
   return dtypes.reduce((a, b) => promote(a, b));
 }
 
+/**
+ * dtype of a plain JS scalar (weak, like python scalars) combined with another operand:
+ * it never upcasts within the same kind (int < float), as in numpy 2 (NEP 50).
+ */
+export function weak_dtype(weak: DType, other: DType): DType {
+  if (other === "object" || weak === "object") return object;
+  if (weak === "bool") return other;
+  if (other === "bool") return weak === "float32" ? float64 : weak;
+  if (dtype_is_float(weak) && dtype_is_integer(other)) return float64;
+  return other;
+}
+
 export function dtype_is_integer(dtype: DType): boolean {
-  return dtype === "int32"; // Add more integer types when we have them
+  return dtype === "int32" || dtype === "int64";
 }
 export function dtype_is_boolean(dtype: DType): boolean {
   return dtype === "bool";
@@ -195,6 +236,37 @@ export function bitwise_out(dtypes: DType[], out?: DType | HasDType): DType {
   if (out && dtype_cmp(out, inferred) < 0)
     throw new Error(`Output array has dtype ${out}, which cannot hold all values of type ${inferred}.`);
   return out || inferred;
+}
+
+function check_out(inferred: DType, out: DType | null): DType {
+  if (out && dtype_cmp(out, inferred) < 0)
+    throw new Error(`Output array has dtype ${out}, which cannot hold all values of type ${inferred}.`);
+  return out || inferred;
+}
+
+/** Same dtype as the inputs (bool stays bool). Used by add, multiply, maximum, ... */
+export function same_out(dtypes: DType[], out?: DType | HasDType): DType {
+  return check_out(dtype_max(...dtypes), get_out_dtype(out));
+}
+
+/** Like same_out but bool is not allowed (subtract, negative). */
+export function numeric_out(dtypes: DType[], out?: DType | HasDType): DType {
+  const inferred = dtype_max(...dtypes);
+  if (inferred === bool) throw new Error(`Numpy boolean subtract, the \`-\` operator, is not supported, use the bitwise_xor, the \`^\` operator, or the logical_xor function instead.`);
+  return check_out(inferred, get_out_dtype(out));
+}
+
+/** Integer or bool only (bitwise operators and shifts). */
+export function integer_out(dtypes: DType[], out?: DType | HasDType): DType {
+  const inferred = dtype_max(...dtypes);
+  if (dtype_is_float(inferred) || inferred === object) throw new Error(`Bitwise operations are not supported for dtype ${inferred}. Only bool and integer arrays are supported.`);
+  return check_out(inferred, get_out_dtype(out));
+}
+
+/** Integers or bool promoted to at least int32, floats unchanged (sum, cumsum, prod). */
+export function sum_out(dtypes: DType[], out?: DType | HasDType): DType {
+  const inferred = dtype_max(...dtypes);
+  return check_out((inferred === bool || inferred === int32) ? int64 : inferred, get_out_dtype(out));
 }
 
 export function float_out(dtypes: DType[], out?: DType | HasDType): DType {

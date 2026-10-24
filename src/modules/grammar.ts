@@ -1,6 +1,7 @@
 //@ts-check
 import * as ohm from 'ohm-js';
-import { isarray, asarray } from '../NDArray';
+import { isarray, asarray, NDArray } from '../NDArray';
+import { new_buffer, float64 } from '../dtypes';
 import * as jsInterface from '../array/js-interface';
 import * as operators from '../array/operators';
 import * as elementwise from '../array/elementwise';
@@ -30,7 +31,7 @@ ArrayGrammar {
   Operator08 = "&"
   Operator07 = "<<" | ">>"
   Operator06 = "+" | "-"
-  Operator05 = "*" | "@" | "/" | "//" | "%"
+  Operator05 = "*" | "@" | "//" | "/" | "%"
   Operator04 = "~" /* Unary */
   Operator03 = "+" | "-" /* Unary. Special treatment to prevent "-1.3" to be "-(array of 1.3)" */
   Operator02 = "**"
@@ -63,11 +64,13 @@ ArrayGrammar {
     = (letter|"_") (letter|"_"|digit)*
 
   number  (a number)
-    = ("+"|"-")? digit* "." digit+ "E" ("+"|"-")? "digit+"
-    | ("+"|"-")? digit* "." digit+ "e" ("+"|"-")? "digit+"
-    | ("+"|"-")? digit* "." digit+  ""  ""        ""
-    | ("+"|"-")? digit+ ""  ""      ""  ""        ""
-  
+    = ("+"|"-")? numberBody exponent?
+  numberBody
+    = digit+ "." digit* -- a
+    | "." digit+        -- b
+    | digit+            -- c
+  exponent = ("e"|"E") ("+"|"-")? digit+
+
   int (an integer) = ""  digit+ | "-" digit+ | "+" digit+
 
   CallArgs // Using empty strings instead of separate rules
@@ -93,7 +96,7 @@ ArrayGrammar {
     = "[" ListOf<ArgValue, ","> ","? "]"
     | "(" ListOf<ArgValue, ","> ","? ")"
 
-  String = "\'" any* "\'" | "\"" any* "\""
+  String = "\'" (~"\'" any)* "\'" | "\"" (~"\"" any)* "\""
    
   Slice = NonemptyListOf<SliceTerm, ",">
   SliceTerm
@@ -117,24 +120,41 @@ ArrayGrammar {
 
 export const ohmGrammar = ohm.grammar(grammar);
 
+const FLOAT_LITERAL = /^[+-]?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+|\d*\.\d+[eE][+-]?\d+)$/;
+
+/** 0-d arrays that appear as arguments of calls (e.g. from unary minus) are passed as plain JS values */
+function unwrap_scalar(v: any) {
+  // Integer-valued float literals (2.0) stay weak float arrays: they would become int32 otherwise
+  if (isarray(v) && v.shape.length == 0 && !(v._weak && v.dtype === float64 && Number.isInteger(v.item()))) return v.item();
+  return v;
+}
+
+function weak_float(value: number) {
+  const out = new NDArray(new_buffer([value], float64), [], float64);
+  out._weak = true;
+  return out;
+}
+
 
 export const __makeSemantics = () => {
 
   const semanticVariables: any[] = [];
   const semantics = {
     Instruction_sliceAssignment($tgt, _open, $where, _close, $symbol, $src) {
-      const _tgt = $tgt.parse();
-      const _src = $src.parse();
+      const tgt = $tgt.parse();
+      const src = $src.parse();
       const symbol = $symbol.sourceString;
       const where = $where.parse();
-      let tgt = asarray(_tgt);
-      operators.op_assign[symbol](_tgt, where, _src);
-      if (tgt !== _tgt) {
-        // WARNING: Creates a copy. This is terrible for arr[2, 4, 3] = 5
-        tgt = jsInterface.tolist(tgt);
-        while (_tgt.length) _tgt.pop();
-        // @ts-ignore
-        _tgt.push(..._tgt);
+      const assign = operators.op_assign[symbol];
+      if (!assign) throw new Error(`Unsupported assignment operator ${symbol}`);
+      if (isarray(tgt)) assign(tgt, asarray(src), where);
+      else {
+        // Plain JS arrays are converted, modified and written back
+        const arr = asarray(tgt);
+        assign(arr, asarray(src), where);
+        const result = jsInterface.tolist(arr);
+        tgt.length = 0;
+        tgt.push(...result);
       }
       return null;
     },
@@ -156,8 +176,12 @@ export const __makeSemantics = () => {
     Precedence04: UnaryOperation,
     Precedence03: UnaryOperation,
     Precedence02: BinaryOperation,
-    number: function (arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
-      return parseFloat(this.sourceString)
+    number: function (_sign, _body, _exp) {
+      const source = this.sourceString;
+      const value = parseFloat(source);
+      // Float literals (1.0, 2., 1e3) are python floats: weak float64 scalars, so that np.array([1]) * 2.0 is float
+      if (/[.eE]/.test(source)) return weak_float(value);
+      return value;
     },
     Arr_slice($arr, _open, $where, _close) {
       const arr = $arr.parse();
@@ -173,8 +197,10 @@ export const __makeSemantics = () => {
     Arr_call($name, $names, _, $callArgs) {
       let name = $name.sourceString + $names.sourceString;
       if (name.slice(0, 3) == "np.") name = name.slice(3);
-      const func = name.split('.').reduce((obj, name) => obj[name], np);
-      if (func === undefined) throw new Error(`Unrecognized function ${name}`);
+      const path = name.split('.');
+      if (path.some(part => part === 'constructor' || part === '__proto__' || part === 'prototype')) throw new Error(`Unrecognized function ${name}`);
+      const func = path.reduce((obj, part) => (obj === undefined || obj === null) ? undefined : obj[part], np);
+      if (typeof func !== 'function') throw new Error(`Unrecognized function ${name}`);
       const { args, kwArgs } = $callArgs.parse();
       return Object.keys(kwArgs).length == 0 ? func(...args) : func(...args, kwArgs);
       // return func.bind(kwArgs)(...args); // Old version
@@ -232,12 +258,11 @@ export const __makeSemantics = () => {
       return $str.sourceString;
     },
     CallArgs(_open, $args, _comma, $kwArgs, _trailing, _close) {
-      const args = $args.parse() || [];
+      const args = ($args.parse() || []).map(unwrap_scalar);
       let entries = $kwArgs.parse() || [];
       let kwArgs = Object.fromEntries(entries.map(([k, v]) => {
         // The following is needed because minus integer gets parsed as array.
-        if (isarray(v)) v = v.item_if_scalar();
-        return [k, v];
+        return [k, unwrap_scalar(v)];
       }));
       return { args, kwArgs };
     },
@@ -246,14 +271,20 @@ export const __makeSemantics = () => {
       const value = $value.parse();
       return [key, value];
     },
+    EmptyListOf() { return []; },
     NonemptyListOf(first, _, more) {
       return [first, ...more.children].map(c => c.parse());
     },
     JsArray(_open, $list, _trailing, _close) {
       const list = $list.parse();
+      // Remember whether a float literal appears (so that [1., 2.] is a float array, as in python)
+      const children = $list.asIteration().children;
+      const isFloat = children.some((c, i) => FLOAT_LITERAL.test(c.sourceString.trim()) || (Array.isArray(list[i]) && (list[i] as any).__float));
       // Downcast arrays (needed because, e.g., for [-1, 3, -2], -1 and -2 are interpreted as MyArray rather than int)
       const { tolist } = jsInterface;
-      for (let i in list) if (isarray(list[i])) list[i] = tolist(list[i]);
+      // Only scalars (e.g. -1 is parsed as an array) are downcast. Real arrays stay arrays
+      for (let i in list) if (isarray(list[i]) && list[i].shape.length == 0) list[i] = tolist(list[i]);
+      if (isFloat) (list as any).__float = true;
       return list;
     },
     _terminal() { return null; },
@@ -273,9 +304,10 @@ export const __makeSemantics = () => {
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
     const { ops } = elementwise;
+    const keepWeak = (res: NDArray) => { if (isarray(B) && B._weak && isarray(res)) res._weak = true; return res; };
     switch (symbol) {
-      case "+": return ops["+"](B);
-      case "-": return ops["-"](B);
+      case "+": return keepWeak(ops["+"](B));
+      case "-": return keepWeak(ops["-"](B));
       case "~": return ops["~"](B);
       case "!": return ops["not"](B);
     }
