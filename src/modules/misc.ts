@@ -38,7 +38,7 @@ export function get_include() { return ""; }
 export const config = {
   name: "ndarray-js",
   language: "TypeScript",
-  dtypes: ["bool", "int32", "float32", "float64", "object"],
+  dtypes: ["bool", "int32", "int64", "float32", "float64", "complex128", "object"],
   backend: "plain JavaScript typed arrays",
 };
 export function show_config() { console.log(JSON.stringify(config, null, 2)); return config; }

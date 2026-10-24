@@ -178,8 +178,8 @@ export const frequently_used_parsers = {
   },
   'dtype_or_null': (kwargs: any) => {
     const d = kwargs.dtype;
-    if (d != null && !["bool", "int32", "float32", "float64", "object"].includes(d)) {
-      throw new Error(`Invalid dtype ${JSON.stringify(d)}. Options: bool, int32, float32, float64, object`);
+    if (d != null && !["bool", "int32", "int64", "float32", "float64", "complex128", "object"].includes(d)) {
+      throw new Error(`Invalid dtype ${JSON.stringify(d)}. Options: bool, int32, int64, float32, float64, complex128, object`);
     }
   },
   'isarray_or_null': (key: string) => (kwargs: any) => {

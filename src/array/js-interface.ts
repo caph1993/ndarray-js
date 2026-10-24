@@ -1,5 +1,6 @@
 //@ts-check
-import { bool, DType, float64, int32, int64, new_buffer, object, convert_buffer } from '../dtypes';
+import { bool, DType, float64, int32, int64, complex128, new_buffer, object, convert_buffer } from '../dtypes';
+import { Complex } from '../complex';
 import { asarray, isarray, NDArray, Shape, parse_shape } from "../NDArray";
 
 
@@ -17,6 +18,11 @@ export function fromlist(arr: any, dtype?: DType) {
     else if (!dtype) dtype = float64;
     const out = new NDArray(convert_buffer([arr], dtype), [], dtype);
     if (weak) out._weak = true;
+    return out;
+  }
+  if (arr instanceof Complex) {
+    const out = new NDArray(convert_buffer([arr], dtype || complex128), [], dtype || complex128);
+    if (!dtype) out._weak = true;
     return out;
   }
   if (typeof arr === "boolean") {
@@ -54,9 +60,10 @@ export function fromlist(arr: any, dtype?: DType) {
   // Infer dtype
   const float_flag = (arr as any).__float === true || (shape.length > 1 && arr.some((x: any) => x.__float === true));
   if (!dtype) {
-    let n_bool = 0, n_int = 0, n_num = 0, n_safe = 0;
+    let n_bool = 0, n_int = 0, n_num = 0, n_safe = 0, n_complex = 0;
     for (const x of flat) {
-      if (typeof x === "boolean") n_bool++;
+      if (x instanceof Complex) n_complex++;
+      else if (typeof x === "boolean") n_bool++;
       else if (typeof x === "number") {
         n_num++;
         if (Number.isInteger(x) && Math.abs(x) <= 2147483647) n_int++;
@@ -64,6 +71,7 @@ export function fromlist(arr: any, dtype?: DType) {
       }
     }
     if (flat.length == 0) dtype = float64;
+    else if (n_complex > 0 && n_complex + n_bool + n_num == flat.length) dtype = complex128;
     else if (n_bool == flat.length) dtype = bool;
     else if (n_bool + n_num < flat.length) dtype = object;
     else if (n_bool + n_int == flat.length && !float_flag) dtype = int32;

@@ -11,7 +11,8 @@ import { extend } from '../utils-js';
 import { Where } from './indexes';
 import { concatenate } from './transform';
 import { broadcast_n_shapes, broadcast_shapes } from "../NDArray";
-import { new_buffer, fix_buffer, truthy, int32, int64 } from '../dtypes';
+import { new_buffer, fix_buffer, truthy, int32, int64, complex128, convert_buffer } from '../dtypes';
+import { Complex, cmp_complex } from '../complex';
 
 export type ArrayOrConstant = NDArray | number | boolean;
 
@@ -123,9 +124,9 @@ function operand_dtypes(A: NDArray, B: NDArray): [DType, DType] {
   return [A.dtype, B.dtype];
 }
 
-function freeze_args_bin_op(dtype_resolver: DtypeResolver, func): BinaryOperator {
+function freeze_args_bin_op(dtype_resolver: DtypeResolver, func, cfunc?: (a: Complex, b: Complex) => any): BinaryOperator {
   return function (A: NDArray, B: NDArray, out: NDArray | DType = null): NDArray {
-    return apply_binary_operation(dtype_resolver, func, A, B, out);
+    return apply_binary_operation(dtype_resolver, func, A, B, out, cfunc);
   };
 }
 
@@ -134,15 +135,21 @@ export function apply_binary_operation(
   func,
   A: ArrayOrConstant,
   B: ArrayOrConstant,
-  out: NDArray | DType | null = null
+  out: NDArray | DType | null = null,
+  cfunc?: (a: Complex, b: Complex) => any,
 ): NDArray {
   A = asarray(A);
   B = asarray(B);
   const [shape, shapeA, shapeB] = broadcast_shapes(A.shape, B.shape);
   const dtype = dtype_resolver(operand_dtypes(A, B), out);
   const buffer = new_buffer(prod(shape), dtype);
+  let flatA = A.flat, flatB = B.flat;
+  if (A.dtype === complex128 || B.dtype === complex128) {
+    if (!cfunc) throw new Error(`ufunc not supported for the input types: complex numbers are not supported by this function`);
+    func = cfunc;
+    flatA = convert_buffer(flatA, complex128); flatB = convert_buffer(flatB, complex128);
+  }
   if (dtype === bool) func = bool_wrap(func);
-  const flatA = A.flat, flatB = B.flat;
   const sameA = shapeA.length == shape.length && shapeA.every((v, i) => v == shape[i]);
   const sameB = shapeB.length == shape.length && shapeB.every((v, i) => v == shape[i]);
   const n = buffer.length;
@@ -159,17 +166,17 @@ function fix_mod(a: number, b: number) {
   return (r !== 0 && (r < 0) !== (b < 0)) ? r + b : r;
 }
 
-export const add = freeze_args_bin_op(same_out, (a, b) => a + b);
-export const subtract = freeze_args_bin_op(numeric_out, (a, b) => a - b);
-export const multiply = freeze_args_bin_op(same_out, (a, b) => a * b);
-export const divide = freeze_args_bin_op(float_out, (a, b) => a / b);
+export const add = freeze_args_bin_op(same_out, (a, b) => a + b, (a, b) => a.add(b));
+export const subtract = freeze_args_bin_op(numeric_out, (a, b) => a - b, (a, b) => a.sub(b));
+export const multiply = freeze_args_bin_op(same_out, (a, b) => a * b, (a, b) => a.mul(b));
+export const divide = freeze_args_bin_op(float_out, (a, b) => a / b, (a, b) => a.div(b));
 export const true_divide = divide;
 export const mod = freeze_args_bin_op(same_out, fix_mod);
 export const remainder = mod;
 export const fmod = freeze_args_bin_op(same_out, (a, b) => a % b);
 export const divide_int = freeze_args_bin_op(same_out, (a, b) => Math.floor(a / b));
 export const floor_divide = divide_int;
-const _pow = freeze_args_bin_op(same_out, (a, b) => Math.pow(a, b));
+const _pow = freeze_args_bin_op(same_out, (a, b) => Math.pow(a, b), (a, b) => a.pow(b));
 export const pow: BinaryOperator = function (A, B, out = null) {
   A = asarray(A); B = asarray(B);
   const [dA, dB] = operand_dtypes(A as NDArray, B as NDArray);
@@ -185,27 +192,27 @@ export const bitwise_and = freeze_args_bin_op(integer_out, (a, b) => a & b);
 export const bitwise_xor = freeze_args_bin_op(integer_out, (a, b) => a ^ b);
 export const bitwise_shift_left = freeze_args_bin_op(integer_out, (a, b) => a << b);
 export const bitwise_shift_right = freeze_args_bin_op(integer_out, (a, b) => a >> b);
-export const greater = freeze_args_bin_op(bool_out, (a, b) => a > b);
-export const less = freeze_args_bin_op(bool_out, (a, b) => a < b);
-export const greater_equal = freeze_args_bin_op(bool_out, (a, b) => a >= b);
-export const less_equal = freeze_args_bin_op(bool_out, (a, b) => a <= b);
-export const equal = freeze_args_bin_op(bool_out, (a, b) => a == b);
-export const not_equal = freeze_args_bin_op(bool_out, (a, b) => a != b);
-export const maximum = freeze_args_bin_op(same_out, (a, b) => (a !== a || b !== b) ? NaN : Math.max(a, b));
-export const minimum = freeze_args_bin_op(same_out, (a, b) => (a !== a || b !== b) ? NaN : Math.min(a, b));
+export const greater = freeze_args_bin_op(bool_out, (a, b) => a > b, (a, b) => cmp_complex(a, b) > 0 && !a.isNaN && !b.isNaN);
+export const less = freeze_args_bin_op(bool_out, (a, b) => a < b, (a, b) => cmp_complex(a, b) < 0 && !a.isNaN && !b.isNaN);
+export const greater_equal = freeze_args_bin_op(bool_out, (a, b) => a >= b, (a, b) => cmp_complex(a, b) >= 0 && !a.isNaN && !b.isNaN);
+export const less_equal = freeze_args_bin_op(bool_out, (a, b) => a <= b, (a, b) => cmp_complex(a, b) <= 0 && !a.isNaN && !b.isNaN);
+export const equal = freeze_args_bin_op(bool_out, (a, b) => a == b, (a, b) => a.eq(b));
+export const not_equal = freeze_args_bin_op(bool_out, (a, b) => a != b, (a, b) => !a.eq(b));
+export const maximum = freeze_args_bin_op(same_out, (a, b) => (a !== a || b !== b) ? NaN : Math.max(a, b), (a, b) => (a.isNaN ? a : b.isNaN ? b : (cmp_complex(a, b) >= 0 ? a : b)));
+export const minimum = freeze_args_bin_op(same_out, (a, b) => (a !== a || b !== b) ? NaN : Math.min(a, b), (a, b) => (a.isNaN ? a : b.isNaN ? b : (cmp_complex(a, b) <= 0 ? a : b)));
 export const fmax = freeze_args_bin_op(same_out, (a, b) => {
   if (Number.isNaN(a)) return b;
   if (Number.isNaN(b)) return a;
   return Math.max(a, b);
-});
+}, (a, b) => (a.isNaN ? b : b.isNaN ? a : (cmp_complex(a, b) >= 0 ? a : b)));
 export const fmin = freeze_args_bin_op(same_out, (a, b) => {
   if (Number.isNaN(a)) return b;
   if (Number.isNaN(b)) return a;
   return Math.min(a, b);
-});
-export const logical_or = freeze_args_bin_op(bool_out, (a, b) => truthy(a) || truthy(b));
-export const logical_and = freeze_args_bin_op(bool_out, (a, b) => truthy(a) && truthy(b));
-export const logical_xor = freeze_args_bin_op(bool_out, (a, b) => truthy(a) != truthy(b));
+}, (a, b) => (a.isNaN ? b : b.isNaN ? a : (cmp_complex(a, b) <= 0 ? a : b)));
+export const logical_or = freeze_args_bin_op(bool_out, (a, b) => truthy(a) || truthy(b), (a, b) => truthy(a) || truthy(b));
+export const logical_and = freeze_args_bin_op(bool_out, (a, b) => truthy(a) && truthy(b), (a, b) => truthy(a) && truthy(b));
+export const logical_xor = freeze_args_bin_op(bool_out, (a, b) => truthy(a) != truthy(b), (a, b) => truthy(a) != truthy(b));
 export const hypot = freeze_args_bin_op(float_out, Math.hypot);
 export const atan2 = freeze_args_bin_op(float_out, Math.atan2);
 export const copysign = freeze_args_bin_op(float_out, (x, y) => {
@@ -234,7 +241,7 @@ export const lcm = freeze_args_bin_op(integer_out, (a, b) => {
   if (a === 0 || b === 0) return 0;
   return Math.abs(a / _gcd(a, b) * b);
 });
-export const float_power = freeze_args_bin_op((_dtypes, out) => float_out([], out), Math.pow);
+export const float_power = freeze_args_bin_op((dtypes, out) => dtype_max(...dtypes) === complex128 ? complex128 : float_out([], out), Math.pow, (a, b) => a.pow(b));
 
 export const op_binary = {
   "+": add,
@@ -309,7 +316,7 @@ export function assign_operation(dtype_resolver: DtypeResolver, func, tgt: NDArr
       map_broadcast(shape, [broadcast_strides(shape, source.shape)], [source.flat], (b) => b, buffer);
       tgt.flat = buffer;
     } else {
-      apply_binary_operation(dtype_resolver, func, tgt, source, tgt);
+      apply_binary_operation(dtype_resolver, func, tgt, source, tgt, (func as any).complex);
     }
     return tgt;
   }
@@ -332,7 +339,7 @@ export function assign_operation(dtype_resolver: DtypeResolver, func, tgt: NDArr
     result = values;
   } else {
     const region = new NDArray(new_buffer(positions.map(p => flat[p]), tgt.dtype), shape, tgt.dtype);
-    const res = apply_binary_operation(dtype_resolver, func, region, source, null);
+    const res = apply_binary_operation(dtype_resolver, func, region, source, null, (func as any).complex);
     if (res.shape.length != shape.length || res.shape.some((v, i) => v != shape[i])) {
       throw new Error(`Non-broadcastable output operand with shape [${shape}] doesn't match the broadcast shape [${res.shape}]`);
     }
@@ -372,10 +379,10 @@ export function __make_assignment_operator(dtype_resolver: DtypeResolver, func) 
 
 export const op_assign = {
   "=": __make_assignment_operator(same_out, null),
-  "+=": __make_assignment_operator(same_out, (a, b) => a + b),
-  "-=": __make_assignment_operator(numeric_out, (a, b) => a - b),
-  "*=": __make_assignment_operator(same_out, (a, b) => a * b),
-  "/=": __make_assignment_operator(float_out, (a, b) => a / b),
+  "+=": __make_assignment_operator(same_out, Object.assign((a, b) => a + b, { complex: (a: Complex, b: Complex) => a.add(b) })),
+  "-=": __make_assignment_operator(numeric_out, Object.assign((a, b) => a - b, { complex: (a: Complex, b: Complex) => a.sub(b) })),
+  "*=": __make_assignment_operator(same_out, Object.assign((a, b) => a * b, { complex: (a: Complex, b: Complex) => a.mul(b) })),
+  "/=": __make_assignment_operator(float_out, Object.assign((a, b) => a / b, { complex: (a: Complex, b: Complex) => a.div(b) })),
   "%=": __make_assignment_operator(same_out, fix_mod),
   "//=": __make_assignment_operator(same_out, (a, b) => Math.floor(a / b)),
   "**=": __make_assignment_operator(same_out, (a, b) => Math.pow(a, b)),
@@ -404,7 +411,13 @@ export function isclose_scalar(a: number, b: number, rtol: number, atol: number,
 }
 
 export function isclose(a: ArrayOrConstant, b: ArrayOrConstant, rtol = 1.e-5, atol = 1.e-8, equal_nan = false) {
-  return apply_binary_operation(bool_out, (x, y) => isclose_scalar(x, y, rtol, atol, equal_nan), a, b);
+  const cclose = (x: Complex, y: Complex) => {
+    if (x.eq(y)) return true;
+    if (x.isNaN || y.isNaN) return equal_nan && x.isNaN && y.isNaN;
+    if (!x.isFinite || !y.isFinite) return false;
+    return x.sub(y).abs <= atol + rtol * y.abs;
+  };
+  return apply_binary_operation(bool_out, (x, y) => isclose_scalar(x, y, rtol, atol, equal_nan), a, b, null, cclose);
 }
 
 export function allclose(a: ArrayOrConstant, b: ArrayOrConstant, rtol = 1.e-5, atol = 1.e-8, equal_nan = false): boolean {
@@ -424,6 +437,7 @@ export function array_equal(a1: ArrayOrConstant, a2: ArrayOrConstant, equal_nan 
   for (let i = 0; i < flatA.length; i++) {
     const a = flatA[i];
     const b = flatB[i];
+    if (a instanceof Complex || b instanceof Complex) { const x = Complex.from(a), y = Complex.from(b); if (x.eq(y) || (equal_nan && x.isNaN && y.isNaN)) continue; return false; }
     if (a == b) continue;
     if (equal_nan && Number.isNaN(a) && Number.isNaN(b)) continue;
     return false;

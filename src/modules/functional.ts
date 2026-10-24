@@ -6,6 +6,9 @@ import { expand_dims, broadcast_to, reindex } from "./manipulation";
 import { map_broadcast, finish_output, n_ary_elementwise } from "../array/operators";
 import { ravel, reshape } from "../array/shape_operations";
 import * as sets from "./sets";
+import { Complex } from "../complex";
+import { complex128 } from "../dtypes";
+import { applyFuncToArray } from "../array/elementwise";
 
 const prod = (shape: number[]) => shape.reduce((a, b) => a * b, 1);
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
@@ -213,36 +216,36 @@ export function iterable(y: any): boolean {
 // ==============================
 //   Domain-restricted math (numpy.emath)
 // ==============================
-// numpy.emath returns complex numbers outside of the real domain. There are no complex numbers here:
-// results are real when the inputs are in the real domain and an error is raised otherwise.
+// numpy.emath returns complex numbers outside of the real domain: the result is real when every input is
+// in the domain of the real function, complex otherwise.
 
-function emath(name: string, domain: (x: number) => boolean, f: (x: number) => number) {
+function emath(domain: (x: number) => boolean, f: (x: number) => number, cf: (z: Complex) => Complex) {
   return (x: any) => {
     const a = asarray(x);
+    if (a.dtype === complex128) return applyFuncToArray(float_out, f, a, null, cf);
     const flat = a.flat as any;
-    for (let i = 0; i < flat.length; i++) if (!domain(+flat[i]) && !Number.isNaN(+flat[i])) throw new Error(`numpy.emath.${name}: the result is complex for ${flat[i]}, and complex numbers are not supported`);
-    const buffer = new_buffer(flat.length, float_out([a.dtype]));
-    for (let i = 0; i < flat.length; i++) buffer[i] = f(+flat[i]);
-    return new NDArray(buffer, a.shape, float_out([a.dtype]));
+    let inDomain = true;
+    for (let i = 0; i < flat.length; i++) if (!domain(+flat[i]) && !Number.isNaN(+flat[i])) { inDomain = false; break; }
+    return applyFuncToArray(inDomain ? float_out : (() => complex128), f, a, null, cf);
   };
 }
-export const emath_sqrt = emath('sqrt', x => x >= 0, Math.sqrt);
-export const emath_log = emath('log', x => x >= 0, Math.log);
-export const emath_log2 = emath('log2', x => x >= 0, Math.log2);
-export const emath_log10 = emath('log10', x => x >= 0, Math.log10);
-export const emath_arccos = emath('arccos', x => Math.abs(x) <= 1, Math.acos);
-export const emath_arcsin = emath('arcsin', x => Math.abs(x) <= 1, Math.asin);
-export const emath_arctanh = emath('arctanh', x => Math.abs(x) <= 1, Math.atanh);
+const ln = (z: Complex) => z.log();
+export const emath_sqrt = emath(x => x >= 0, Math.sqrt, z => z.sqrt());
+export const emath_log = emath(x => x >= 0, Math.log, ln);
+export const emath_log2 = emath(x => x >= 0, Math.log2, z => ln(z).div(new Complex(Math.LN2, 0)));
+export const emath_log10 = emath(x => x >= 0, Math.log10, z => ln(z).div(new Complex(Math.LN10, 0)));
+export const emath_arccos = emath(x => Math.abs(x) <= 1, Math.acos, z => z.acos());
+export const emath_arcsin = emath(x => Math.abs(x) <= 1, Math.asin, z => z.asin());
+export const emath_arctanh = emath(x => Math.abs(x) <= 1, Math.atanh, z => z.atanh());
 export function emath_logn(n: any, x: any) {
   const nn = asarray(n), xx = asarray(x);
-  return n_ary_elementwise(float_out, (v: number, b: number) => {
-    if (b < 0 || v < 0) throw new Error(`numpy.emath.logn: the result is complex, and complex numbers are not supported`);
-    return Math.log(v) / Math.log(b);
-  }, [xx, nn]);
+  const bad = Array.from(nn.flat as any).some((v: any) => v < 0) || Array.from(xx.flat as any).some((v: any) => v < 0) || nn.dtype === complex128 || xx.dtype === complex128;
+  if (!bad) return n_ary_elementwise(float_out, (v: number, b: number) => Math.log(v) / Math.log(b), [xx, nn]);
+  return n_ary_elementwise(() => complex128, (v: any, b: any) => Complex.from(v).log().div(Complex.from(b).log()), [xx, nn]);
 }
 export function emath_power(x: any, p: any) {
-  return n_ary_elementwise(float_out, (v: number, e: number) => {
-    if (v < 0 && !Number.isInteger(e)) throw new Error(`numpy.emath.power: the result is complex, and complex numbers are not supported`);
-    return Math.pow(v, e);
-  }, [x, p]);
+  const xx = asarray(x), pp = asarray(p);
+  const bad = xx.dtype === complex128 || pp.dtype === complex128 || Array.from(xx.flat as any).some((v: any) => v < 0);
+  if (!bad) return n_ary_elementwise(float_out, (v: number, e: number) => Math.pow(v, e), [xx, pp]);
+  return n_ary_elementwise(() => complex128, (v: any, e: any) => Complex.from(v).pow(Complex.from(e)), [xx, pp]);
 }

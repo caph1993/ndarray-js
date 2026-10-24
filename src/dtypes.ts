@@ -1,4 +1,5 @@
 //@ts-check
+import { Complex, ZERO, is_complex } from './complex';
 
 // Mozilla docs:
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
@@ -8,7 +9,7 @@
 // https://stackoverflow.com/questions/49242232/
 // https://stackoverflow.com/questions/69783310/
 
-export type DType = "bool" | "int32" | "int64" | "float32" | "float64" | "object";
+export type DType = "bool" | "int32" | "int64" | "float32" | "float64" | "complex128" | "object";
 
 export const bool = "bool";
 export const int32 = "int32";
@@ -16,6 +17,8 @@ export const int32 = "int32";
 export const int64 = "int64";
 export const float32 = "float32";
 export const float64 = "float64";
+/** Complex numbers: the buffer is an Array of Complex objects */
+export const complex128 = "complex128";
 export const object = "object";
 
 // export const bool = {
@@ -104,6 +107,7 @@ export const dtype_constructors = {
   int64: Float64Array,
   float32: Float32Array,
   float64: Float64Array,
+  complex128: Array,
   object: Array,
 }
 
@@ -122,6 +126,10 @@ export function new_buffer(
 ): InstanceType<any> {
 
   dtype = dtype || float64;
+  if (dtype === "complex128") {
+    if (typeof size_or_array === "number") return new Array(size_or_array).fill(ZERO) as any;
+    return Array.from(size_or_array as any, (x: any) => Complex.from(x)) as any;
+  }
   if (dtype === "object") {
     // Handled separately because Array is not a typed array and doesn't have the same constructor signature.
     if (Array.isArray(size_or_array)) {
@@ -142,7 +150,14 @@ export function new_buffer(
 export function convert_buffer(src: ArrayLike<any>, dtype: DType): any {
   const n = src.length;
   const out = new_buffer(n, dtype);
-  if (dtype === "bool") for (let i = 0; i < n; i++) out[i] = truthy(src[i]) ? 1 : 0;
+  if (dtype === "complex128") for (let i = 0; i < n; i++) out[i] = Complex.from(src[i]);
+  else if (n > 0 && is_complex(src[0]) && dtype !== "object") {
+    // complex -> real: the imaginary part is discarded (as numpy does)
+    const re = (v: any) => is_complex(v) ? v.re : +v;
+    if (dtype === "bool") for (let i = 0; i < n; i++) out[i] = truthy(src[i]) ? 1 : 0;
+    else for (let i = 0; i < n; i++) out[i] = re(src[i]);
+  }
+  else if (dtype === "bool") for (let i = 0; i < n; i++) out[i] = truthy(src[i]) ? 1 : 0;
   else if (dtype === "int64") for (let i = 0; i < n; i++) { const v = Math.trunc(+src[i]); out[i] = Number.isFinite(v) ? v : 0; }
   else if (dtype === "object") for (let i = 0; i < n; i++) out[i] = src[i];
   else for (let i = 0; i < n; i++) out[i] = +src[i];
@@ -150,7 +165,7 @@ export function convert_buffer(src: ArrayLike<any>, dtype: DType): any {
 }
 
 /** Python-like truthiness, except that nan is true (as in numpy) */
-export function truthy(x: any): boolean { return x !== x ? true : !!x; }
+export function truthy(x: any): boolean { return x !== x ? true : (x instanceof Complex ? (x.re !== 0 || x.im !== 0 || x.isNaN) : !!x); }
 
 /** Makes sure that the values of a buffer are valid for the dtype (int64 values are stored as truncated floats) */
 export function fix_buffer(buffer: any, dtype: DType): any {
@@ -160,6 +175,7 @@ export function fix_buffer(buffer: any, dtype: DType): any {
 
 export function promote(a: DType, b: DType): DType {
   if (a === "object" || b === "object") return object
+  if (a === "complex128" || b === "complex128") return complex128
   if (a === "float64" || b === "float64") return float64
   // As in numpy, int32 does not fit in float32
   if ((a === "float32" && (b === "int32" || b === "int64")) || (b === "float32" && (a === "int32" || a === "int64"))) return float64
@@ -173,6 +189,8 @@ export function dtype_cmp(t1: DType, t2: DType): number {
   if (t1 === t2) return 0;
   if (t1 === "object") return 1;
   if (t2 === "object") return -1;
+  if (t1 === "complex128") return 1;
+  if (t2 === "complex128") return -1;
   if (t1 === "float64") return 1;
   if (t2 === "float64") return -1;
   if (t1 === "float32") return 1;
@@ -194,6 +212,7 @@ export function dtype_max(...dtypes: DType[]): DType {
  */
 export function weak_dtype(weak: DType, other: DType): DType {
   if (other === "object" || weak === "object") return object;
+  if (other === "complex128" || weak === "complex128") return complex128;
   if (weak === "bool") return other;
   if (other === "bool") return weak === "float32" ? float64 : weak;
   if (dtype_is_float(weak) && dtype_is_integer(other)) return float64;
@@ -205,6 +224,9 @@ export function dtype_is_integer(dtype: DType): boolean {
 }
 export function dtype_is_boolean(dtype: DType): boolean {
   return dtype === "bool";
+}
+export function dtype_is_complex(dtype: DType): boolean {
+  return dtype === "complex128";
 }
 export function dtype_is_float(dtype: DType): boolean {
   return dtype === "float32" || dtype === "float64";
@@ -259,7 +281,7 @@ export function numeric_out(dtypes: DType[], out?: DType | HasDType): DType {
 /** Integer or bool only (bitwise operators and shifts). */
 export function integer_out(dtypes: DType[], out?: DType | HasDType): DType {
   const inferred = dtype_max(...dtypes);
-  if (dtype_is_float(inferred) || inferred === object) throw new Error(`Bitwise operations are not supported for dtype ${inferred}. Only bool and integer arrays are supported.`);
+  if (dtype_is_float(inferred) || inferred === object || inferred === complex128) throw new Error(`Bitwise operations are not supported for dtype ${inferred}. Only bool and integer arrays are supported.`);
   return check_out(inferred, get_out_dtype(out));
 }
 
@@ -267,6 +289,12 @@ export function integer_out(dtypes: DType[], out?: DType | HasDType): DType {
 export function sum_out(dtypes: DType[], out?: DType | HasDType): DType {
   const inferred = dtype_max(...dtypes);
   return check_out((inferred === bool || inferred === int32) ? int64 : inferred, get_out_dtype(out));
+}
+
+/** Result of functions that return the real-valued magnitude of complex numbers (abs, real, imag, angle) */
+export function realpart_out(dtypes: DType[], out?: DType | HasDType): DType {
+  const m = dtype_max(...dtypes);
+  return check_out(m === complex128 ? float64 : (dtype_cmp(m, float32) >= 0 ? m : float64), get_out_dtype(out));
 }
 
 export function float_out(dtypes: DType[], out?: DType | HasDType): DType {

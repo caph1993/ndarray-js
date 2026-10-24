@@ -361,3 +361,6 @@ export const matrix_norm = signature<typeof la.matrix_norm>()([["x", undefined],
 export const vector_norm = signature<typeof la.vector_norm>()([["x", undefined], ["axis", null], ["keepdims", false], ["ord", 2]] as const, [P.asarray('x'), P.axis_or_axes, boolean('keepdims')]);
 export const linalg_cross = signature<(a: any, b: any, axis: number) => any>()([["x1", undefined], ["x2", undefined], ["axis", -1]] as const, [...two_arrays("x1", "x2"), axis_int]);
 export const eigvalsh = signature<typeof la.eigvalsh>()([["a", undefined], ["UPLO", 'L']] as const, [P.asarray('a')]);
+
+export const angle = signature<typeof elementwise.angle>()([["z", undefined], ["deg", false]] as const, [P.asarray('z'), boolean('deg')]);
+export const real_if_close = signature<typeof elementwise.real_if_close>()([["a", undefined], ["tol", 100]] as const, [P.asarray('a')]);

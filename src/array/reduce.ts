@@ -3,6 +3,8 @@ import { asarray, NDArray } from '../NDArray';
 import { bool, bool_out, DType, DtypeResolver, float_out, int32, new_buffer, same_out, sum_out, argmax_out, HasDType, truthy, convert_buffer } from '../dtypes';
 import { finish_output } from './operators';
 import { normalize_axis, transpose } from './transform';
+import { Complex, ZERO, ONE, cmp_complex } from '../complex';
+import { complex128, realpart_out } from '../dtypes';
 
 export type AxisArg = number | number[] | null;
 
@@ -127,6 +129,52 @@ export function lane_any(lane: any) { for (let i = 0; i < lane.length; i++) if (
 export function lane_all(lane: any) { for (let i = 0; i < lane.length; i++) if (!truthy(lane[i])) return false; return true; }
 export function lane_count_nonzero(lane: any) { let n = 0; for (let i = 0; i < lane.length; i++) if (truthy(lane[i])) n++; return n; }
 
+// Complex versions of the lane functions
+const nonan = (lane: any) => { const out: Complex[] = []; for (let i = 0; i < lane.length; i++) if (!lane[i].isNaN) out.push(lane[i]); return out; };
+export function clane_sum(lane: any) { let s = ZERO; for (let i = 0; i < lane.length; i++) s = s.add(lane[i]); return s; }
+export function clane_prod(lane: any) { let s = ONE; for (let i = 0; i < lane.length; i++) s = s.mul(lane[i]); return s; }
+export function clane_mean(lane: any) { return clane_sum(lane).div(new Complex(lane.length, 0)); }
+export function clane_nansum(lane: any) { return clane_sum(nonan(lane)); }
+export function clane_nanprod(lane: any) { return clane_prod(nonan(lane)); }
+export function clane_nanmean(lane: any) { const l = nonan(lane); return clane_sum(l).div(new Complex(l.length, 0)); }
+function clane_extreme(lane: any, sign: 1 | -1, skip_nan: boolean) {
+  if (lane.length == 0) throw empty_error(sign > 0 ? "maximum" : "minimum");
+  let best: Complex | null = null;
+  for (let i = 0; i < lane.length; i++) {
+    const z: Complex = lane[i];
+    if (z.isNaN) { if (skip_nan) continue; return z; }
+    if (best === null || cmp_complex(z, best) * sign > 0) best = z;
+  }
+  return best === null ? new Complex(NaN, NaN) : best;
+}
+export const clane_max = (lane: any) => clane_extreme(lane, 1, false);
+export const clane_min = (lane: any) => clane_extreme(lane, -1, false);
+export const clane_nanmax = (lane: any) => clane_extreme(lane, 1, true);
+export const clane_nanmin = (lane: any) => clane_extreme(lane, -1, true);
+function clane_arg(lane: any, sign: 1 | -1, skip_nan: boolean) {
+  if (lane.length == 0) throw new Error(`attempt to get ${sign > 0 ? 'argmax' : 'argmin'} of an empty sequence`);
+  let best = -1;
+  for (let i = 0; i < lane.length; i++) {
+    const z: Complex = lane[i];
+    if (z.isNaN) { if (skip_nan) continue; return i; }
+    if (best < 0 || cmp_complex(z, lane[best]) * sign > 0) best = i;
+  }
+  if (best < 0) throw new Error("All-NaN slice encountered");
+  return best;
+}
+export const clane_argmax = (lane: any) => clane_arg(lane, 1, false);
+export const clane_argmin = (lane: any) => clane_arg(lane, -1, false);
+export const clane_nanargmax = (lane: any) => clane_arg(lane, 1, true);
+export const clane_nanargmin = (lane: any) => clane_arg(lane, -1, true);
+export function clane_var(lane: any, ddof: number, skip_nan = false) {
+  const l: Complex[] = skip_nan ? nonan(lane) : Array.from(lane);
+  const n = l.length;
+  const mean = clane_sum(l).div(new Complex(n, 0));
+  let ss = 0;
+  for (const z of l) { const d = z.sub(mean); ss += d.re * d.re + d.im * d.im; }
+  return ss / Math.max(n - ddof, 0);
+}
+
 // ==============================
 //       Reducing functions
 // ==============================
@@ -135,9 +183,13 @@ type ReducerDtype = (arr: NDArray, axis: AxisArg, keepdims: boolean, dtype?: DTy
 type Reducer = (arr: NDArray, axis: AxisArg, keepdims: boolean, out?: NDArray | null) => NDArray;
 
 /** Reducer that supports a `dtype` argument: (arr, axis, keepdims, dtype, out) */
-function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any): ReducerDtype {
+function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any, clane_fn?: (lane: any) => any): ReducerDtype {
   return (arr, axis, keepdims, dtype = null, out = null) => {
     arr = asarray(arr);
+    if (arr.dtype === complex128) {
+      if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
+      lane_fn = clane_fn;
+    }
     // As numpy, the input is cast to dtype before reducing
     if (dtype && dtype !== arr.dtype) arr = new NDArray(convert_buffer(arr.flat, dtype), arr.shape, dtype);
     const resolved = dtype ? dtype : dtype_resolver([arr.dtype], out);
@@ -146,32 +198,36 @@ function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) =>
 }
 
 /** Reducer without dtype argument: (arr, axis, keepdims, out) */
-function mk_reducer(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any): Reducer {
+function mk_reducer(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any, clane_fn?: (lane: any) => any): Reducer {
   return (arr, axis, keepdims, out = null) => {
     arr = asarray(arr);
+    if (arr.dtype === complex128) {
+      if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
+      lane_fn = clane_fn;
+    }
     const resolved = dtype_resolver([arr.dtype], out);
     return reduce_lanes(arr, axis, keepdims, resolved, lane_fn, out);
   }
 }
 
-export const sum = mk_reducer_dtype(sum_out, lane_sum);
-export const product = mk_reducer_dtype(sum_out, lane_prod);
-export const nansum = mk_reducer_dtype(sum_out, lane_nansum);
-export const nanprod = mk_reducer_dtype(sum_out, lane_nanprod);
-export const mean = mk_reducer_dtype(float_out, lane_mean);
-export const nanmean = mk_reducer_dtype(float_out, lane_nanmean);
-export const max = mk_reducer(same_out, lane_max);
-export const min = mk_reducer(same_out, lane_min);
-export const nanmax = mk_reducer(same_out, lane_nanmax);
-export const nanmin = mk_reducer(same_out, lane_nanmin);
-export const argmax = mk_reducer(argmax_out, lane_argmax);
-export const argmin = mk_reducer(argmax_out, lane_argmin);
-export const nanargmax = mk_reducer(argmax_out, lane_nanargmax);
-export const nanargmin = mk_reducer(argmax_out, lane_nanargmin);
+export const sum = mk_reducer_dtype(sum_out, lane_sum, clane_sum);
+export const product = mk_reducer_dtype(sum_out, lane_prod, clane_prod);
+export const nansum = mk_reducer_dtype(sum_out, lane_nansum, clane_nansum);
+export const nanprod = mk_reducer_dtype(sum_out, lane_nanprod, clane_nanprod);
+export const mean = mk_reducer_dtype(float_out, lane_mean, clane_mean);
+export const nanmean = mk_reducer_dtype(float_out, lane_nanmean, clane_nanmean);
+export const max = mk_reducer(same_out, lane_max, clane_max);
+export const min = mk_reducer(same_out, lane_min, clane_min);
+export const nanmax = mk_reducer(same_out, lane_nanmax, clane_nanmax);
+export const nanmin = mk_reducer(same_out, lane_nanmin, clane_nanmin);
+export const argmax = mk_reducer(argmax_out, lane_argmax, clane_argmax);
+export const argmin = mk_reducer(argmax_out, lane_argmin, clane_argmin);
+export const nanargmax = mk_reducer(argmax_out, lane_nanargmax, clane_nanargmax);
+export const nanargmin = mk_reducer(argmax_out, lane_nanargmin, clane_nanargmin);
 export const len = mk_reducer(argmax_out, (lane: any) => lane.length);
-export const any = mk_reducer(bool_out, lane_any);
-export const all = mk_reducer(bool_out, lane_all);
-export const count_nonzero = mk_reducer(argmax_out, lane_count_nonzero);
+export const any = mk_reducer(bool_out, lane_any, lane_any);
+export const all = mk_reducer(bool_out, lane_all, lane_all);
+export const count_nonzero = mk_reducer(argmax_out, lane_count_nonzero, lane_count_nonzero);
 export const ptp = (arr: NDArray, axis: AxisArg, keepdims: boolean, out: NDArray | null = null): NDArray => {
   arr = asarray(arr);
   return reduce_lanes(arr, axis, keepdims, same_out([arr.dtype], out), (lane) => lane_max(lane) - lane_min(lane), out);
@@ -190,17 +246,17 @@ export const norm = (arr: NDArray, ord: number, axis: AxisArg, keepdims: boolean
 
 export const variance = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, float_out([dtype || arr.dtype], out || dtype), (lane) => lane_var(lane, ddof), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => clane_var(lane, ddof) : (lane) => lane_var(lane, ddof), out);
 }
 export const std = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, float_out([dtype || arr.dtype], out || dtype), (lane) => Math.sqrt(lane_var(lane, ddof)), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => Math.sqrt(clane_var(lane, ddof)) : (lane) => Math.sqrt(lane_var(lane, ddof)), out);
 }
 export const nanvar = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, float_out([dtype || arr.dtype], out || dtype), (lane) => lane_var(lane, ddof, true), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => clane_var(lane, ddof, true) : (lane) => lane_var(lane, ddof, true), out);
 }
 export const nanstd = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, float_out([dtype || arr.dtype], out || dtype), (lane) => Math.sqrt(lane_var(lane, ddof, true)), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => Math.sqrt(clane_var(lane, ddof, true)) : (lane) => Math.sqrt(lane_var(lane, ddof, true)), out);
 }

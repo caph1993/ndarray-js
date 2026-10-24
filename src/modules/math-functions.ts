@@ -2,12 +2,13 @@
 import { NDArray, asarray, isarray, broadcast_shapes } from "../NDArray";
 import {
   DType, DtypeResolver, bool, float_out, same_out, sum_out, new_buffer, int32, float64, dtype_max,
-  dtype_is_float, dtype_is_integer, numeric_out
+  dtype_is_float, dtype_is_integer, numeric_out, complex128
 } from "../dtypes";
 import { apply_along_axis, concatenate, normalize_axis, swapAxes } from "../array/transform";
 import { ravel, reshape } from "../array/shape_operations";
 import { finish_output, apply_binary_operation, n_ary_elementwise } from "../array/operators";
 import { AxisArg, normalize_axes } from "../array/reduce";
+import { Complex, ZERO, ONE } from "../complex";
 
 const prod = (shape: number[]) => shape.reduce((a, b) => a * b, 1);
 
@@ -26,6 +27,18 @@ function accumulate(
   a = asarray(a);
   if (axis == null) { a = ravel(a); axis = 0; }
   if (a.shape.length == 0) a = reshape(a, [1]);
+  if (a.dtype === complex128) {
+    if (skip_nan || (init !== 0 && init !== 1)) throw new Error(`this cumulative operation is not supported for complex numbers`);
+    const cstep = init === 0 ? (x: Complex, y: Complex) => x.add(y) : (x: Complex, y: Complex) => x.mul(y);
+    const res = apply_along_axis(() => complex128, (lane) => {
+      const o = new Array(lane.length + (include_initial ? 1 : 0));
+      let acc = init === 0 ? ZERO : ONE, k = 0;
+      if (include_initial) o[k++] = acc;
+      for (let i = 0; i < lane.length; i++) { acc = cstep(acc, lane[i]); o[k++] = acc; }
+      return o;
+    }, a, axis);
+    return store(res, out);
+  }
   const dt = resolver([dtype || a.dtype], out || dtype);
   const res = apply_along_axis(() => dt, (lane) => {
     const n = lane.length;

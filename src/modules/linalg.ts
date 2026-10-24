@@ -10,6 +10,8 @@ import { ravel, reshape } from "../array/shape_operations";
 import { finish_output, map_broadcast } from "../array/operators";
 import { broadcast_to, diag, eye } from "./manipulation";
 import { diagonal } from "./indexing-extra";
+import { Complex, ZERO, ONE } from "../complex";
+import { complex128 } from "../dtypes";
 
 const prod = (shape: number[]) => shape.reduce((a, b) => a * b, 1);
 const range = (n: number) => Array.from({ length: n }, (_, i) => i);
@@ -42,6 +44,7 @@ function from_scalars(vals: number[], batch: number[], dtype: DType): NDArray {
 /** Splits an array of shape (..., m, n) into a list of matrices */
 function matrices(a: NDArray, name = 'array'): { mats: Mat[], batch: number[], rows: number, cols: number } {
   a = asarray(a);
+  if (a.dtype === complex128) throw new LinAlgError(`complex matrices are not supported by this linear algebra function`);
   if (a.shape.length < 2) throw new LinAlgError(`${a.shape.length}-dimensional array given. Array must be at least two-dimensional`);
   const [rows, cols] = a.shape.slice(-2);
   const batch = a.shape.slice(0, -2);
@@ -68,16 +71,20 @@ function product_dtype(a: NDArray, b: NDArray): DType {
 }
 
 /** Core matrix product of (n,k) x (k,m) stored in flat arrays */
-function matmul_flat(A: any, ao: number, B: any, bo: number, n: number, k: number, m: number, out: any, oo: number, isBool: boolean) {
+function matmul_flat(A: any, ao: number, B: any, bo: number, n: number, k: number, m: number, out: any, oo: number, isBool: boolean, isComplex = false) {
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < m; j++) {
-      let s = 0;
-      if (isBool) { for (let t = 0; t < k; t++) if (A[ao + i * k + t] && B[bo + t * m + j]) { s = 1; break; } }
+      let s: any = 0;
+      if (isComplex) { let re = 0, im = 0; for (let t = 0; t < k; t++) { const a = A[ao + i * k + t], b = B[bo + t * m + j]; re += a.re * b.re - a.im * b.im; im += a.re * b.im + a.im * b.re; } s = new Complex(re, im); }
+      else if (isBool) { for (let t = 0; t < k; t++) if (A[ao + i * k + t] && B[bo + t * m + j]) { s = 1; break; } }
       else for (let t = 0; t < k; t++) s += A[ao + i * k + t] * B[bo + t * m + j];
       out[oo + i * m + j] = s;
     }
   }
 }
+
+/** Flat values of an array converted to the dtype of the product (complex values need Complex objects) */
+const operand = (x: NDArray, dtype: DType) => dtype === complex128 ? convert_buffer(x.flat as any, complex128) : x.flat as any;
 
 export function matmul(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray {
   a = asarray(a); b = asarray(b);
@@ -88,11 +95,11 @@ export function matmul(a: NDArray, b: NDArray, out: NDArray | null = null): NDAr
   if (k != k2) throw new Error(`matmul: Input operand 1 has a mismatch in its core dimension 0, with gufunc signature (n?,k),(k,m?)->(n?,m?) (size ${k2} is different from ${k})`);
   const [, batchShape] = broadcast_n_shapes(A.shape.slice(0, -2), B.shape.slice(0, -2));
   const batch = batchShape as number[];
-  const Ab = broadcast_to(A, [...batch, n, k]).flat as any, Bb = broadcast_to(B, [...batch, k, m]).flat as any;
   const dtype = product_dtype(a, b);
+  const Ab = operand(broadcast_to(A, [...batch, n, k]), dtype), Bb = operand(broadcast_to(B, [...batch, k, m]), dtype);
   const nb = prod(batch);
   const buffer = new_buffer(nb * n * m, dtype);
-  for (let t = 0; t < nb; t++) matmul_flat(Ab, t * n * k, Bb, t * k * m, n, k, m, buffer, t * n * m, dtype === bool);
+  for (let t = 0; t < nb; t++) matmul_flat(Ab, t * n * k, Bb, t * k * m, n, k, m, buffer, t * n * m, dtype === bool, dtype === complex128);
   fix_buffer(buffer, dtype);
   let shape = [...batch, n, m];
   if (a1) shape = shape.filter((_, i) => i != shape.length - 2);
@@ -110,7 +117,7 @@ export function dot(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray
     const dtype = product_dtype(a, b);
     const [shape] = broadcast_shapes(a.shape, b.shape);
     const buffer = new_buffer(prod(shape), dtype);
-    map_broadcast(shape, [broadcast_strides(shape, a.shape), broadcast_strides(shape, b.shape)], [a.flat as any, b.flat as any], (x: number, y: number) => x * y, buffer);
+    map_broadcast(shape, [broadcast_strides(shape, a.shape), broadcast_strides(shape, b.shape)], [operand(a, dtype), operand(b, dtype)], dtype === complex128 ? (x: Complex, y: Complex) => x.mul(y) : (x: number, y: number) => x * y, buffer);
     return finish_output(fix_buffer(buffer, dtype), shape, dtype, out);
   }
   if (a.shape.length <= 2 && b.shape.length <= 2) return matmul(a, b, out);
@@ -127,9 +134,15 @@ export function dot(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray
   const rowsB = b.shape.length == 1 ? 1 : prod(b.shape.slice(0, -2)) * b.shape[b.shape.length - 1];
   const B2 = reshape(bm, [rowsB, kB]);
   const dtype = product_dtype(a, b);
-  const fa = A2.flat as any, fb = B2.flat as any;
+  const fa = operand(A2, dtype), fb = operand(B2, dtype);
   const buffer = new_buffer(rowsA * rowsB, dtype);
   for (let i = 0; i < rowsA; i++) for (let j = 0; j < rowsB; j++) {
+    if (dtype === complex128) {
+      let re = 0, im = 0;
+      for (let t = 0; t < kA; t++) { const x = fa[i * kA + t], y = fb[j * kB + t]; re += x.re * y.re - x.im * y.im; im += x.re * y.im + x.im * y.re; }
+      buffer[i * rowsB + j] = new Complex(re, im);
+      continue;
+    }
     let s = 0;
     for (let t = 0; t < kA; t++) s += fa[i * kA + t] * fb[j * kB + t];
     buffer[i * rowsB + j] = dtype === bool ? (s ? 1 : 0) : s;
@@ -141,6 +154,7 @@ export function dot(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray
 export function vdot(a: NDArray, b: NDArray): NDArray {
   a = ravel(asarray(a)); b = ravel(asarray(b));
   if (a.size != b.size) throw new Error(`vectors have different lengths`);
+  if (a.dtype === complex128) a = new NDArray(Array.from(a.flat as any, (z: any) => z.conj()) as any, a.shape, complex128);
   return dot(a, b);
 }
 
@@ -155,8 +169,8 @@ export function outer(a: NDArray, b: NDArray, out: NDArray | null = null): NDArr
   const x = ravel(asarray(a)), y = ravel(asarray(b));
   const dtype = product_dtype(x, y);
   const buffer = new_buffer(x.size * y.size, dtype);
-  const fx = x.flat as any, fy = y.flat as any;
-  for (let i = 0; i < x.size; i++) for (let j = 0; j < y.size; j++) buffer[i * y.size + j] = fx[i] * fy[j];
+  const fx = operand(x, dtype), fy = operand(y, dtype);
+  for (let i = 0; i < x.size; i++) for (let j = 0; j < y.size; j++) buffer[i * y.size + j] = dtype === complex128 ? fx[i].mul(fy[j]) : fx[i] * fy[j];
   return finish_output(fix_buffer(buffer, dtype), [x.size, y.size], dtype, out);
 }
 
@@ -182,7 +196,10 @@ export function vecdot(x1: NDArray, x2: NDArray, axis: number): NDArray {
   const dtype = product_dtype(x1, x2);
   const n = prod(bs.slice(0, -1));
   const buffer = new_buffer(n, dtype);
-  for (let i = 0; i < n; i++) { let s = 0; for (let t = 0; t < k; t++) s += A[i * k + t] * B[i * k + t]; buffer[i] = s; }
+  if (dtype === complex128) {
+    const CA = convert_buffer(A, complex128), CB = convert_buffer(B, complex128);
+    for (let i = 0; i < n; i++) { let s = ZERO; for (let t = 0; t < k; t++) s = s.add(CA[i * k + t].conj().mul(CB[i * k + t])); buffer[i] = s; }
+  } else for (let i = 0; i < n; i++) { let s = 0; for (let t = 0; t < k; t++) s += A[i * k + t] * B[i * k + t]; buffer[i] = s; }
   return new NDArray(fix_buffer(buffer, dtype), bs.slice(0, -1), dtype);
 }
 
@@ -215,7 +232,7 @@ export function kron(a: NDArray, b: NDArray): NDArray {
   const shape = as.map((d, i) => d * bs[i]);
   const dtype = product_dtype(a, b);
   const buffer = new_buffer(prod(shape), dtype);
-  const fa = a.flat as any, fb = b.flat as any;
+  const fa = operand(a, dtype), fb = operand(b, dtype);
   const sa = shape_shifts(as), sb = shape_shifts(bs), so = shape_shifts(shape);
   const nA = prod(as), nB = prod(bs);
   for (let i = 0; i < nA; i++) {
@@ -224,7 +241,7 @@ export function kron(a: NDArray, b: NDArray): NDArray {
       const ib = bs.map((d, ax) => Math.floor(j / sb[ax]) % d);
       let pos = 0;
       for (let ax = 0; ax < nd; ax++) pos += (ia[ax] * bs[ax] + ib[ax]) * so[ax];
-      buffer[pos] = fa[i] * fb[j];
+      buffer[pos] = dtype === complex128 ? fa[i].mul(fb[j]) : fa[i] * fb[j];
     }
   }
   return new NDArray(fix_buffer(buffer, dtype), shape, dtype);
@@ -261,7 +278,8 @@ export function trace(a: NDArray, offset: number, axis1: number, axis2: number, 
   const lead = prod(d.shape.slice(0, -1));
   const f = d.flat as any;
   const buffer = new_buffer(lead, dt);
-  for (let l = 0; l < lead; l++) { let s = 0; for (let i = 0; i < n; i++) s += +f[l * n + i]; buffer[l] = s; }
+  if (dt === complex128) for (let l = 0; l < lead; l++) { let s = ZERO; for (let i = 0; i < n; i++) s = s.add(f[l * n + i]); buffer[l] = s; }
+  else for (let l = 0; l < lead; l++) { let s = 0; for (let i = 0; i < n; i++) s += +f[l * n + i]; buffer[l] = s; }
   return finish_output(fix_buffer(buffer, dt), d.shape.slice(0, -1), dt, out);
 }
 
@@ -314,24 +332,24 @@ export function einsum(subscripts: string, operands: NDArray[], dtype: DType | n
     // a label repeated in one operand (like 'ii') walks the diagonal: its strides add up
     return all.map(c => expanded[k].reduce((sum, label, ax) => label === c && o.shape[ax] !== 1 ? sum + st[ax] : sum, 0));
   });
-  const flats = ops.map(o => o.flat as any);
   const dt = dtype || dtype_max(...ops.map(o => o.dtype));
+  const flats = ops.map(o => operand(o, dt));
   const nOut = prod(outShape), nSum = prod(dims.slice(outLabels.length));
   const buffer = new_buffer(nOut, dt);
   const nOutAxes = outLabels.length;
   const idx = new Array(all.length).fill(0);
   const odd = (pos: number[]) => 0;
   for (let o = 0; o < nOut; o++) {
-    let total = 0;
+    let total: any = dt === complex128 ? ZERO : 0;
     // iterate over summed labels
     for (let s = 0; s < nSum; s++) {
-      let p = 1;
+      let p: any = dt === complex128 ? ONE : 1;
       for (let k = 0; k < ops.length; k++) {
         let pos = 0;
         for (let d = 0; d < all.length; d++) pos += idx[d] * strides[k][d];
-        p *= +flats[k][pos];
+        if (dt === complex128) p = p.mul(flats[k][pos]); else p *= +flats[k][pos];
       }
-      total += p;
+      total = dt === complex128 ? total.add(p) : total + p;
       for (let d = all.length - 1; d >= nOutAxes; d--) { if (++idx[d] < dims[d]) break; idx[d] = 0; }
     }
     buffer[o] = dt === bool ? (total ? 1 : 0) : total;
@@ -602,7 +620,7 @@ export function eigh(a: NDArray, UPLO: string): NDArray[] {
 }
 export const eigvalsh = (a: NDArray, UPLO: string) => eigh(a, UPLO)[0];
 
-/** Eigenvalues of a general real matrix by shifted QR iterations. Throws if some eigenvalue is complex. */
+/** Eigenvalues of a general real matrix by shifted QR iterations on its Hessenberg form */
 function hessenberg(M: Mat): Mat {
   const n = M.length;
   const H = M.map(r => r.slice());
@@ -621,23 +639,21 @@ function hessenberg(M: Mat): Mat {
   return H;
 }
 
-function eigvals_mat(M: Mat): number[] {
+function eigvals_mat(M: Mat): Complex[] {
   const n = M.length;
   let H = hessenberg(M);
-  const out: number[] = [];
+  const out: Complex[] = [];
   let m = n, iter = 0;
   const eps = 2.2e-16;
-  const complexError = () => new LinAlgError(`complex eigenvalues are not supported (the matrix has non-real eigenvalues)`);
   while (m > 0) {
-    if (m == 1) { out.push(H[0][0]); break; }
+    if (m == 1) { out.push(new Complex(H[0][0], 0)); break; }
     const small = (i: number) => Math.abs(H[i][i - 1]) <= eps * (Math.abs(H[i][i]) + Math.abs(H[i - 1][i - 1]) + 1e-300);
-    if (small(m - 1)) { out.push(H[m - 1][m - 1]); H = H.slice(0, m - 1).map(r => r.slice(0, m - 1)); m--; iter = 0; continue; }
+    if (small(m - 1)) { out.push(new Complex(H[m - 1][m - 1], 0)); H = H.slice(0, m - 1).map(r => r.slice(0, m - 1)); m--; iter = 0; continue; }
     if (m == 2 || small(m - 2)) {
       const a = H[m - 2][m - 2], b = H[m - 2][m - 1], c = H[m - 1][m - 2], d = H[m - 1][m - 1];
       const tr = a + d, dt = a * d - b * c, disc = tr * tr / 4 - dt;
-      if (disc < -1e-12 * (Math.abs(tr) + Math.abs(dt) + 1)) throw complexError();
-      const r = Math.sqrt(Math.max(disc, 0));
-      out.push(tr / 2 + r, tr / 2 - r);
+      if (disc < 0) { const r = Math.sqrt(-disc); out.push(new Complex(tr / 2, r), new Complex(tr / 2, -r)); }
+      else { const r = Math.sqrt(disc); out.push(new Complex(tr / 2 + r, 0), new Complex(tr / 2 - r, 0)); }
       H = H.slice(0, m - 2).map(row => row.slice(0, m - 2)); m -= 2; iter = 0; continue;
     }
     if (++iter > 500) throw new LinAlgError(`Eigenvalues did not converge`);
@@ -648,7 +664,6 @@ function eigvals_mat(M: Mat): number[] {
     const H2: Mat = range(m).map(i => range(m).map(j => { let s = 0; for (let k = 0; k < m; k++) s += H[i][k] * H[k][j]; return s; }));
     const Mx: Mat = H2.map((r, i) => r.map((v, j) => v - t * H[i][j] + (i == j ? dd : 0)));
     const { Q } = qr_mat(Mx, m, m);
-    // H = Q^T H Q
     const QT = range(m).map(i => range(m).map(j => Q[j][i]));
     const HQ: Mat = range(m).map(i => range(m).map(j => { let s = 0; for (let k = 0; k < m; k++) s += H[i][k] * Q[k][j]; return s; }));
     H = range(m).map(i => range(m).map(j => { let s = 0; for (let k = 0; k < m; k++) s += QT[i][k] * HQ[k][j]; return s; }));
@@ -656,44 +671,83 @@ function eigvals_mat(M: Mat): number[] {
   return out;
 }
 
-/** Eigenvector of M for the (real) eigenvalue lambda by inverse iteration */
-function eigenvector(M: Mat, lambda: number, taken: number[][]): number[] {
-  const n = M.length;
-  const scale = Math.max(1, ...M.flat().map(Math.abs));
-  let shift = lambda + scale * 1e-10 * (taken.length + 1);
-  const A = M.map((r, i) => r.map((v, j) => v - (i == j ? shift : 0)));
-  const f = lu(A);
-  let x: number[] = range(n).map(i => 1 + 0.1 * Math.sin(i + 1 + taken.length));
-  for (let it = 0; it < 6; it++) {
-    const y = f.singular ? x : lu_solve(f, x.map(v => [v])).map(r => r[0]);
-    for (const t of taken) { if (Math.abs(lambda - lambda) < 0) continue; }
-    const nv = norm2(y);
-    x = y.map(v => v / nv);
+/** Solves A x = b for complex A (Gaussian elimination with partial pivoting); a zero pivot is replaced by a tiny number (inverse iteration) */
+function complex_solve(A: Complex[][], b: Complex[]): Complex[] {
+  const n = A.length;
+  const M = A.map((r, i) => [...r, b[i]]);
+  for (let k = 0; k < n; k++) {
+    let p = k;
+    for (let i = k + 1; i < n; i++) if (M[i][k].abs > M[p][k].abs) p = i;
+    [M[k], M[p]] = [M[p], M[k]];
+    if (M[k][k].abs < 1e-300) M[k][k] = new Complex(1e-300, 0);
+    for (let i = k + 1; i < n; i++) {
+      const f = M[i][k].div(M[k][k]);
+      for (let j = k; j <= n; j++) M[i][j] = M[i][j].sub(f.mul(M[k][j]));
+    }
+  }
+  const x: Complex[] = new Array(n);
+  for (let i = n - 1; i >= 0; i--) {
+    let s = M[i][n];
+    for (let j = i + 1; j < n; j++) s = s.sub(M[i][j].mul(x[j]));
+    x[i] = s.div(M[i][i]);
   }
   return x;
 }
 
+/** Unit-norm eigenvector of M for the eigenvalue lambda by inverse iteration. The largest component is made real, like LAPACK. */
+function eigenvector(M: Mat, lambda: Complex, seed: number): Complex[] {
+  const n = M.length;
+  const scale = Math.max(1, ...M.flat().map(Math.abs));
+  const shift = new Complex(lambda.re + scale * 1e-10, lambda.im + scale * 1e-11);
+  const A = M.map((r, i) => r.map((v, j) => new Complex(v, 0).sub(i == j ? shift : ZERO)));
+  let x: Complex[] = range(n).map(i => new Complex(1 + 0.1 * Math.sin(i + 1 + seed), 0.05 * Math.cos(i + seed)));
+  for (let it = 0; it < 6; it++) {
+    const y = complex_solve(A, x);
+    const nv = Math.sqrt(y.reduce((s, z) => s + z.re * z.re + z.im * z.im, 0));
+    x = y.map(z => new Complex(z.re / nv, z.im / nv));
+  }
+  // rotate so that the component with the largest modulus is real
+  let big = 0; x.forEach((z, i) => { if (z.abs > x[big].abs) big = i; });
+  const phase = x[big].abs === 0 ? ONE : new Complex(x[big].re / x[big].abs, -x[big].im / x[big].abs);
+  x = x.map(z => z.mul(phase));
+  return x.map(z => lambda.im === 0 ? new Complex(z.re, 0) : z);
+}
+
+function from_complex_vecs(vecs: Complex[][], len: number, batch: number[]): NDArray {
+  const buffer = vecs.flat();
+  return new NDArray(buffer, [...batch, len], complex128);
+}
+function from_complex_mats(mats: Complex[][][], n: number, batch: number[]): NDArray {
+  const buffer: Complex[] = [];
+  mats.forEach(m => m.forEach(r => buffer.push(...r)));
+  return new NDArray(buffer, [...batch, n, n], complex128);
+}
+
+/** numpy.linalg.eig. Eigenvalues and eigenvectors are complex128 arrays (as in numpy) */
 export function eig(a: NDArray): NDArray[] {
   const { mats, batch, rows } = square_matrices(a);
-  const dt = float_dtype(asarray(a));
-  const W: number[][] = [], V: Mat[] = [];
+  const W: Complex[][] = [], V: Complex[][][] = [];
   mats.forEach(m => {
     check_finite(m);
     const w = eigvals_mat(m);
-    const vecs: number[][] = [];
-    w.forEach((lam, i) => {
-      // repeated eigenvalues: orthogonalise against earlier vectors of the same eigenvalue
-      let v = eigenvector(m, lam, vecs);
-      vecs.forEach((u, j) => { if (Math.abs(w[j] - lam) <= 1e-8 * Math.max(1, Math.abs(lam))) { let d = 0; for (let t = 0; t < v.length; t++) d += v[t] * u[t]; v = v.map((x, t) => x - d * u[t]); const nv = norm2(v); v = v.map(x => x / nv); } });
-      vecs.push(v);
+    const vecs = w.map((lam, i) => eigenvector(m, lam, i));
+    // repeated eigenvalues: orthogonalise against earlier vectors of the same eigenvalue
+    vecs.forEach((v, i) => {
+      for (let j = 0; j < i; j++) if (w[j].sub(w[i]).abs <= 1e-8 * Math.max(1, w[i].abs)) {
+        let d: Complex = ZERO;
+        v.forEach((z, t) => { d = d.add(vecs[j][t].conj().mul(z)); });
+        vecs[i] = v.map((z, t) => z.sub(d.mul(vecs[j][t])));
+        const nv = Math.sqrt(vecs[i].reduce((s, z) => s + z.re * z.re + z.im * z.im, 0));
+        vecs[i] = vecs[i].map(z => new Complex(z.re / nv, z.im / nv));
+      }
     });
     W.push(w); V.push(range(rows).map(i => vecs.map(v => v[i])));
   });
-  return [from_vecs(W, rows, batch, dt), from_mats(V, rows, rows, batch, dt)];
+  return [from_complex_vecs(W, rows, batch), from_complex_mats(V, rows, batch)];
 }
 export function eigvals(a: NDArray): NDArray {
   const { mats, batch, rows } = square_matrices(a);
-  return from_vecs(mats.map(m => { check_finite(m); return eigvals_mat(m); }), rows, batch, float_dtype(asarray(a)));
+  return from_complex_vecs(mats.map(m => { check_finite(m); return eigvals_mat(m); }), rows, batch);
 }
 
 export function pinv(a: NDArray, rcond: number | NDArray | null, hermitian: boolean, rtol: number | null): NDArray {
@@ -807,7 +861,7 @@ export function vector_norm(x: NDArray, axis: number | number[] | null, keepdims
   const f = t.flat as any;
   const buffer = new_buffer(nOut, dt);
   for (let o = 0; o < nOut; o++) {
-    const lane = Array.from(f.slice(o * nl, (o + 1) * nl) as ArrayLike<number>, (v: number) => Math.abs(+v));
+    const lane = Array.from(f.slice(o * nl, (o + 1) * nl) as ArrayLike<any>, (v: any) => v instanceof Complex ? v.abs : Math.abs(+v));
     let r: number;
     if (ord === Infinity) r = lane.length ? Math.max(...lane.map(v => v !== v ? NaN : v)) : 0;
     else if (ord === -Infinity) r = lane.length ? Math.min(...lane) : Infinity;

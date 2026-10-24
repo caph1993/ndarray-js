@@ -2,6 +2,7 @@
 
 import NDArray from "../NDArray";
 import { bool, dtype_is_float, object } from '../dtypes';
+import { Complex } from '../complex';
 
 const EDGE_ITEMS = 3;
 const SUMMARIZE_THRESHOLD = 1000;
@@ -29,6 +30,7 @@ export function humanReadable(arr: NDArray): string {
   const fmt = (v: any) => {
     if (dtype === bool) return v ? "true" : "false";
     if (typeof v === "number") return format_number(v);
+    if (v instanceof Complex) return v.toString();
     return typeof v === "string" ? JSON.stringify(v) : String(v);
   };
   if (shape.length == 0) return `np(${fmt(arr.flat[0])}, ${suffix})`;

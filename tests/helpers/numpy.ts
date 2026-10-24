@@ -1,6 +1,7 @@
 import { spawnSync } from "child_process";
 import { expect } from "vitest";
 import { np } from "../../src/index";
+import { Complex } from "../../src/complex";
 
 /**
  * Differential testing helper: runs the same numpy expression in real python/numpy
@@ -62,6 +63,7 @@ print(json.dumps(enc(out)), flush=True)
 `;
 
 function dec(o: any): any {
+  if (o && typeof o === "object" && o.__complex__) return new Complex(dec(o.__complex__[0]), dec(o.__complex__[1]));
   if (o === "__nan__") return NaN;
   if (o === "__inf__") return Infinity;
   if (o === "__-inf__") return -Infinity;
@@ -91,6 +93,10 @@ export function numpy_throws(template: TemplateStringsArray, ...vars: any[]): bo
 }
 
 function close(a: any, b: any, rtol: number, atol: number, path: string): string | null {
+  if (b instanceof Complex || a instanceof Complex) {
+    const A = Complex.from(a), B = Complex.from(b);
+    return close(A.re, B.re, rtol, atol, path + ".re") || close(A.im, B.im, rtol, atol, path + ".im");
+  }
   if (typeof a === "boolean" || typeof b === "boolean") return a === b ? null : `${path}: ${a} !== ${b}`;
   if (typeof a === "number" && typeof b === "number") {
     if (Number.isNaN(a) && Number.isNaN(b)) return null;
@@ -106,7 +112,7 @@ function close(a: any, b: any, rtol: number, atol: number, path: string): string
   return a === b ? null : `${path}: ${JSON.stringify(a)} !== ${JSON.stringify(b)}`;
 }
 
-const KIND = (d: string) => d.startsWith("bool") ? "bool" : d.startsWith("int") || d.startsWith("uint") ? "int" : d.startsWith("float") ? "float" : "other";
+const KIND = (d: string) => d.startsWith("complex") ? "complex" : d.startsWith("bool") ? "bool" : d.startsWith("int") || d.startsWith("uint") ? "int" : d.startsWith("float") ? "float" : "other";
 
 /**
  * Compare an ndarray-js result with a numpy expected value (from `numpy`).

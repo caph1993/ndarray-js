@@ -220,6 +220,14 @@ class NDArray implements HasDType {
   /** @ignore */
   _simpleIndexes: import("./array/indexes").AxesIndex | null;
 
+  /** Real part (the array itself for real arrays) @category Attributes @readonly */
+  get real(): NDArray { return this.dtype === 'complex128' ? new NDArray(Array.from(this.flat as any, (z: any) => z.re) as any, this.shape, 'float64') : this; }
+  /** Imaginary part (zeros for real arrays) @category Attributes @readonly */
+  get imag(): NDArray {
+    if (this.dtype === 'complex128') return new NDArray(Array.from(this.flat as any, (z: any) => z.im) as any, this.shape, 'float64');
+    return new NDArray(new_buffer(this.size, this.dtype), this.shape, this.dtype);
+  }
+
   /** @category Attributes @readonly */
   get size() {
     return this._simpleIndexes == null ? this._flat.length : this._simpleIndexes.size;

@@ -9,6 +9,8 @@ import {
   dtype_is_float, dtype_is_integer, float32, float64, int32, dtype_max, truthy
 } from "../dtypes";
 import { finish_output, apply_binary_operation } from './operators';
+import { Complex, is_complex } from '../complex';
+import { complex128, realpart_out, convert_buffer } from '../dtypes';
 
 
 export type ElementwiseOp = {
@@ -23,11 +25,20 @@ export function applyFuncToArray(
   get_dtype: DtypeResolver,
   func: (x: any) => any,
   A: NDArray,
-  out: NDArray | DType = null
+  out: NDArray | DType = null,
+  cfunc?: (z: Complex) => any,
 ): NDArray {
   A = asarray(A);
   const dtype = get_dtype([A.dtype], out);
-  const flat = A.flat;
+  let flat = A.flat as any;
+  if (A.dtype === complex128) {
+    if (!cfunc) throw new Error(`ufunc not supported for the input types (complex128)`);
+    func = cfunc;
+  } else if (dtype === complex128 && cfunc) {
+    // real input, complex result (e.g. functions defined on the complex plane only)
+    flat = convert_buffer(flat, complex128);
+    func = cfunc;
+  }
   const n = flat.length;
   const buffer = new_buffer(n, dtype);
   if (dtype === bool) for (let i = 0; i < n; i++) buffer[i] = truthy(func(flat[i])) ? 1 : 0;
@@ -35,10 +46,16 @@ export function applyFuncToArray(
   return finish_output(buffer, A.shape, dtype, out);
 }
 
-function applyFuncToArray_freeze(get_dtype: DtypeResolver, func): ElementwiseOp {
+function applyFuncToArray_freeze(get_dtype: DtypeResolver, func, cfunc?: (z: Complex) => any): ElementwiseOp {
   return function (A: NDArray, out: NDArray | DType = null): NDArray {
-    return applyFuncToArray(get_dtype, func, A, out);
+    return applyFuncToArray(get_dtype, func, A, out, cfunc);
   } as ElementwiseOp;
+}
+
+/** Result dtype of real, imag, abs...: the real counterpart of complex input, the same dtype otherwise */
+function real_out(dtypes: DType[], out?: DType | any): DType {
+  const m = dtype_max(...dtypes);
+  return m === complex128 ? realpart_out(dtypes, out) : same_out(dtypes, out);
 }
 
 /** Round half to even (like numpy.rint) */
@@ -48,28 +65,29 @@ export function rint_scalar(x: number) {
   return Math.round(x);
 }
 
-export const sign = applyFuncToArray_freeze(numeric_out, Math.sign);
-export const sqrt = applyFuncToArray_freeze(float_out, Math.sqrt);
-export const square = applyFuncToArray_freeze(sum_out, (a) => a * a);
-export const exp = applyFuncToArray_freeze(float_out, Math.exp);
-export const expm1 = applyFuncToArray_freeze(float_out, Math.expm1);
-export const exp2 = applyFuncToArray_freeze(float_out, (x) => Math.pow(2, x));
-export const log = applyFuncToArray_freeze(float_out, Math.log);
-export const log2 = applyFuncToArray_freeze(float_out, Math.log2);
-export const log10 = applyFuncToArray_freeze(float_out, Math.log10);
-export const log1p = applyFuncToArray_freeze(float_out, Math.log1p);
-export const sin = applyFuncToArray_freeze(float_out, Math.sin);
-export const cos = applyFuncToArray_freeze(float_out, Math.cos);
-export const tan = applyFuncToArray_freeze(float_out, Math.tan);
-export const asin = applyFuncToArray_freeze(float_out, Math.asin);
-export const acos = applyFuncToArray_freeze(float_out, Math.acos);
-export const atan = applyFuncToArray_freeze(float_out, Math.atan);
-export const cosh = applyFuncToArray_freeze(float_out, Math.cosh);
-export const sinh = applyFuncToArray_freeze(float_out, Math.sinh);
-export const tanh = applyFuncToArray_freeze(float_out, Math.tanh);
-export const acosh = applyFuncToArray_freeze(float_out, Math.acosh);
-export const asinh = applyFuncToArray_freeze(float_out, Math.asinh);
-export const atanh = applyFuncToArray_freeze(float_out, Math.atanh);
+const ONE_C = new Complex(1, 0);
+export const sign = applyFuncToArray_freeze(numeric_out, Math.sign, (z)=>z.sign());
+export const sqrt = applyFuncToArray_freeze(float_out, Math.sqrt, (z)=>z.sqrt());
+export const square = applyFuncToArray_freeze(sum_out, (a) => a * a, (z)=>z.square());
+export const exp = applyFuncToArray_freeze(float_out, Math.exp, (z)=>z.exp());
+export const expm1 = applyFuncToArray_freeze(float_out, Math.expm1, (z)=>z.exp().sub(ONE_C));
+export const exp2 = applyFuncToArray_freeze(float_out, (x) => Math.pow(2, x), (z)=>new Complex(2,0).pow(z));
+export const log = applyFuncToArray_freeze(float_out, Math.log, (z)=>z.log());
+export const log2 = applyFuncToArray_freeze(float_out, Math.log2, (z)=>z.log().div(new Complex(Math.LN2,0)));
+export const log10 = applyFuncToArray_freeze(float_out, Math.log10, (z)=>z.log().div(new Complex(Math.LN10,0)));
+export const log1p = applyFuncToArray_freeze(float_out, Math.log1p, (z)=>z.add(ONE_C).log());
+export const sin = applyFuncToArray_freeze(float_out, Math.sin, (z)=>z.sin());
+export const cos = applyFuncToArray_freeze(float_out, Math.cos, (z)=>z.cos());
+export const tan = applyFuncToArray_freeze(float_out, Math.tan, (z)=>z.tan());
+export const asin = applyFuncToArray_freeze(float_out, Math.asin, (z)=>z.asin());
+export const acos = applyFuncToArray_freeze(float_out, Math.acos, (z)=>z.acos());
+export const atan = applyFuncToArray_freeze(float_out, Math.atan, (z)=>z.atan());
+export const cosh = applyFuncToArray_freeze(float_out, Math.cosh, (z)=>z.cosh());
+export const sinh = applyFuncToArray_freeze(float_out, Math.sinh, (z)=>z.sinh());
+export const tanh = applyFuncToArray_freeze(float_out, Math.tanh, (z)=>z.tanh());
+export const acosh = applyFuncToArray_freeze(float_out, Math.acosh, (z)=>z.acosh());
+export const asinh = applyFuncToArray_freeze(float_out, Math.asinh, (z)=>z.asinh());
+export const atanh = applyFuncToArray_freeze(float_out, Math.atanh, (z)=>z.atanh());
 export const degrees = applyFuncToArray_freeze(float_out, (x) => x * 180 / Math.PI);
 export const radians = applyFuncToArray_freeze(float_out, (x) => x * Math.PI / 180);
 export const deg2rad = radians;
@@ -79,24 +97,37 @@ export const ceil = applyFuncToArray_freeze(same_out, Math.ceil);
 export const trunc = applyFuncToArray_freeze(same_out, Math.trunc);
 export const fix = trunc;
 export const rint = applyFuncToArray_freeze(float_out, rint_scalar);
-export const isfinite = applyFuncToArray_freeze(bool_out, (x) => Number.isFinite(+x));
-export const isinf = applyFuncToArray_freeze(bool_out, (x) => x === Infinity || x === -Infinity);
-export const isposinf = applyFuncToArray_freeze(bool_out, (x) => x === Infinity);
-export const isneginf = applyFuncToArray_freeze(bool_out, (x) => x === -Infinity);
-export const isnan = applyFuncToArray_freeze(bool_out, (x) => Number.isNaN(x));
+export const isfinite = applyFuncToArray_freeze(bool_out, (x) => Number.isFinite(+x), (z)=>z.isFinite);
+export const isinf = applyFuncToArray_freeze(bool_out, (x) => x === Infinity || x === -Infinity, (z)=>z.isInf);
+export const isposinf = applyFuncToArray_freeze(bool_out, (x) => x === Infinity, (z) => z.re === Infinity && z.im === 0);
+export const isneginf = applyFuncToArray_freeze(bool_out, (x) => x === -Infinity, (z) => z.re === -Infinity && z.im === 0);
+export const isnan = applyFuncToArray_freeze(bool_out, (x) => Number.isNaN(x), (z)=>z.isNaN);
 export const signbit = applyFuncToArray_freeze(bool_out, (x) => x < 0 || Object.is(x, -0));
-export const iscomplex = applyFuncToArray_freeze(bool_out, (_x) => false);
-export const isreal = applyFuncToArray_freeze(bool_out, (_x) => true);
-export const reciprocal = applyFuncToArray_freeze(same_out, (x) => 1 / x);
-export const positive = applyFuncToArray_freeze(numeric_out, (x) => +x);
-export const angle = applyFuncToArray_freeze(float_out, (x) => Number.isNaN(x) ? NaN : (x < 0 ? Math.PI : 0));
-export const real = applyFuncToArray_freeze(same_out, (x) => x);
-export const imag = applyFuncToArray_freeze(same_out, (_x) => 0);
-export const conj = applyFuncToArray_freeze(same_out, (x) => x);
+export const iscomplex = applyFuncToArray_freeze(bool_out, (_x) => false, (z) => z.im !== 0);
+export const isreal = applyFuncToArray_freeze(bool_out, (_x) => true, (z) => z.im === 0);
+export const reciprocal = applyFuncToArray_freeze(same_out, (x) => 1 / x, (z)=>z.recip());
+export const positive = applyFuncToArray_freeze(numeric_out, (x) => +x, (z)=>z);
+const angle_ = applyFuncToArray_freeze(realpart_out, (x) => Number.isNaN(x) ? NaN : (x < 0 ? Math.PI : 0), (z) => z.arg);
+/** Angle of the complex argument (in radians, or degrees if deg is true) */
+export const angle = (A: NDArray, deg: boolean = false) => {
+  const r = angle_(A);
+  return deg ? applyFuncToArray(float_out, (x) => x * 180 / Math.PI, r) : r;
+};
+export const real = applyFuncToArray_freeze(real_out, (x) => x, (z) => z.re);
+export const imag = applyFuncToArray_freeze(real_out, (_x) => 0, (z) => z.im);
+export const conj = applyFuncToArray_freeze(same_out, (x) => x, (z)=>z.conj());
 export const conjugate = conj;
 export const cbrt = applyFuncToArray_freeze(float_out, Math.cbrt);
-export const real_if_close = applyFuncToArray_freeze(same_out, (x) => x);
-export const negative = applyFuncToArray_freeze(numeric_out, x => -x);
+export function real_if_close(a: NDArray, tol: number = 100): NDArray {
+  a = asarray(a);
+  if (a.dtype !== complex128) return a;
+  const eps = 2.220446049250313e-16;
+  const t = tol > 1 ? tol * eps : tol;
+  const f = a.flat as any;
+  for (let i = 0; i < f.length; i++) if (Math.abs(f[i].im) >= t) return a;
+  return applyFuncToArray(real_out, (x) => x, a, null, (z) => z.re);
+}
+export const negative = applyFuncToArray_freeze(numeric_out, x => -x, (z)=>z.neg());
 const _bitwise_not = applyFuncToArray_freeze(integer_out, x => ~x);
 /** ~x for integers; logical not for bool arrays (as numpy) */
 export const bitwise_not: ElementwiseOp = function (A: NDArray, out: NDArray | DType = null) {
@@ -104,9 +135,9 @@ export const bitwise_not: ElementwiseOp = function (A: NDArray, out: NDArray | D
   if (A.dtype === bool) return applyFuncToArray(bool_out, (x) => !truthy(x), A, out);
   return _bitwise_not(A, out);
 } as ElementwiseOp;
-export const logical_not = applyFuncToArray_freeze(bool_out, x => !truthy(x));
-export const valueOf = applyFuncToArray_freeze(same_out, x => +x);
-export const abs = applyFuncToArray_freeze(same_out, Math.abs);
+export const logical_not = applyFuncToArray_freeze(bool_out, x => !truthy(x), (z)=>!truthy(z));
+export const valueOf = applyFuncToArray_freeze(same_out, x => +x, (z)=>z);
+export const abs = applyFuncToArray_freeze(real_out, Math.abs, (z) => z.abs);
 
 // sinc(x) = sin(pi x) / (pi x)
 export const sinc = applyFuncToArray_freeze(float_out, (x) => {
@@ -180,6 +211,11 @@ export function nextafter_scalar(x: number, y: number, dtype: DType): number {
 
 export function round(arr: NDArray, decimals: number = 0, out: NDArray | DType = null) {
   arr = asarray(arr);
+  if (arr.dtype === complex128) {
+    const f = Math.pow(10, Math.abs(decimals));
+    const r = (x: number) => decimals >= 0 ? rint_scalar(x * f) / f : rint_scalar(x / f) * f;
+    return applyFuncToArray(same_out, (x) => x, arr, out, (z) => new Complex(r(z.re), r(z.im)));
+  }
   if (dtype_is_integer(arr.dtype) || arr.dtype === bool) {
     // Integers are unchanged for decimals >= 0
     if (decimals >= 0) return applyFuncToArray(same_out, (x) => x, arr, out);
@@ -200,12 +236,13 @@ export function nan_to_num(a: NDArray, nan: number = 0, posinf: number | null = 
   const big = a.dtype === float32 ? 3.4028234663852886e+38 : Number.MAX_VALUE;
   const pos = posinf === null ? big : posinf;
   const neg = neginf === null ? -big : neginf;
+  const fix = (x: number) => Number.isNaN(x) ? nan : (x === Infinity ? pos : (x === -Infinity ? neg : x));
   return applyFuncToArray(same_out, (x) => {
     if (Number.isNaN(x)) return nan;
     if (x === Infinity) return pos;
     if (x === -Infinity) return neg;
     return x;
-  }, a, out);
+  }, a, out, (z) => new Complex(fix(z.re), fix(z.im)));
 }
 
 /** modf: returns [fractional part, integral part] */

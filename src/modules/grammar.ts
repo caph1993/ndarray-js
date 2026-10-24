@@ -1,7 +1,8 @@
 //@ts-check
 import * as ohm from 'ohm-js';
 import { isarray, asarray, NDArray } from '../NDArray';
-import { new_buffer, float64 } from '../dtypes';
+import { new_buffer, float64, complex128 } from '../dtypes';
+import { Complex } from '../complex';
 import * as jsInterface from '../array/js-interface';
 import * as operators from '../array/operators';
 import * as elementwise from '../array/elementwise';
@@ -25,7 +26,7 @@ ArrayGrammar {
   ArithmeticLogicExp = Precedence11
 
   /* https://docs.python.org/3/reference/expressions.html */
-  Operator11 = "<" | "<=" | ">" | ">=" | "!=" | "=="
+  Operator11 = "<=" | ">=" | "!=" | "==" | "<" | ">"
   Operator10 = "|"
   Operator09 = "^"
   Operator08 = "&"
@@ -59,12 +60,13 @@ ArrayGrammar {
     | Name ("." Name)* CallArgs -- call
     | number
     | Variable
+    | Constant -- constant
 
   Name  (an identifier)
     = (letter|"_") (letter|"_"|digit)*
 
   number  (a number)
-    = ("+"|"-")? numberBody exponent?
+    = ("+"|"-")? numberBody exponent? ("j"|"J")?
   numberBody
     = digit+ "." digit* -- a
     | "." digit+        -- b
@@ -130,6 +132,12 @@ function unwrap_scalar(v: any) {
   return v;
 }
 
+function weak_complex(im: number) {
+  const out = new NDArray(new_buffer([new Complex(0, im)], complex128), [], complex128);
+  out._weak = true;
+  return out;
+}
+
 function weak_float(value: number) {
   const out = new NDArray(new_buffer([value], float64), [], float64);
   out._weak = true;
@@ -177,9 +185,10 @@ export const __makeSemantics = () => {
     Precedence04: UnaryOperation,
     Precedence03: UnaryOperation,
     Precedence02: BinaryOperation,
-    number: function (_sign, _body, _exp) {
+    number: function (_sign, _body, _exp, _imag) {
       const source = this.sourceString;
       const value = parseFloat(source);
+      if (/[jJ]$/.test(source)) return weak_complex(value);
       // Float literals (1.0, 2., 1e3) are python floats: weak float64 scalars, so that np.array([1]) * 2.0 is float
       if (/[.eE]/.test(source)) return weak_float(value);
       return value;
@@ -221,6 +230,7 @@ export const __makeSemantics = () => {
       // return arr.withKwArgs(kwArgs)[name](...args); // Old version
       return Object.keys(kwArgs).length == 0 ? arr[name](...args) : arr[name](...args, kwArgs);
     },
+    Arr_constant($c) { return $c.parse(); },
     Parenthesis(_, $arr, __) { return $arr.parse(); },
     Arr_attribute($arr, _, $name) { return $arr.parse()[$name.sourceString]; },
     Variable(_, $i, __) {

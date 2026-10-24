@@ -52,6 +52,7 @@ import * as array from './array';
 
 import { Func_a_a_min_a_max_out, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_axis_keepdims_dtype_out, Func_a_decimals_out, Func_a_lastAxis, Func_a_ord_axis_keepdims, Func_a_other_out, Func_a_out, Func_x1_x2_out, Func_y_x_out, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_axis_keepdims_dtype_out, Method_a_min_a_max_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_other_out, Method_out, Method_values_where } from './kwargs/kwargs';
 import * as sig from './kwargs/signatures';
+import { Complex } from './complex';
 
 /** @category Main */
 np.NDArray = NDArray;
@@ -140,8 +141,8 @@ np.apply_along_axis = sig.apply_along_axis.func((func1d, axis, arr, args) => arr
 np.sort = Func_a_lastAxis.decorate(array.sort);
 /** @category Sorting */
 np.argsort = Func_a_lastAxis.decorate(array.argsort);
-/** Sorts along the last axis. Complex numbers are not supported: the values stay real. @category Sorting */
-np.sort_complex = (a: any) => np.sort(a, -1);
+/** Sorts along the last axis, with complex values: sorted by real part, then imaginary part. @category Sorting */
+np.sort_complex = (a: any) => np.sort(asarray(asarray(a), 'complex128'), -1);
 /** @category Sorting */
 np.lexsort = sig.lexsort.func(array.lexsort);
 /** @category Sorting */
@@ -351,7 +352,7 @@ np.reciprocal = Func_a_out.decorate(elementwise.reciprocal);
 /** @category Elementwise operators */
 np.positive = Func_a_out.decorate(elementwise.positive);
 /** @category Elementwise operators */
-np.angle = Func_a_out.decorate(elementwise.angle);
+np.angle = sig.angle.func(elementwise.angle);
 /** @category Elementwise operators */
 np.real = Func_a_out.decorate(elementwise.real);
 /** @category Elementwise operators */
@@ -371,7 +372,7 @@ np.spacing = Func_a_out.decorate(elementwise.spacing);
 /** @category Elementwise operators */
 np.nan_to_num = sig.nan_to_num.func(elementwise.nan_to_num);
 /** @category Elementwise operators */
-np.real_if_close = Func_a_out.decorate(elementwise.real_if_close);
+np.real_if_close = sig.real_if_close.func(elementwise.real_if_close);
 /** @category Elementwise operators */
 np.round = Func_a_decimals_out.decorate(elementwise.round);
 /** @category Elementwise operators */
@@ -941,6 +942,14 @@ NDArray.prototype.tolist = function () {
   return tolist(this);
 }
 
+/** Complex number class: `new np.Complex(re, im)` @category Types */
+np.Complex = Complex;
+/** @category Types */
+np.iscomplexobj = (x: any) => asarray(x).dtype === 'complex128';
+/** @category Types */
+np.isrealobj = (x: any) => asarray(x).dtype !== 'complex128';
+/** Complex number from real and imaginary parts. @category Types */
+np.complex = (re: number, im: number = 0) => new Complex(re, im);
 /** @category Math constants */
 np.pi = Math.PI;
 /** @category Math constants */

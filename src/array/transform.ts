@@ -55,7 +55,9 @@ export function apply_along_axis(
 }
 
 /** Total order for sorting numbers: nans at the end */
-export const cmp_nan_at_the_end = (a: number, b: number) => {
+import { cmp_complex, Complex } from '../complex';
+export const cmp_nan_at_the_end = (a: any, b: any) => {
+  if (a instanceof Complex) return cmp_complex(a, b);
   if (a < b) return -1;
   if (a > b) return 1;
   if (a === b) return 0;
