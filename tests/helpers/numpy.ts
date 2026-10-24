@@ -160,6 +160,8 @@ def enc(o):
         return [enc(x) for x in o]
     if isinstance(o, dict):
         return {k: enc(v) for k, v in o.items()}
+    if isinstance(o, complex):
+        return {"__complex__": [enc(o.real), enc(o.imag)]}
     if isinstance(o, float):
         if math.isnan(o): return "__nan__"
         if o == math.inf: return "__inf__"

@@ -280,3 +280,84 @@ export const flip1 = signature<typeof manip.fliplr>()([["m", undefined]] as cons
 export const roll = signature<typeof manip.roll>()([["a", undefined], ["shift", undefined], ["axis", null]] as const, [P.asarray('a')]);
 export const rot90 = signature<typeof manip.rot90>()([["m", undefined], ["k", 1], ["axes", [0, 1]]] as const, [P.asarray('m'), int_arg("k")]);
 export const bitwise_count = signature<typeof manip.bitwise_count>()([["x", undefined]] as const, [P.asarray('x')]);
+
+// ==============================
+//   Group 3: indexing extras, functional tools
+// ==============================
+import * as ix from "../modules/indexing-extra";
+import * as fn from "../modules/functional";
+import * as la from "../modules/linalg";
+const mode_arg: Parser = (kwargs: any) => { if (!["raise", "wrap", "clip"].includes(kwargs.mode)) throw new Error(`clipmode must be one of 'clip', 'raise', or 'wrap' (got ${JSON.stringify(kwargs.mode)})`); };
+const dims_arg = (key: string): Parser => (kwargs: any) => { if (typeof kwargs[key] === "number") kwargs[key] = [kwargs[key]]; else kwargs[key] = Array.from(asarray(kwargs[key]).flat as any); };
+
+export const take_ = signature<typeof ix.take>()(
+  [["a", undefined], ["indices", undefined], ["axis", null], ["out", null], ["mode", 'raise']] as const,
+  [P.asarray('a'), P.asarray('indices'), axis_or_null, P.isarray_or_null('out'), mode_arg]);
+export const take_along_axis = signature<typeof ix.take_along_axis>()(
+  [["arr", undefined], ["indices", undefined], ["axis", undefined]] as const, [P.asarray('arr'), P.asarray('indices'), axis_or_null]);
+export const put_along_axis = signature<typeof ix.put_along_axis>()(
+  [["arr", undefined], ["indices", undefined], ["values", undefined], ["axis", undefined]] as const, [P.isarray('arr'), P.asarray('indices'), P.asarray('values'), axis_or_null]);
+export const choose = signature<typeof ix.choose>()(
+  [["a", undefined], ["choices", undefined], ["out", null], ["mode", 'raise']] as const, [P.asarray('a'), P.isarray_or_null('out'), mode_arg]);
+export const compress = signature<typeof ix.compress>()(
+  [["condition", undefined], ["a", undefined], ["axis", null], ["out", null]] as const, [P.asarray('condition'), P.asarray('a'), axis_or_null, P.isarray_or_null('out')]);
+export const diagonal = signature<typeof ix.diagonal>()(
+  [["a", undefined], ["offset", 0], ["axis1", 0], ["axis2", 1]] as const, [P.asarray('a'), int_arg("offset", "axis1", "axis2")]);
+export const select = signature<typeof ix.select>()(
+  [["condlist", undefined], ["choicelist", undefined], ["default", 0]] as const, []);
+export const place = signature<typeof ix.place>()(
+  [["arr", undefined], ["mask", undefined], ["vals", undefined]] as const, [P.isarray('arr'), P.asarray('mask'), P.asarray('vals')]);
+export const put = signature<typeof ix.put>()(
+  [["a", undefined], ["ind", undefined], ["v", undefined], ["mode", 'raise']] as const, [P.isarray('a'), P.asarray('ind'), P.asarray('v'), mode_arg]);
+export const putmask = signature<typeof ix.putmask>()(
+  [["a", undefined], ["mask", undefined], ["values", undefined]] as const, [P.isarray('a'), P.asarray('mask'), P.asarray('values')]);
+export const fill_diagonal = signature<typeof ix.fill_diagonal>()(
+  [["a", undefined], ["val", undefined], ["wrap", false]] as const, [P.isarray('a'), P.asarray('val'), boolean('wrap')]);
+export const indices = signature<typeof ix.indices>()(
+  [["dimensions", undefined], ["dtype", 'int32'], ["sparse", false]] as const, [dims_arg("dimensions"), P.dtype_or_null, boolean('sparse')]);
+export const ix_ = signature<typeof ix.ix_>()([["...args", []]] as const, [as_array_list('args')]);
+export const unravel_index = signature<typeof ix.unravel_index>()(
+  [["indices", undefined], ["shape", undefined], ["order", 'C']] as const, [P.asarray('indices')]);
+export const ravel_multi_index = signature<typeof ix.ravel_multi_index>()(
+  [["multi_index", undefined], ["dims", undefined], ["mode", 'raise'], ["order", 'C']] as const, []);
+export const diag_indices = signature<typeof ix.diag_indices>()([["n", undefined], ["ndim", 2]] as const, [int_arg("n", "ndim")]);
+export const diag_indices_from = signature<typeof ix.diag_indices_from>()([["arr", undefined]] as const, [P.asarray('arr')]);
+export const mask_indices = signature<typeof ix.mask_indices>()([["n", undefined], ["mask_func", undefined], ["k", 0]] as const, [int_arg("n", "k")]);
+export const tri_indices = signature<typeof ix.tril_indices>()([["n", undefined], ["k", 0], ["m", null]] as const, [int_arg("n", "k")]);
+export const tri_indices_from = signature<typeof ix.tril_indices_from>()([["arr", undefined], ["k", 0]] as const, [P.asarray('arr'), int_arg("k")]);
+export const apply_over_axes = signature<typeof fn.apply_over_axes>()([["func", undefined], ["a", undefined], ["axes", undefined]] as const, [P.asarray('a')]);
+export const dot = signature<typeof la.dot>()([["a", undefined], ["b", undefined], ["out", null]] as const, [P.asarray('a'), P.asarray('b'), P.isarray_or_null('out')]);
+
+// ==============================
+//   Group 5: linear algebra
+// ==============================
+const two_arrays = (a: string, b: string): Parser[] => [P.asarray(a), P.asarray(b)];
+export const matmul = signature<typeof la.matmul>()([["x1", undefined], ["x2", undefined], ["out", null]] as const, [...two_arrays("x1", "x2"), P.isarray_or_null('out')]);
+export const arr2 = signature<typeof la.vdot>()([["a", undefined], ["b", undefined]] as const, two_arrays("a", "b"));
+export const outer = signature<typeof la.outer>()([["a", undefined], ["b", undefined], ["out", null]] as const, [...two_arrays("a", "b"), P.isarray_or_null('out')]);
+export const x1x2 = signature<typeof la.matvec>()([["x1", undefined], ["x2", undefined]] as const, two_arrays("x1", "x2"));
+export const vecdot = signature<typeof la.vecdot>()([["x1", undefined], ["x2", undefined], ["axis", -1]] as const, [...two_arrays("x1", "x2"), axis_int]);
+export const tensordot = signature<typeof la.tensordot>()([["a", undefined], ["b", undefined], ["axes", 2]] as const, two_arrays("a", "b"));
+export const kron = signature<typeof la.kron>()([["a", undefined], ["b", undefined]] as const, two_arrays("a", "b"));
+export const matrix_power = signature<typeof la.matrix_power>()([["a", undefined], ["n", undefined]] as const, [P.asarray('a')]);
+export const multi_dot = signature<typeof la.multi_dot>()([["arrays", undefined]] as const, []);
+export const trace = signature<typeof la.trace>()([["a", undefined], ["offset", 0], ["axis1", 0], ["axis2", 1], ["dtype", null], ["out", null]] as const, [P.asarray('a'), int_arg("offset", "axis1", "axis2"), P.dtype_or_null, P.isarray_or_null('out')]);
+export const einsum = signature<(subscripts: string, operands: any[], dtype: any, out: any) => any>()(
+  [["subscripts", undefined], ["...operands", []], ["dtype", null], ["out", null]] as const, [P.dtype_or_null, P.isarray_or_null('out')]);
+export const x_only_la = signature<(x: any) => any>()([["a", undefined]] as const, [P.asarray('a')]);
+export const cholesky = signature<typeof la.cholesky>()([["a", undefined], ["upper", false]] as const, [P.asarray('a'), boolean('upper')]);
+export const qr = signature<typeof la.qr>()([["a", undefined], ["mode", 'reduced']] as const, [P.asarray('a')]);
+export const svd = signature<typeof la.svd>()([["a", undefined], ["full_matrices", true], ["compute_uv", true], ["hermitian", false]] as const, [P.asarray('a'), boolean('full_matrices', 'compute_uv', 'hermitian')]);
+export const eigh = signature<typeof la.eigh>()([["a", undefined], ["UPLO", 'L']] as const, [P.asarray('a')]);
+export const solve = signature<typeof la.solve>()([["a", undefined], ["b", undefined]] as const, two_arrays("a", "b"));
+export const lstsq = signature<typeof la.lstsq>()([["a", undefined], ["b", undefined], ["rcond", null]] as const, two_arrays("a", "b"));
+export const pinv = signature<typeof la.pinv>()([["a", undefined], ["rcond", null], ["hermitian", false], ["rtol", null]] as const, [P.asarray('a')]);
+export const matrix_rank = signature<typeof la.matrix_rank>()([["A", undefined], ["tol", null], ["hermitian", false], ["rtol", null]] as const, [P.asarray('A')]);
+export const cond = signature<typeof la.cond>()([["x", undefined], ["p", null]] as const, [P.asarray('x')]);
+export const tensorsolve = signature<typeof la.tensorsolve>()([["a", undefined], ["b", undefined], ["axes", null]] as const, two_arrays("a", "b"));
+export const tensorinv = signature<typeof la.tensorinv>()([["a", undefined], ["ind", 2]] as const, [P.asarray('a')]);
+export const linalg_norm = signature<typeof la.norm>()([["x", undefined], ["ord", null], ["axis", null], ["keepdims", false]] as const, [P.asarray('x'), P.axis_or_axes, boolean('keepdims')]);
+export const matrix_norm = signature<typeof la.matrix_norm>()([["x", undefined], ["ord", 'fro'], ["keepdims", false]] as const, [P.asarray('x'), boolean('keepdims')]);
+export const vector_norm = signature<typeof la.vector_norm>()([["x", undefined], ["axis", null], ["keepdims", false], ["ord", 2]] as const, [P.asarray('x'), P.axis_or_axes, boolean('keepdims')]);
+export const linalg_cross = signature<(a: any, b: any, axis: number) => any>()([["x1", undefined], ["x2", undefined], ["axis", -1]] as const, [...two_arrays("x1", "x2"), axis_int]);
+export const eigvalsh = signature<typeof la.eigvalsh>()([["a", undefined], ["UPLO", 'L']] as const, [P.asarray('a')]);

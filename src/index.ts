@@ -636,6 +636,137 @@ np.bitwise_invert = np.bitwise_not;
 /** @category Binary operators */
 np.bitwise_count = sig.bitwise_count.func(manip.bitwise_count);
 
+/** @category Indexing */
+np.take_along_axis = sig.take_along_axis.func(ix.take_along_axis);
+/** @category Indexing */
+np.put_along_axis = sig.put_along_axis.func(ix.put_along_axis as any);
+/** @category Indexing */
+np.choose = sig.choose.func(ix.choose);
+/** @category Indexing */
+np.compress = sig.compress.func(ix.compress);
+/** @category Indexing */
+np.diagonal = sig.diagonal.func(ix.diagonal);
+/** @category Indexing */
+np.select = sig.select.func(ix.select);
+/** @category Indexing */
+np.place = sig.place.func(ix.place as any);
+/** @category Indexing */
+np.put = sig.put.func(ix.put as any);
+/** @category Indexing */
+np.putmask = sig.putmask.func(ix.putmask as any);
+/** @category Indexing */
+np.fill_diagonal = sig.fill_diagonal.func(ix.fill_diagonal as any);
+/** @category Index generators */
+np.indices = sig.indices.func(ix.indices);
+/** @category Index generators */
+np.ix_ = sig.ix_.func(ix.ix_);
+/** @category Index generators */
+np.unravel_index = sig.unravel_index.func(ix.unravel_index);
+/** @category Index generators */
+np.ravel_multi_index = sig.ravel_multi_index.func(ix.ravel_multi_index);
+/** @category Index generators */
+np.diag_indices = sig.diag_indices.func(ix.diag_indices);
+/** @category Index generators */
+np.diag_indices_from = sig.diag_indices_from.func(ix.diag_indices_from);
+/** @category Index generators */
+np.mask_indices = sig.mask_indices.func(ix.mask_indices);
+/** @category Index generators */
+np.tril_indices = sig.tri_indices.func(ix.tril_indices);
+/** @category Index generators */
+np.triu_indices = sig.tri_indices.func(ix.triu_indices);
+/** @category Index generators */
+np.tril_indices_from = sig.tri_indices_from.func(ix.tril_indices_from);
+/** @category Index generators */
+np.triu_indices_from = sig.tri_indices_from.func(ix.triu_indices_from);
+/** @category Functional */
+np.apply_over_axes = sig.apply_over_axes.func(fn.apply_over_axes);
+/** @category Functional */
+np.vectorize = (pyfunc: (...args: any[]) => any, options: fn.VectorizeOptions = {}) => fn.vectorize(pyfunc, options);
+/** @category Functional */
+np.frompyfunc = fn.frompyfunc;
+/** @category Functional */
+np.piecewise = (x: any, condlist: any, funclist: any, ...args: any[]) => fn.piecewise(x, condlist, funclist, args, {});
+/** @category Iteration */
+np.ndindex = (...shape: any[]) => fn.ndindex(shape.length == 1 && Array.isArray(shape[0]) ? shape[0] : shape);
+/** @category Iteration */
+np.ndenumerate = fn.ndenumerate;
+/** @category Iteration */
+np.nditer = (op: any, flags?: string[]) => new fn.nditer(op, flags);
+/** @category Iteration */
+np.nested_iters = fn.nested_iters;
+/** @category Iteration */
+np.flatiter = fn.flatiter;
+/** @category Iteration */
+np.iterable = fn.iterable;
+/** Mathematical functions with automatic domain: results must be real (complex numbers are not supported). @category Math */
+np.emath = { sqrt: fn.emath_sqrt, log: fn.emath_log, log2: fn.emath_log2, log10: fn.emath_log10, logn: fn.emath_logn, power: fn.emath_power, arccos: fn.emath_arccos, arcsin: fn.emath_arcsin, arctanh: fn.emath_arctanh };
+
+/** @category Linear algebra */
+np.dot = sig.dot.func(la.dot);
+/** @category Linear algebra */
+np.matmul = sig.matmul.func(la.matmul);
+/** @category Linear algebra */
+np.vdot = sig.arr2.func(la.vdot);
+/** @category Linear algebra */
+np.inner = sig.arr2.func(la.inner);
+/** @category Linear algebra */
+np.outer = sig.outer.func(la.outer);
+/** @category Linear algebra */
+np.matvec = sig.x1x2.func(la.matvec);
+/** @category Linear algebra */
+np.vecmat = sig.x1x2.func(la.vecmat);
+/** @category Linear algebra */
+np.vecdot = sig.vecdot.func(la.vecdot);
+/** @category Linear algebra */
+np.tensordot = sig.tensordot.func(la.tensordot);
+/** @category Linear algebra */
+np.kron = sig.kron.func(la.kron);
+/** @category Linear algebra */
+np.trace = sig.trace.func(la.trace);
+/** @category Linear algebra */
+np.einsum = sig.einsum.func((subscripts, operands, dtype, out) => la.einsum(subscripts, operands, dtype, out));
+/** @category Linear algebra */
+np.einsum_path = (subscripts: string, ...operands: any[]) => la.einsum_path(subscripts, operands.filter(o => !(typeof o === 'string') && !(o && typeof o === 'object' && !isarray(o) && !Array.isArray(o))));
+
+operators.op_binary['@'] = la.matmul as any;
+const cross_func = np.cross;
+/** numpy.linalg: linear algebra on stacks of matrices (real numbers only) @category Linear algebra */
+np.linalg = {
+  LinAlgError: la.LinAlgError,
+  matmul: np.matmul, vecdot: np.vecdot, outer: np.outer, tensordot: np.tensordot, trace: np.trace, diagonal: np.diagonal,
+  matrix_transpose: np.matrix_transpose,
+  cross: sig.linalg_cross.func((a: any, b: any, axis: number) => cross_func(a, b, { axis })),
+  matrix_power: sig.matrix_power.func(la.matrix_power),
+  multi_dot: sig.multi_dot.func(la.multi_dot),
+  det: sig.x_only_la.func(la.det),
+  slogdet: sig.x_only_la.func(la.slogdet),
+  inv: sig.x_only_la.func(la.inv),
+  cholesky: sig.cholesky.func(la.cholesky),
+  qr: sig.qr.func(la.qr),
+  svd: sig.svd.func(la.svd),
+  svdvals: sig.x_only_la.func(la.svdvals),
+  eig: sig.x_only_la.func(la.eig),
+  eigvals: sig.x_only_la.func(la.eigvals),
+  eigh: sig.eigh.func(la.eigh),
+  eigvalsh: sig.eigvalsh.func(la.eigvalsh),
+  solve: sig.solve.func(la.solve),
+  lstsq: sig.lstsq.func(la.lstsq),
+  pinv: sig.pinv.func(la.pinv),
+  matrix_rank: sig.matrix_rank.func(la.matrix_rank),
+  cond: sig.cond.func(la.cond),
+  tensorsolve: sig.tensorsolve.func(la.tensorsolve),
+  tensorinv: sig.tensorinv.func(la.tensorinv),
+  norm: sig.linalg_norm.func(la.norm),
+  matrix_norm: sig.matrix_norm.func(la.matrix_norm),
+  vector_norm: sig.vector_norm.func((x: any, axis: any, keepdims: any, ord: any) => la.vector_norm(x, axis, keepdims, ord)),
+};
+/** @category Linear algebra */
+np.linalg.vecdot = np.vecdot;
+
+import * as testing from './modules/testing';
+/** Assertion helpers (numpy.testing). @category Testing */
+np.testing = testing;
+
 import * as misc from './modules/misc';
 /** @category Memory */
 np.shares_memory = misc.shares_memory;
@@ -672,6 +803,9 @@ np.random = np.modules.random;
 
 import * as constructors from './modules/constructors';
 import * as indexing from './modules/indexing';
+import * as ix from './modules/indexing-extra';
+import * as fn from './modules/functional';
+import * as la from './modules/linalg';
 import * as ctor from './kwargs/constructors.kwargs';
 import { Func_shape_dtype } from './kwargs/constructors.kwargs';
 
@@ -689,7 +823,7 @@ np.linspace = ctor.linspace.func(constructors.linspace);
 np.geomspace = ctor.geomspace.func(constructors.geomspace);
 
 /** @category Indexing */
-np.take = sig.take.func(indexing.take);
+np.take = sig.take_.func(ix.take);
 /** @category Searching */
 np.where = sig.where.func((condition, x, y, out) => {
   if (x === null) return indexing.nonzero(asarray(condition));

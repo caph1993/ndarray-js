@@ -84,13 +84,14 @@ ArrayGrammar {
   KwArg = Name "=" ArgValue
 
   ArgValue = Constant | JsArray | ArithmeticLogicExp | String
-  Constant = NumericConstant | "True" | "False" | "None" | "np.newaxis"
-  NumericConstant
+  Constant = constantWord
+  constantWord = (numericConstant | "True" | "False" | "None" | "np.newaxis") ~(alnum | "_")
+  numericConstant
     = ("+"|"-")? "np.nan"
     | ("+"|"-")? "np.inf"
-    | ("+"|"-")? "np.e"
-    | ("+"|"-")? "np.pi"
     | ("+"|"-")? "np.euler_gamma"
+    | ("+"|"-")? "np.pi"
+    | ("+"|"-")? "np.e"
 
   JsArray
     = "[" ListOf<ArgValue, ","> ","? "]"
@@ -186,6 +187,13 @@ export const __makeSemantics = () => {
     Arr_slice($arr, _open, $where, _close) {
       const arr = $arr.parse();
       const where = $where.parse();
+      if (Array.isArray(arr)) {
+        // Plain JS lists/tuples (e.g. the result of np.linalg.svd) can be indexed with a single integer
+        if (where.length != 1) throw new Error(`Lists can only be indexed with one index`);
+        const i = unwrap_scalar(where[0]);
+        if (typeof i !== 'number') throw new Error(`Lists can only be indexed with integers`);
+        return arr[i < 0 ? arr.length + i : i];
+      }
       return arr.index(...where);
     },
     SliceTerm_constant($x) {
