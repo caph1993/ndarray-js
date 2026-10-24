@@ -119,6 +119,7 @@ const KIND = (d: string) => d.startsWith("complex") ? "complex" : d.startsWith("
  * Compares values and shape; dtype *kind* is compared when check_dtype is true (bool/int/float).
  */
 export function expect_same(got: any, want: any, { rtol = 1e-7, atol = 1e-9, check_dtype = true } = {}) {
+  if (got && typeof got === "object" && got.constructor && got.constructor.name === "DType_") got = got.name;
   if (want && want.nd && want.shape.length === 0 && !(got instanceof np.NDArray) && !Array.isArray(got)) {
     // 0-d arrays are returned as plain JS scalars
     const err = close(got, want.data, rtol, atol, "");
@@ -162,6 +163,10 @@ def enc(o):
         return {"__nd__": True, "dtype": str(o.dtype), "shape": list(o.shape), "data": enc(o.tolist())}
     if isinstance(o, np.generic):
         return enc(o.item())
+    if isinstance(o, np.dtype):
+        return o.name
+    if isinstance(o, type):
+        return o.__name__
     if isinstance(o, (list, tuple)):
         return [enc(x) for x in o]
     if isinstance(o, dict):

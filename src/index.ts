@@ -808,6 +808,80 @@ np.polymul = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polym
 /** @category Polynomials */
 np.polydiv = legacy([["u", undefined], ["v", undefined]], polyapi.legacy_polydiv);
 
+import * as dtu from './modules/dtype-utils';
+import * as fmt from './modules/format';
+const unwrap0d = (a: any) => (isarray(a) && a.shape.length == 0) ? a.item() : a;
+const kw = (defaults: [string, any][], impl: (...a: any[]) => any) => kwargs_decorator<any, any, any>({ defaults, implementation: (...args: any[]) => impl(...args.map(unwrap0d)), parsers: [] }) as (...args: any[]) => any;
+/** @category Types */
+np.dtype = (spec: any) => new dtu.DType_(spec);
+// Scalar type names: np.float32 === 'float32', np.number === 'number', ...
+for (const name of ['bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'float16', 'float32', 'float64', 'complex64', 'complex128', 'object']) (np as any)[name] = name;
+Object.assign(np, {
+  bool_: 'bool', intp: 'int64', uintp: 'uint64', int_: 'int64', uint: 'uint64', float_: 'float64', double: 'float64', single: 'float32', half: 'float16', csingle: 'complex64', cdouble: 'complex128', byte: 'int8', ubyte: 'uint8', short: 'int16', ushort: 'uint16', intc: 'int32', uintc: 'uint32', longlong: 'int64', ulonglong: 'uint64',
+  number: 'number', integer: 'integer', signedinteger: 'signedinteger', unsignedinteger: 'unsignedinteger', inexact: 'inexact', floating: 'floating', complexfloating: 'complexfloating', generic: 'generic',
+});
+/** @category Types */
+np.can_cast = kw([["from_", undefined], ["to", undefined], ["casting", 'safe']], dtu.can_cast);
+/** @category Types */
+np.promote_types = kw([["type1", undefined], ["type2", undefined]], dtu.promote_types);
+/** @category Types */
+np.result_type = (...args: any[]) => dtu.result_type(...args);
+/** @category Types */
+np.min_scalar_type = kw([["a", undefined]], dtu.min_scalar_type);
+/** @category Types */
+np.common_type = (...arrays: any[]) => dtu.common_type(...arrays);
+/** @category Types */
+np.isdtype = kw([["dtype", undefined], ["kind", undefined]], dtu.isdtype);
+/** @category Types */
+np.issubdtype = kw([["arg1", undefined], ["arg2", undefined]], dtu.issubdtype);
+/** @category Types */
+np.typename = kw([["char", undefined]], dtu.typename);
+/** @category Types */
+np.mintypecode = kw([["typechars", undefined], ["typeset", 'GDFgdf'], ["default", 'd']], dtu.mintypecode);
+/** @category Types */
+np.finfo = (spec?: any) => new dtu.finfo(spec);
+/** @category Types */
+np.iinfo = (spec?: any) => new dtu.iinfo(spec);
+/** @category Error handling */
+np.seterr = kw([["all", null], ["divide", null], ["over", null], ["under", null], ["invalid", null]], dtu.seterr);
+/** @category Error handling */
+np.geterr = dtu.geterr;
+/** @category Error handling */
+np.seterrcall = dtu.seterrcall;
+/** @category Error handling */
+np.geterrcall = dtu.geterrcall;
+/** @category Error handling */
+np.errstate = (options?: any, fn?: () => any) => dtu.errstate(options, fn);
+/** @category Error handling */
+np.exceptions = dtu.exceptions;
+/** @category Formatting */
+np.binary_repr = kw([["num", undefined], ["width", null]], fmt.binary_repr);
+/** @category Formatting */
+np.base_repr = kw([["number", undefined], ["base", 2], ["padding", 0]], fmt.base_repr);
+/** @category Formatting */
+np.packbits = kw([["a", undefined], ["axis", null], ["bitorder", 'big']], (a, axis, bitorder) => fmt.packbits(asarray(a), axis, bitorder));
+/** @category Formatting */
+np.unpackbits = kw([["a", undefined], ["axis", null], ["count", null], ["bitorder", 'big']], (a, axis, count, bitorder) => fmt.unpackbits(asarray(a), axis, count, bitorder));
+/** @category Formatting */
+np.array2string = kw([["a", undefined], ["max_line_width", null], ["precision", null], ["suppress_small", null], ["separator", ' '], ["prefix", ''], ["style", null], ["formatter", null], ["threshold", null], ["edgeitems", null], ["sign", null], ["floatmode", null], ["suffix", ''], ["legacy", null]],
+  (a, max_line_width, precision, suppress_small, separator, prefix, style, formatter, threshold, edgeitems, sign, floatmode, suffix, legacy) =>
+    fmt.array2string(asarray(a), { max_line_width, precision, suppress_small, separator, prefix, formatter, threshold, edgeitems, sign, floatmode, suffix }));
+/** @category Formatting */
+np.array_repr = kw([["arr", undefined], ["max_line_width", null], ["precision", null], ["suppress_small", null]], (a, w, p, s) => fmt.array_repr(asarray(a), w, p, s));
+/** @category Formatting */
+np.array_str = kw([["a", undefined], ["max_line_width", null], ["precision", null], ["suppress_small", null]], (a, w, p, s) => fmt.array_str(asarray(a), w, p, s));
+/** @category Formatting */
+np.format_float_positional = kw([["x", undefined], ["precision", null], ["unique", true], ["fractional", true], ["trim", 'k'], ["sign", false], ["pad_left", null], ["pad_right", null], ["min_digits", null]], fmt.format_float_positional);
+/** @category Formatting */
+np.format_float_scientific = kw([["x", undefined], ["precision", null], ["unique", true], ["trim", 'k'], ["sign", false], ["pad_left", null], ["exp_digits", null], ["min_digits", null]], fmt.format_float_scientific);
+/** @category Formatting */
+np.set_printoptions = kw([["precision", null], ["threshold", null], ["edgeitems", null], ["linewidth", null], ["suppress", null], ["nanstr", null], ["infstr", null], ["formatter", null], ["sign", null], ["floatmode", null], ["legacy", null]], (precision, threshold, edgeitems, linewidth, suppress, nanstr, infstr, formatter, sign, floatmode, legacy) =>
+  fmt.set_printoptions({ precision, threshold, edgeitems, linewidth, suppress, nanstr, infstr, formatter, sign, floatmode, legacy } as any));
+/** @category Formatting */
+np.get_printoptions = fmt.get_printoptions;
+/** @category Formatting */
+np.printoptions = (opts: any, fn?: () => any) => fmt.printoptions(opts, fn);
+
 import * as misc from './modules/misc';
 /** @category Memory */
 np.shares_memory = misc.shares_memory;

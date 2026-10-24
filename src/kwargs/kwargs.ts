@@ -7,7 +7,7 @@ export type ArrOrNull = NDArray | null;
 
 import { empty } from "../NDArray";
 import { Where } from '../array/indexes';
-import { DType } from '../dtypes';
+import { DType, canonical_dtype } from '../dtypes';
 
 export { Arr, ArrOrAny, ArrOrConst };
 
@@ -178,9 +178,7 @@ export const frequently_used_parsers = {
   },
   'dtype_or_null': (kwargs: any) => {
     const d = kwargs.dtype;
-    if (d != null && !["bool", "int32", "int64", "float32", "float64", "complex128", "object"].includes(d)) {
-      throw new Error(`Invalid dtype ${JSON.stringify(d)}. Options: bool, int32, int64, float32, float64, complex128, object`);
-    }
+    if (d != null) kwargs.dtype = canonical_dtype(typeof d === "string" ? d : (d && d.name) || String(d));
   },
   'isarray_or_null': (key: string) => (kwargs: any) => {
     if (kwargs[key] != null && !isarray(kwargs[key])) {
