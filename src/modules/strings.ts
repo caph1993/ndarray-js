@@ -178,10 +178,13 @@ export function translate(a: Arr, table: string | { [code: number]: string | nul
   return map(object, (x) => {
     let out = '';
     for (const c of str(x)) {
-      if (deletechars !== null && deletechars.includes(c)) continue;
       const code = c.codePointAt(0)!;
-      if (typeof table === "string") out += code < table.length ? table[code] : c;
-      else { const t = table[code]; out += t === undefined ? c : (t === null ? '' : t); }
+      let m: string;
+      if (typeof table === "string") m = code < table.length ? table[code] : c;
+      else { const t = table[code]; m = t === undefined ? c : (t === null ? '' : t); }
+      // as numpy: the characters to delete are removed from the translated text
+      if (deletechars !== null && deletechars.includes(m)) continue;
+      out += m;
     }
     return out;
   }, a);
@@ -232,7 +235,7 @@ const pred = (re: RegExp, emptyOk = false) => (a: Arr) => map(bool, (x) => { con
 export const isalpha = pred(U('^\\p{L}+$'));
 export const isalnum = pred(U('^[\\p{L}\\p{Nd}\\p{No}\\p{Nl}]+$'));
 export const isdecimal = pred(U('^\\p{Nd}+$'));
-export const isdigit = pred(/^[\p{Nd}²³¹⁰⁴-⁹₀-₉]+$/u);
+export const isdigit = pred(U('^[\\p{Nd}\\u00b2\\u00b3\\u00b9\\u2070\\u2074-\\u2079\\u2080-\\u2089]+$'));
 export const isnumeric = pred(U('^\\p{N}+$'));
 export const isspace = (a: Arr) => map(bool, (x) => { const s = str(x); return s.length > 0 && Array.from(s).every(isWs); }, a);
 export const islower = (a: Arr) => map(bool, (x) => { const s = str(x); return s !== s.toUpperCase() && s === s.toLowerCase() || (U('\\p{Ll}').test(s) && !U('\\p{Lu}|\\p{Lt}').test(s)); }, a);
