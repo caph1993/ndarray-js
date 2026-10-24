@@ -376,3 +376,5 @@ export const fftn = signature<typeof fftm.fftn>()([["a", undefined], ["s", null]
 export const fft2 = signature<typeof fftm.fft2>()([["a", undefined], ["s", null], ["axes", [-2, -1]], ["norm", null]] as const, [P.asarray('a'), norm_arg]);
 export const fftfreq = signature<typeof fftm.fftfreq>()([["n", undefined], ["d", 1.0]] as const, []);
 export const fftshift = signature<typeof fftm.fftshift>()([["x", undefined], ["axes", null]] as const, [P.asarray('x')]);
+
+export const vander = signature<typeof manip.vander>()([["x", undefined], ["N", null], ["increasing", false]] as const, [P.asarray('x'), boolean('increasing')]);

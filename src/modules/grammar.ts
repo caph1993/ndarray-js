@@ -58,6 +58,7 @@ ArrayGrammar {
     | Arr "[" Slice "]"         -- slice
     | Parenthesis
     | Name ("." Name)* CallArgs -- call
+    | Name ("." Name)+ -- path
     | number
     | Variable
     | Constant -- constant
@@ -231,6 +232,14 @@ export const __makeSemantics = () => {
       return Object.keys(kwArgs).length == 0 ? arr[name](...args) : arr[name](...args, kwArgs);
     },
     Arr_constant($c) { return $c.parse(); },
+    Arr_path($name, _dots, $names) {
+      const path = ($name.sourceString + $names.sourceString.replace(/\s+/g, '')).split('.');
+      if (path.some(part => part === 'constructor' || part === '__proto__' || part === 'prototype')) throw new Error(`Unrecognized name ${path.join('.')}`);
+      if (path[0] === 'np') path.shift();
+      const value = path.reduce((obj: any, part) => (obj === undefined || obj === null) ? undefined : obj[part], np);
+      if (value === undefined) throw new Error(`Unrecognized name ${path.join('.')}`);
+      return value;
+    },
     Parenthesis(_, $arr, __) { return $arr.parse(); },
     Arr_attribute($arr, _, $name) { return $arr.parse()[$name.sourceString]; },
     Variable(_, $i, __) {

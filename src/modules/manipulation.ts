@@ -774,3 +774,15 @@ export function bitwise_count(x: NDArray): NDArray {
   }
   return new NDArray(buffer, x.shape, int32);
 }
+
+/** Vandermonde matrix: columns are powers of x (decreasing unless `increasing`) */
+export function vander(x: NDArray, N: number | null, increasing: boolean): NDArray {
+  x = asarray(x);
+  if (x.shape.length != 1) throw new Error(`x must be a one-dimensional array or sequence.`);
+  const n = N === null ? x.size : N;
+  const dtype = x.dtype === bool ? int32 : x.dtype;
+  const f = x.flat as any;
+  const buffer = new_buffer(x.size * n, dtype);
+  for (let i = 0; i < x.size; i++) for (let j = 0; j < n; j++) buffer[i * n + j] = Math.pow(+f[i], increasing ? j : n - 1 - j);
+  return new NDArray(fix_buffer(buffer, dtype), [x.size, n], dtype);
+}

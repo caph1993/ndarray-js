@@ -50,7 +50,7 @@ set_np(np);
 import { NDArray, isarray, asarray } from './NDArray';
 import * as array from './array';
 
-import { Func_a_a_min_a_max_out, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_axis_keepdims_dtype_out, Func_a_decimals_out, Func_a_lastAxis, Func_a_ord_axis_keepdims, Func_a_other_out, Func_a_out, Func_x1_x2_out, Func_y_x_out, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_axis_keepdims_dtype_out, Method_a_min_a_max_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_other_out, Method_out, Method_values_where } from './kwargs/kwargs';
+import { kwargs_decorator, Func_a_a_min_a_max_out, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_axis_keepdims_dtype_out, Func_a_decimals_out, Func_a_lastAxis, Func_a_ord_axis_keepdims, Func_a_other_out, Func_a_out, Func_x1_x2_out, Func_y_x_out, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_axis_keepdims_dtype_out, Method_a_min_a_max_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_other_out, Method_out, Method_values_where } from './kwargs/kwargs';
 import * as sig from './kwargs/signatures';
 import { Complex } from './complex';
 
@@ -535,6 +535,8 @@ np.empty_like = sig.like.func(manip.empty_like);
 /** @category Constructors */
 np.logspace = sig.logspace.func(manip.logspace);
 /** @category Constructors */
+np.vander = sig.vander.func(manip.vander);
+/** @category Constructors */
 np.meshgrid = sig.meshgrid.func(manip.meshgrid);
 /** Dense multi-dimensional grid from slice strings: `np.mgrid('0:3', '0:2')`. @category Constructors */
 np.mgrid = sig.grid.func((specs: any[]) => manip.mgrid(...specs));
@@ -778,6 +780,33 @@ np.fft = {
   fftfreq: sig.fftfreq.func(fftm.fftfreq), rfftfreq: sig.fftfreq.func(fftm.rfftfreq),
   fftshift: sig.fftshift.func(fftm.fftshift), ifftshift: sig.fftshift.func(fftm.ifftshift),
 };
+
+import * as polyapi from './modules/polynomial-api';
+/** numpy.polynomial: power series and Chebyshev, Hermite, HermiteE, Laguerre and Legendre series @category Polynomials */
+np.polynomial = polyapi.build_polynomial_package();
+/** Polynomial with the coefficients in decreasing powers (numpy.poly1d) @category Polynomials */
+np.poly1d = polyapi.poly1d;
+const legacy = (defaults: [string, any][], impl: (...a: any[]) => any) => kwargs_decorator<any, any, any>({ defaults, implementation: impl, parsers: [] }) as (...args: any[]) => any;
+/** @category Polynomials */
+np.polyval = legacy([["p", undefined], ["x", undefined]], polyapi.legacy_polyval);
+/** @category Polynomials */
+np.poly = legacy([["seq_of_zeros", undefined]], polyapi.legacy_poly);
+/** @category Polynomials */
+np.roots = legacy([["p", undefined]], polyapi.legacy_roots);
+/** @category Polynomials */
+np.polyfit = legacy([["x", undefined], ["y", undefined], ["deg", undefined], ["rcond", null], ["full", false], ["w", null], ["cov", false]], polyapi.legacy_polyfit);
+/** @category Polynomials */
+np.polyder = legacy([["p", undefined], ["m", 1]], polyapi.legacy_polyder);
+/** @category Polynomials */
+np.polyint = legacy([["p", undefined], ["m", 1], ["k", null]], polyapi.legacy_polyint);
+/** @category Polynomials */
+np.polyadd = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polyadd);
+/** @category Polynomials */
+np.polysub = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polysub);
+/** @category Polynomials */
+np.polymul = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polymul);
+/** @category Polynomials */
+np.polydiv = legacy([["u", undefined], ["v", undefined]], polyapi.legacy_polydiv);
 
 import * as misc from './modules/misc';
 /** @category Memory */
