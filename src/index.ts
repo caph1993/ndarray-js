@@ -768,6 +768,17 @@ import * as testing from './modules/testing';
 /** Assertion helpers (numpy.testing). @category Testing */
 np.testing = testing;
 
+import * as fftm from './modules/fft';
+/** Discrete Fourier transforms (numpy.fft) @category FFT */
+np.fft = {
+  fft: sig.fft1.func(fftm.fft), ifft: sig.fft1.func(fftm.ifft), rfft: sig.fft1.func(fftm.rfft), irfft: sig.fft1.func(fftm.irfft),
+  hfft: sig.fft1.func(fftm.hfft), ihfft: sig.fft1.func(fftm.ihfft),
+  fftn: sig.fftn.func(fftm.fftn), ifftn: sig.fftn.func(fftm.ifftn), rfftn: sig.fftn.func(fftm.rfftn), irfftn: sig.fftn.func(fftm.irfftn),
+  fft2: sig.fft2.func(fftm.fft2), ifft2: sig.fft2.func(fftm.ifft2), rfft2: sig.fft2.func(fftm.rfft2), irfft2: sig.fft2.func(fftm.irfft2),
+  fftfreq: sig.fftfreq.func(fftm.fftfreq), rfftfreq: sig.fftfreq.func(fftm.rfftfreq),
+  fftshift: sig.fftshift.func(fftm.fftshift), ifftshift: sig.fftshift.func(fftm.ifftshift),
+};
+
 import * as misc from './modules/misc';
 /** @category Memory */
 np.shares_memory = misc.shares_memory;

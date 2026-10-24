@@ -364,3 +364,15 @@ export const eigvalsh = signature<typeof la.eigvalsh>()([["a", undefined], ["UPL
 
 export const angle = signature<typeof elementwise.angle>()([["z", undefined], ["deg", false]] as const, [P.asarray('z'), boolean('deg')]);
 export const real_if_close = signature<typeof elementwise.real_if_close>()([["a", undefined], ["tol", 100]] as const, [P.asarray('a')]);
+
+// ==============================
+//   FFT
+// ==============================
+import * as fftm from "../modules/fft";
+const norm_arg: Parser = (kwargs: any) => { if (kwargs.norm !== null && !["backward", "ortho", "forward"].includes(kwargs.norm)) throw new Error(`Invalid norm value ${kwargs.norm}; should be "backward", "ortho" or "forward".`); };
+const n_arg: Parser = (kwargs: any) => { if (kwargs.n !== null && (!Number.isInteger(kwargs.n) || kwargs.n < 1)) throw new Error(`Invalid number of FFT data points (${kwargs.n}) specified.`); };
+export const fft1 = signature<typeof fftm.fft>()([["a", undefined], ["n", null], ["axis", -1], ["norm", null]] as const, [P.asarray('a'), n_arg, int_arg("axis"), norm_arg]);
+export const fftn = signature<typeof fftm.fftn>()([["a", undefined], ["s", null], ["axes", null], ["norm", null]] as const, [P.asarray('a'), norm_arg]);
+export const fft2 = signature<typeof fftm.fft2>()([["a", undefined], ["s", null], ["axes", [-2, -1]], ["norm", null]] as const, [P.asarray('a'), norm_arg]);
+export const fftfreq = signature<typeof fftm.fftfreq>()([["n", undefined], ["d", 1.0]] as const, []);
+export const fftshift = signature<typeof fftm.fftshift>()([["x", undefined], ["axes", null]] as const, [P.asarray('x')]);
