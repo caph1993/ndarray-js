@@ -387,3 +387,27 @@ export function unwrap(p: NDArray, discont: number | null, axis: number, period:
     return out;
   }, p, axis);
 }
+
+// ==============================
+//   Window functions
+// ==============================
+function window_fn(M: number, f: (n: number, M: number) => number): NDArray {
+  if (!Number.isInteger(M)) throw new TypeError(`M must be an integer`);
+  if (M < 1) return new NDArray(new_buffer(0, float64), [0], float64);
+  if (M === 1) return new NDArray(new_buffer([1], float64), [1], float64);
+  const buffer = new_buffer(M, float64);
+  for (let i = 0; i < M; i++) buffer[i] = f(1 - M + 2 * i, M);
+  return new NDArray(buffer, [M], float64);
+}
+export const hanning = (M: number) => window_fn(M, (n, M) => 0.5 + 0.5 * Math.cos(Math.PI * n / (M - 1)));
+export const hamming = (M: number) => window_fn(M, (n, M) => 0.54 + 0.46 * Math.cos(Math.PI * n / (M - 1)));
+export const blackman = (M: number) => window_fn(M, (n, M) => 0.42 + 0.5 * Math.cos(Math.PI * n / (M - 1)) + 0.08 * Math.cos(2 * Math.PI * n / (M - 1)));
+export const bartlett = (M: number) => window_fn(M, (n, M) => n <= 0 ? 1 + n / (M - 1) : 1 - n / (M - 1));
+export function kaiser(M: number, beta: number): NDArray {
+  if (M < 1) return new NDArray(new_buffer(0, float64), [0], float64);
+  if (M === 1) return new NDArray(new_buffer([1], float64), [1], float64);
+  const i0 = (x: number) => { let term = 1, sum = 1; const q = x * x / 4; for (let k = 1; k < 500; k++) { term *= q / (k * k); sum += term; if (term < sum * 1e-17) break; } return sum; };
+  const alpha = (M - 1) / 2, buffer = new_buffer(M, float64);
+  for (let n = 0; n < M; n++) buffer[n] = i0(beta * Math.sqrt(1 - Math.pow((n - alpha) / alpha, 2))) / i0(beta);
+  return new NDArray(buffer, [M], float64);
+}

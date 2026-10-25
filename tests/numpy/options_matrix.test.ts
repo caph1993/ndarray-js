@@ -548,3 +548,5 @@ const cases: string[] = [
  "np.repeat(np.arange(6).reshape(2, 3), 2)"
 ];
 numpy_cases("function options matrix", cases, { rtol: 1e-6, auto_errors: true });
+
+numpy_cases("window functions", [0, 1, 2, 5, 12].flatMap(m => [`np.hanning(${m})`, `np.hamming(${m})`, `np.blackman(${m})`, `np.bartlett(${m})`, `np.kaiser(${m}, 14)`, `np.kaiser(${m}, 0.5)`]), { rtol: 1e-9 });

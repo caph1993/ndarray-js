@@ -168,7 +168,7 @@ function axes_and_shape(a: NDArray, s: number[] | null, axes: number[] | null, d
   const nd = a.shape.length;
   let ax: number[];
   if (axes !== null) ax = axes.map(x => normalize_axis(x, nd));
-  else if (s !== null) ax = range(s.length).map(i => nd - s.length + i);
+  else if (s !== null) { if (s.length > nd) throw new Error(`axis ${nd - s.length} is out of bounds for array of dimension ${nd}`); ax = range(s.length).map(i => nd - s.length + i); }
   else ax = defaultAxes ? defaultAxes.map(x => normalize_axis(x, nd)) : range(nd);
   if (s !== null && s.length != ax.length) throw new Error(`Shape and axes have different lengths.`);
   return { axes: ax, s: s === null ? ax.map(() => null) : s };

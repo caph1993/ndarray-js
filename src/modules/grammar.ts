@@ -56,6 +56,7 @@ ArrayGrammar {
     = Arr "." Name CallArgs     -- method
     | Arr "." Name              -- attribute
     | Arr "[" Slice "]"         -- slice
+    | Arr CallArgs              -- invoke
     | Parenthesis
     | Name ("." Name)* CallArgs -- call
     | Name ("." Name)+ -- path
@@ -239,8 +240,20 @@ export const __makeSemantics = () => {
       const func = path.reduce((obj, part) => (obj === undefined || obj === null) ? undefined : obj[part], np);
       if (typeof func !== 'function') throw new Error(`Unrecognized function ${name}`);
       const { args, kwArgs } = $callArgs.parse();
-      return Object.keys(kwArgs).length == 0 ? func(...args) : func(...args, kwArgs);
+      const all = Object.keys(kwArgs).length == 0 ? args : [...args, kwArgs];
+      // classes (np.poly1d, np.polynomial.Polynomial, ...) are called like in python, without `new`
+      if (/^class[\s{]/.test(Function.prototype.toString.call(func))) return new (func as any)(...all);
+      return func(...all);
       // return func.bind(kwArgs)(...args); // Old version
+    },
+    Arr_invoke($arr, $callArgs) {
+      // f(x)(y): calling the result (e.g. a poly1d object)
+      const fn = $arr.parse();
+      const { args, kwArgs } = $callArgs.parse();
+      const all = Object.keys(kwArgs).length == 0 ? args : [...args, kwArgs];
+      if (typeof fn === 'function') return fn(...all);
+      if (fn && typeof fn.call === 'function') return fn.call(...all);
+      throw new Error(`object is not callable`);
     },
     Arr_method($arr, _dot, $name, $callArgs) {
       let arr = $arr.parse();
@@ -354,6 +367,12 @@ export const __makeSemantics = () => {
     const symbol = $symbol.sourceString;
     if (symbol == "" && A === null) return B;
     const { op_binary: op } = operators;
+    // objects that implement the operator as a method (np.poly1d, np.polynomial.Polynomial, ...)
+    const methods: { [s: string]: string } = { '+': 'add', '-': 'sub', '*': 'mul', '**': 'pow', '//': 'floordiv', '%': 'mod' };
+    const isObj = (v: any) => v !== null && typeof v === 'object' && !isarray(v) && !Array.isArray(v);
+    const name = methods[symbol];
+    if (name && isObj(A) && typeof A[name] === 'function') return A[name](B);
+    if (name && isObj(B) && typeof B[name] === 'function' && (symbol === '+' || symbol === '*')) return B[name](A);
     return op[symbol](A, B);
   }
 

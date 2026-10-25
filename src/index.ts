@@ -816,6 +816,22 @@ import { TYPE_BY_NAME, canonical_dtype, DType } from './dtypes';
 import * as fmt from './modules/format';
 const unwrap0d = (a: any) => (isarray(a) && a.shape.length == 0) ? a.item() : a;
 const kw = (defaults: [string, any][], impl: (...a: any[]) => any) => kwargs_decorator<any, any, any>({ defaults, implementation: (...args: any[]) => impl(...args.map(unwrap0d)), parsers: [] }) as (...args: any[]) => any;
+/** @category Windows */
+np.hanning = kw([["M", undefined]], math.hanning);
+/** @category Windows */
+np.hamming = kw([["M", undefined]], math.hamming);
+/** @category Windows */
+np.blackman = kw([["M", undefined]], math.blackman);
+/** @category Windows */
+np.bartlett = kw([["M", undefined]], math.bartlett);
+/** @category Windows */
+np.kaiser = kw([["M", undefined], ["beta", undefined]], math.kaiser);
+np.ndarray = NDArray;
+np.True_ = true;
+np.False_ = false;
+np.little_endian = true;
+np.isfortran = (a: any) => false;
+Object.assign(np, { long: 'int64', ulong: 'uint64', object_: 'object' });
 /** @category Types */
 np.dtype = (spec: any) => new dtu.DType_(spec);
 // Scalar type names: np.float32 === 'float32', np.number === 'number', ...
