@@ -40,6 +40,15 @@ for(let point2d of x){
   console.log(point2d.tolist(), point2d.norm(), point2d.max());
   if(np.all(point2d.equal(x.index(5)))) break;
 }
+
+// Feature 5. Most of numpy: all numeric dtypes (int8..uint64, float16..64, complex64/128), linalg, fft,
+// numpy.polynomial, strings/char, npy/npz/text I/O, format_float_*, numpy-exact printing, and seeded random
+// streams that reproduce numpy's (np.random.seed, RandomState, default_rng/PCG64 + SeedSequence).
+np.random.seed(0);
+np.random.rand(3);                                   // [0.5488135, 0.71518937, 0.60276338], like numpy
+np.random.default_rng(0).integers(0, 10, 5);         // [0, 0, 1, 8, 6], like numpy
+np.linalg.eigvals([[0, -1], [1, 0]]);                // complex128, like numpy
+np.fft.fft(np.arange(8));
 ```
 
 # Installation
@@ -55,7 +64,7 @@ Check the [documentation website](https://caph1993.github.io/ndarray-js/) for de
 
 ## Differences with numpy
 
- - Dtypes: `bool`, `int32`, `int64` (stored in a Float64Array, exact up to 2**53), `float32`, `float64` and `object`. There are no complex numbers.
+ - Dtypes: bool, int8-int64, uint8-uint64 (64-bit integers are stored as JS doubles, exact up to 2**53), float16/32/64, complex64/128 and object (plus string arrays). There is no datetime64 (the business-day functions take and return `'YYYY-MM-DD'` strings).
    `sum`, `prod` and `cumsum` of ints/bools are `int64`, like in numpy.
  - JS numbers do not distinguish `2` from `2.0`: `np.array([1, 2])` is `int32`. Inside the template parser, float literals are kept as floats: ``np`np.array([1., 2])` `` is `float64`.
  - 0-d results are returned as plain JS numbers/booleans.

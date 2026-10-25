@@ -378,3 +378,16 @@ export const fftfreq = signature<typeof fftm.fftfreq>()([["n", undefined], ["d",
 export const fftshift = signature<typeof fftm.fftshift>()([["x", undefined], ["axes", null]] as const, [P.asarray('x')]);
 
 export const vander = signature<typeof manip.vander>()([["x", undefined], ["N", null], ["increasing", false]] as const, [P.asarray('x'), boolean('increasing')]);
+
+import * as datetime_mod from "../modules/datetime";
+const wk = [["weekmask", '1111100'], ["holidays", []], ["busdaycal", null], ["out", null]] as const;
+export const is_busday = signature<typeof datetime_mod.is_busday>()(
+  [["dates", undefined], ...wk] as const, []);
+export const busday_offset = signature<typeof datetime_mod.busday_offset>()(
+  [["dates", undefined], ["offsets", undefined], ["roll", 'raise'], ...wk] as const, []);
+export const busday_count = signature<typeof datetime_mod.busday_count>()(
+  [["begindates", undefined], ["enddates", undefined], ...wk] as const, []);
+export const datetime_as_string = signature<typeof datetime_mod.datetime_as_string>()(
+  [["arr", undefined], ["unit", 'auto'], ["timezone", 'naive'], ["casting", 'same_kind']] as const, []);
+export const busdaycalendar = signature<(weekmask?: any, holidays?: any) => datetime_mod.busdaycalendar>()(
+  [["weekmask", '1111100'], ["holidays", []]] as const, []);

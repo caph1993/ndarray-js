@@ -983,6 +983,15 @@ np.shares_memory = misc.shares_memory;
 np.may_share_memory = misc.may_share_memory;
 /** @category Broadcasting */
 np.broadcast_shapes = misc.broadcast_shapes;
+
+import * as datetime from './modules/datetime';
+np.busdaycalendar = sig.busdaycalendar.func((weekmask, holidays) => new datetime.busdaycalendar(weekmask, holidays));
+np.is_busday = sig.is_busday.func(datetime.is_busday);
+np.busday_offset = sig.busday_offset.func(datetime.busday_offset);
+np.busday_count = sig.busday_count.func(datetime.busday_count);
+np.datetime_as_string = sig.datetime_as_string.func(datetime.datetime_as_string);
+np.datetime_data = datetime.datetime_data;
+np.isnat = datetime.isnat;
 /** @category Settings */
 np.getbufsize = misc.getbufsize;
 /** @category Settings */

@@ -1066,6 +1066,40 @@ export class Generator {
   spawn(n: number) { return (this.g as PCG64).seed_seq.spawn(n).map(s => new Generator(new PCG64(s))); }
 }
 
+export class BitGenerator { }
+/** Distributions that Generator shares with RandomState, run on the Generator's own bit stream (ziggurat normal/exponential). */
+function adapter(g: Generator): RandomState {
+  const rs = new RandomState() as any;
+  rs.rd = () => g.bit_generator.nextDouble();
+  rs._gauss = () => (g as any)._normal1();
+  rs._std_exp = () => (g as any)._exp1();
+  rs._std_gamma = (shape: number) => (g as any)._gamma1(shape);
+  return rs;
+}
+for (const name of ['f', 'noncentral_chisquare', 'noncentral_f', 'wald', 'vonmises', 'zipf', 'logseries', 'negative_binomial', 'hypergeometric', 'multivariate_normal']) {
+  if (!(Generator.prototype as any)[name]) (Generator.prototype as any)[name] = function (...a: any[]) { return (adapter(this) as any)[name](...a); };
+}
+(Generator.prototype as any).multivariate_hypergeometric = function (colors: any, nsample: number, size?: any, method: string = 'marginals') {
+  const c = Array.from(arr(colors).flat as any).map(Number), k = c.length, rs = adapter(this) as any;
+  const shape = toShape(size) || [], cnt = prod(shape), out = new_buffer(cnt * k, 'int64');
+  for (let t = 0; t < cnt; t++) {
+    let total = c.reduce((x, y) => x + y, 0), left = nsample;
+    for (let j = 0; j < k - 1; j++) {
+      total -= c[j];
+      const v = left > 0 ? rs.hypergeometric(c[j], total, left) : 0;
+      out[t * k + j] = v; left -= v;
+    }
+    out[t * k + k - 1] = left;
+  }
+  return new NDArray(out, shape.concat([k]), 'int64');
+};
+(RandomState.prototype as any).noncentral_f = function (dfnum: any, dfden: any, nonc: any, size?: any) {
+  return dist(size, [dfnum, dfden, nonc], (n, d, nc) => {
+    const t = this.noncentral_chisquare(n, nc) as number;
+    return (t * d) / (this.chisquare(d) as number * n);
+  });
+};
+(Generator.prototype as any).noncentral_f = (RandomState.prototype as any).noncentral_f;
 export function default_rng(seed?: any): Generator {
   if (seed instanceof Generator) return seed;
   if (seed instanceof PCG64 || seed instanceof MT19937) return new Generator(seed);
@@ -1095,6 +1129,7 @@ export const gamma = (shape: any, scale?: any, size?: any) => _global.gamma(shap
 export const beta = (a: any, b: any, size?: any) => _global.beta(a, b, size);
 export const chisquare = (df: any, size?: any) => _global.chisquare(df, size);
 export const noncentral_chisquare = (df: any, nonc: any, size?: any) => _global.noncentral_chisquare(df, nonc, size);
+export const noncentral_f = (a: any, b: any, c: any, size?: any) => (_global as any).noncentral_f(a, b, c, size);
 export const f = (a: any, b: any, size?: any) => _global.f(a, b, size);
 export const standard_cauchy = (size?: any) => _global.standard_cauchy(size);
 export const standard_t = (df: any, size?: any) => _global.standard_t(df, size);
