@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 22]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # numpy is the oracle of the differential tests in tests/numpy
+      - name: Install numpy
+        run: python -m venv .venv && .venv/bin/pip install numpy
+      # plain `npm ci` fails on peer-dependency conflicts of the doc tools
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Type check
+        run: npx tsc --noEmit -p .
+      - name: Tests
+        run: npx vitest run
+        env:
+          NDARRAYJS_PYTHON: ${{ github.workspace }}/.venv/bin/python
+
+  docs:
+    needs: test
+    runs-on: ubuntu-latest
+    # commits the regenerated docs/ folder, which GitHub Pages serves from main
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps --no-audit --no-fund
+      - name: Build docs
+        run: npm run build-docs
+      - name: Publish docs (main only)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          touch docs/.nojekyll
+          if [ -n "$(git status --porcelain docs)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs
+            git commit -m "Update docs [skip ci]"
+            git push
+          fi
