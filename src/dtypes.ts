@@ -263,14 +263,14 @@ export type DtypeResolver = {
   (dtypes: DType[], out?: DType | HasDType): DType;
 };
 
-function get_out_dtype(out?: DType | HasDType) {
+export function get_out_dtype(out?: DType | HasDType) {
   if (!out) return null;
   if (typeof out === "string") return out;
   if ("dtype" in out) return out.dtype;
   return out as DType;
 }
 
-function check_out(inferred: DType, out: DType | null): DType {
+export function check_out(inferred: DType, out: DType | null): DType {
   if (out && !same_kind_cast(inferred, out))
     throw new Error(`Output array has dtype ${out}, which cannot hold all values of type ${inferred}.`);
   return out || inferred;
@@ -333,10 +333,13 @@ export function float_out(dtypes: DType[], out?: DType | HasDType): DType {
 
 /** Result of the unary math functions (sqrt, exp, sin, ...): small ints give float16/float32 like numpy */
 export function unary_float_out(dtypes: DType[], out?: DType | HasDType): DType {
-  const m = dtype_max(...dtypes);
-  const t = TYPE_BY_NAME[m];
-  let inferred: DType = m;
-  if (t.kind === 'b' || t.kind === 'i' || t.kind === 'u') inferred = (t.kind === 'b' ? float16 : (t.bits <= 8 ? float16 : t.bits <= 16 ? float32 : float64));
+  // numpy picks the loop (e/f/d) both operands can be safely cast to: each integer type has its own float class
+  const cls = (d: DType): DType => {
+    const t = TYPE_BY_NAME[d];
+    if (t.kind === 'b' || t.kind === 'i' || t.kind === 'u') return t.kind === 'b' ? float16 : (t.bits <= 8 ? float16 : t.bits <= 16 ? float32 : float64);
+    return d;
+  };
+  const inferred: DType = dtype_max(...dtypes.map(cls));
   return check_out(inferred, get_out_dtype(out));
 }
 

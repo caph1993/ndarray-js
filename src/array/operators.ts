@@ -2,7 +2,7 @@
 import * as indexes from './indexes';
 import { asarray } from '../NDArray';
 import { empty, shape_shifts, broadcast_strides } from "../NDArray";
-import { bool, bool_out, DType, DtypeResolver, float_out, integer_out, numeric_out, same_out, weak_dtype, dtype_cmp, dtype_is_integer, dtype_is_float, dtype_is_boolean, dtype_max } from '../dtypes';
+import { bool, bool_out, DType, DtypeResolver, float_out, unary_float_out, check_out, get_out_dtype, int8, TYPE_BY_NAME, integer_out, numeric_out, same_out, weak_dtype, dtype_cmp, dtype_is_integer, dtype_is_float, dtype_is_boolean, dtype_max } from '../dtypes';
 import { tolist } from './js-interface';
 
 import { NDArray } from "../NDArray";
@@ -116,7 +116,7 @@ export function finish_output(buffer: any, shape: number[], dtype: DType, out: N
   return new NDArray(buffer, shape, dtype);
 }
 
-function operand_dtypes(A: NDArray, B: NDArray): [DType, DType] {
+export function operand_dtypes(A: NDArray, B: NDArray): [DType, DType] {
   // Two python scalars: python ints are unbounded, use int64
   if (A._weak && B._weak) return [A.dtype === int32 ? int64 : A.dtype, B.dtype === int32 ? int64 : B.dtype];
   if (A._weak && !B._weak) return [weak_dtype(A.dtype, B.dtype), B.dtype];
@@ -163,7 +163,27 @@ export function apply_binary_operation(
 function fix_mod(a: number, b: number) {
   // Python/numpy modulo: the result has the sign of the divisor
   const r = a % b;
-  return (r !== 0 && (r < 0) !== (b < 0)) ? r + b : r;
+  if (r === 0) return b < 0 || Object.is(b, -0) ? -0 : 0; // signed zero, as numpy
+  return (r < 0) !== (b < 0) ? r + b : r;
+}
+/** numpy's npy_divmod: floor division of floats */
+function float_floor_div(a: number, b: number) {
+  if (Number.isInteger(a) && Number.isInteger(b) && Math.abs(a) < 4503599627370496 && b !== 0) return Math.floor(a / b);
+  if (b === 0) return a / b;
+  const m = a % b;
+  let div = (a - m) / b;
+  if (m !== 0) { if ((b < 0) !== (m < 0)) div -= 1; }
+  if (div !== 0) { const f = Math.floor(div); return div - f > 0.5 ? f + 1 : f; }
+  const q = a / b;
+  return q < 0 || Object.is(q, -0) ? -0 : 0;
+}
+/** bool inputs give int8 (as numpy), otherwise the common dtype */
+const intish_out: DtypeResolver = (dtypes, out) => dtype_max(...dtypes) === bool ? check_out(int8, get_out_dtype(out)) : same_out(dtypes, out);
+/** C pow semantics: 1**nan == 1 and (-1)**inf == 1 */
+function c_pow(a: number, b: number) {
+  if (a === 1 || b === 0) return 1;
+  if (a === -1 && (b === Infinity || b === -Infinity)) return 1;
+  return Math.pow(a, b);
 }
 
 export const add = freeze_args_bin_op(same_out, (a, b) => a + b, (a, b) => a.add(b));
@@ -171,12 +191,12 @@ export const subtract = freeze_args_bin_op(numeric_out, (a, b) => a - b, (a, b) 
 export const multiply = freeze_args_bin_op(same_out, (a, b) => a * b, (a, b) => a.mul(b));
 export const divide = freeze_args_bin_op(float_out, (a, b) => a / b, (a, b) => a.div(b));
 export const true_divide = divide;
-export const mod = freeze_args_bin_op(same_out, fix_mod);
+export const mod = freeze_args_bin_op(intish_out, fix_mod);
 export const remainder = mod;
-export const fmod = freeze_args_bin_op(same_out, (a, b) => a % b);
-export const divide_int = freeze_args_bin_op(same_out, (a, b) => Math.floor(a / b));
+export const fmod = freeze_args_bin_op(intish_out, (a, b) => a % b);
+export const divide_int = freeze_args_bin_op(intish_out, float_floor_div);
 export const floor_divide = divide_int;
-const _pow = freeze_args_bin_op(same_out, (a, b) => Math.pow(a, b), (a, b) => a.pow(b));
+const _pow = freeze_args_bin_op(intish_out, c_pow, (a, b) => a.pow(b));
 export const pow: BinaryOperator = function (A, B, out = null) {
   A = asarray(A); B = asarray(B);
   const [dA, dB] = operand_dtypes(A as NDArray, B as NDArray);
@@ -184,14 +204,40 @@ export const pow: BinaryOperator = function (A, B, out = null) {
     const fb = (B as NDArray).flat;
     for (let i = 0; i < fb.length; i++) if (fb[i] < 0) throw new Error("Integers to negative integer powers are not allowed.");
   }
+  const dt = intish_out([dA, dB].map(d => d === bool ? int8 : d), out as any);
+  const t = TYPE_BY_NAME[dt];
+  if ((t.kind === 'i' || t.kind === 'u') && t.bits <= 32 && (dtype_is_integer(dA) || dtype_is_boolean(dA)) && (dtype_is_integer(dB) || dtype_is_boolean(dB))) {
+    // exact modular exponentiation (integers wrap around like in C)
+    const mod32 = (v: number) => t.kind === 'u' ? v >>> 0 : v | 0;
+    const ipow = (a: number, b: number) => {
+      let r = 1, x = a | 0;
+      while (b > 0) { if (b & 1) r = Math.imul(r, x); x = Math.imul(x, x); b = Math.floor(b / 2); }
+      return mod32(r);
+    };
+    return apply_binary_operation(intish_out, ipow, A, B, out);
+  }
   return _pow(A, B, out);
 };
 export const power = pow;
 export const bitwise_or = freeze_args_bin_op(integer_out, (a, b) => a | b);
 export const bitwise_and = freeze_args_bin_op(integer_out, (a, b) => a & b);
 export const bitwise_xor = freeze_args_bin_op(integer_out, (a, b) => a ^ b);
-export const bitwise_shift_left = freeze_args_bin_op(integer_out, (a, b) => a << b);
-export const bitwise_shift_right = freeze_args_bin_op(integer_out, (a, b) => a >> b);
+/** Shifts by the width of the type or more give 0 (or the sign for right shifts of negative numbers), as in numpy */
+function shift_op(left: boolean): BinaryOperator {
+  return function (A, B, out = null) {
+    A = asarray(A); B = asarray(B);
+    const [dA, dB] = operand_dtypes(A as NDArray, B as NDArray);
+    integer_out([dA, dB], out as any); // validates the dtypes
+    const dt = intish_out([dA, dB].map(d => d === bool ? int8 : d), out as any);
+    const t = TYPE_BY_NAME[dt], bits = t.bits, signed = t.kind === 'i';
+    const f = left
+      ? (a: number, b: number) => (b < 0 || b >= bits) ? 0 : (bits > 32 ? a * Math.pow(2, b) : (a << b))
+      : (a: number, b: number) => (b < 0 || b >= bits) ? (signed && a < 0 ? -1 : 0) : (bits > 32 ? Math.floor(a / Math.pow(2, b)) : (signed ? (a >> b) : (a >>> b)));
+    return apply_binary_operation(intish_out, f, A, B, out);
+  };
+}
+export const bitwise_shift_left = shift_op(true);
+export const bitwise_shift_right = shift_op(false);
 export const greater = freeze_args_bin_op(bool_out, (a, b) => a > b, (a, b) => cmp_complex(a, b) > 0 && !a.isNaN && !b.isNaN);
 export const less = freeze_args_bin_op(bool_out, (a, b) => a < b, (a, b) => cmp_complex(a, b) < 0 && !a.isNaN && !b.isNaN);
 export const greater_equal = freeze_args_bin_op(bool_out, (a, b) => a >= b, (a, b) => cmp_complex(a, b) >= 0 && !a.isNaN && !b.isNaN);
@@ -213,35 +259,47 @@ export const fmin = freeze_args_bin_op(same_out, (a, b) => {
 export const logical_or = freeze_args_bin_op(bool_out, (a, b) => truthy(a) || truthy(b), (a, b) => truthy(a) || truthy(b));
 export const logical_and = freeze_args_bin_op(bool_out, (a, b) => truthy(a) && truthy(b), (a, b) => truthy(a) && truthy(b));
 export const logical_xor = freeze_args_bin_op(bool_out, (a, b) => truthy(a) != truthy(b), (a, b) => truthy(a) != truthy(b));
-export const hypot = freeze_args_bin_op(float_out, Math.hypot);
-export const atan2 = freeze_args_bin_op(float_out, Math.atan2);
-export const copysign = freeze_args_bin_op(float_out, (x, y) => {
+export const hypot = freeze_args_bin_op(unary_float_out, Math.hypot);
+export const atan2 = freeze_args_bin_op(unary_float_out, Math.atan2);
+export const copysign = freeze_args_bin_op(unary_float_out, (x, y) => {
   const neg = y < 0 || Object.is(y, -0);
   return neg ? -Math.abs(x) : Math.abs(x);
 });
-export const logaddexp = freeze_args_bin_op(float_out, (x, y) => {
+export const logaddexp = freeze_args_bin_op(unary_float_out, (x, y) => {
   if (x === y && !isFinite(x)) return x;
   const m = Math.max(x, y);
   return m + Math.log1p(Math.exp(-Math.abs(x - y)));
 });
-export const logaddexp2 = freeze_args_bin_op(float_out, (x, y) => {
+export const logaddexp2 = freeze_args_bin_op(unary_float_out, (x, y) => {
   if (x === y && !isFinite(x)) return x;
   const m = Math.max(x, y);
   return m + Math.log2(1 + Math.pow(2, -Math.abs(x - y)));
 });
-export const ldexp = freeze_args_bin_op(float_out, (x, e) => x * Math.pow(2, e));
-export const heaviside = freeze_args_bin_op(float_out, (x1, x2) => Number.isNaN(x1) ? NaN : (x1 > 0 ? 1 : (x1 === 0 ? x2 : 0)));
+const _ldexp = freeze_args_bin_op((dtypes, out) => unary_float_out([dtypes[0]], out), (x, e) => {
+  if (x === 0 || !Number.isFinite(x)) return x;
+  const h = Math.trunc(e / 2);
+  return x * Math.pow(2, h) * Math.pow(2, e - h);
+});
+/** x * 2**e; e must be an integer array (as numpy) */
+export const ldexp: BinaryOperator = function (A, B, out = null) {
+  A = asarray(A); B = asarray(B);
+  const t = TYPE_BY_NAME[(B as NDArray).dtype];
+  if (t.kind !== 'i' && t.kind !== 'u' && t.kind !== 'b') throw new Error("ufunc 'ldexp' not supported for the input types: the exponent must be an integer");
+  return _ldexp(A, B, out);
+};
+export const heaviside = freeze_args_bin_op(unary_float_out, (x1, x2) => Number.isNaN(x1) ? NaN : (x1 > 0 ? 1 : (x1 === 0 ? x2 : 0)));
 const _gcd = (a: number, b: number) => {
   a = Math.abs(a); b = Math.abs(b);
   while (b) { [a, b] = [b, a % b]; }
   return a;
 };
-export const gcd = freeze_args_bin_op(integer_out, _gcd);
-export const lcm = freeze_args_bin_op(integer_out, (a, b) => {
+const no_bool_int = (dtypes: DType[], out?: any) => { if (dtypes.every(d => d === bool)) throw new Error("ufunc did not contain a loop with signature matching types (bool)"); return integer_out(dtypes, out); };
+export const gcd = freeze_args_bin_op(no_bool_int, _gcd);
+export const lcm = freeze_args_bin_op(no_bool_int, (a, b) => {
   if (a === 0 || b === 0) return 0;
   return Math.abs(a / _gcd(a, b) * b);
 });
-export const float_power = freeze_args_bin_op((dtypes, out) => dtype_max(...dtypes) === complex128 ? complex128 : float_out([], out), Math.pow, (a, b) => a.pow(b));
+export const float_power = freeze_args_bin_op((dtypes, out) => dtype_max(...dtypes) === complex128 ? complex128 : float_out([], out), c_pow, (a, b) => a.pow(b));
 
 export const op_binary = {
   "+": add,

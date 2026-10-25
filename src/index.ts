@@ -392,7 +392,7 @@ np.arcsinh = np.asinh;
 np.arccosh = np.acosh;
 np.arctanh = np.atanh;
 np.absolute = np.abs;
-np.fabs = Func_a_out.decorate(elementwise.abs);
+np.fabs = Func_a_out.decorate(elementwise.fabs);
 
 np.amax = np.max;
 np.amin = np.min;

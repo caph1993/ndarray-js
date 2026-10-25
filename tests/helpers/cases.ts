@@ -11,9 +11,10 @@ export type Case = string | [string | (() => any), string];
  *    whatever numpy returns.
  *  - A case can be a pair [ndarray-js code or function, python code] when the syntaxes differ
  *    (e.g. in-place operations, which are statements in python).
- * Options per group: rtol/atol for float comparison, check_dtype (compare dtype kind).
+ * Options per group: rtol/atol for float comparison, check_dtype (compare dtype kind),
+ * auto_errors (every case where numpy raises must also raise in ndarray-js, no "!" prefix needed).
  */
-export function numpy_cases(name: string, cases: Case[], opts: { rtol?: number, atol?: number, check_dtype?: boolean } = {}) {
+export function numpy_cases(name: string, cases: Case[], opts: { rtol?: number, atol?: number, check_dtype?: boolean, auto_errors?: boolean } = {}) {
   const norm = cases.map(c => {
     const [js, py] = Array.isArray(c) ? c : [c, c as string];
     const throws = typeof js === "string" && js.startsWith("!");
@@ -33,6 +34,7 @@ export function numpy_cases(name: string, cases: Case[], opts: { rtol?: number, 
           expect(run).toThrow();
           return;
         }
+        if (!want.ok && opts.auto_errors) { expect(run, `numpy raised (${(want as any).error.slice(0, 80)}) but ndarray-js returned a value`).toThrow(); return; }
         if (!want.ok) throw new Error(`numpy raised: ${want.error} (mark the case with "!" if the error is expected)`);
         expect_same(run(), want.value, opts);
       });
