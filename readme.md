@@ -88,7 +88,7 @@ They are skipped when numpy is not available.
 
 Not provided (yet):
  - `numpy.ma` (masked arrays), datetime64/timedelta64 and structured dtypes (the business-day functions work on `'YYYY-MM-DD'` strings).
- - Philox and SFC64 bit generators; numpy's exact streams for `binomial` (large `n*p`) and `hypergeometric` (the distributions are right, the seeded values differ).
+ - Philox and SFC64 bit generators, `Generator.multivariate_hypergeometric(method='count')`.
  - True O(1) strided reads: views (slices, transposes) share memory with their base like in numpy, but reading a non-contiguous view first gathers its elements (a few times slower than a plain array).
 
 Beyond numpy, `np.group_by(keys, values?, axis?, func?)` splits `values` by the distinct entries of `keys`:

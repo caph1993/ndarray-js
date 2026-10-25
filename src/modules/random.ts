@@ -2,8 +2,8 @@
 /**
  * numpy.random: legacy `RandomState` (Mersenne Twister, bit-exact streams for the common
  * methods) and the new `Generator` on top of `PCG64` + `SeedSequence`.
- * Distributions whose numpy algorithm is not ported (e.g. BTPE binomial) are statistically
- * correct but do not reproduce numpy's stream.
+ * Every distribution (including BTPE binomial and HYP/HRUA hypergeometric) follows numpy's algorithm and
+ * reproduces its seeded streams, except multivariate_normal (SVD signs) and the Generator ziggurat tables (~1e-10).
  */
 import { NDArray } from "../NDArray";
 import { np } from "../np_circular_import";
@@ -399,23 +399,70 @@ export class RandomState {
   _binomial(n: number, p: number): number {
     if (n === 0 || p === 0) return 0;
     if (p === 1) return n;
-    const q = p <= 0.5 ? p : 1 - p;
-    let x = 0;
-    if (n * q <= 30) { // inversion
-      const qn = Math.exp(n * Math.log(1 - q)), g = q / (1 - q), a = (n + 1) * g;
-      for (;;) {
-        x = 0; let px = qn, U = this.rd(), ok = true;
-        while (U > px) {
-          x++;
-          if (x > 110) { ok = false; break; }
-          U -= px; px = ((a / x) - g) * px;
-        }
-        if (ok) break;
-      }
-    } else { // exact but not numpy's BTPE stream
-      for (let i = 0; i < n; i++) if (this.rd() < q) x++;
+    if (p <= 0.5) return p * n <= 30 ? this._binomial_inversion(n, p) : this._binomial_btpe(n, p);
+    const q = 1 - p;
+    return q * n <= 30 ? n - this._binomial_inversion(n, q) : this._binomial_btpe(n, p);
+  }
+  private _binomial_inversion(n: number, p: number): number {
+    const q = 1 - p, qn = Math.exp(n * Math.log(q)), np = n * p;
+    const bound = Math.min(n, np + 10 * Math.sqrt(np * q + 1));
+    let X = 0, px = qn, U = this.rd();
+    while (U > px) {
+      X++;
+      if (X > bound) { X = 0; px = qn; U = this.rd(); }
+      else { U -= px; px = ((n - X + 1) * p * px) / (X * q); }
     }
-    return p <= 0.5 ? x : n - x;
+    return X;
+  }
+  /** BTPE algorithm (Kachitvichyanukul & Schmeiser), as in numpy */
+  private _binomial_btpe(n: number, p: number): number {
+    const r = Math.min(p, 1 - p), q = 1 - r, fm = n * r + r, m = Math.floor(fm);
+    const p1 = Math.floor(2.195 * Math.sqrt(n * r * q) - 4.6 * q) + 0.5;
+    const xm = m + 0.5, xl = xm - p1, xr = xm + p1, c = 0.134 + 20.5 / (15.3 + m);
+    let a = (fm - xl) / (fm - xl * r);
+    const laml = a * (1 + a / 2);
+    a = (xr - fm) / (xr * q);
+    const lamr = a * (1 + a / 2);
+    const p2 = p1 * (1 + 2 * c), p3 = p2 + c / laml, p4 = p3 + c / lamr;
+    const nrq = n * r * q;
+    for (;;) {
+      const u = this.rd() * p4;
+      let v = this.rd(), y: number;
+      if (u <= p1) { y = Math.floor(xm - p1 * v + u); return p > 0.5 ? n - y : y; }
+      if (u <= p2) {
+        const x = xl + (u - p1) / c;
+        v = v * c + 1 - Math.abs(m - x + 0.5) / p1;
+        if (v > 1) continue;
+        y = Math.floor(x);
+      } else if (u <= p3) {
+        y = Math.floor(xl + Math.log(v) / laml);
+        if (y < 0 || v === 0) continue;
+        v = v * (u - p2) * laml;
+      } else {
+        y = Math.floor(xr - Math.log(v) / lamr);
+        if (y > n || v === 0) continue;
+        v = v * (u - p3) * lamr;
+      }
+      const k = Math.abs(y - m);
+      if (!(k > 20 && k < nrq / 2 - 1)) {
+        const s = r / q, aa = s * (n + 1);
+        let F = 1;
+        if (m < y) { for (let i = m + 1; i <= y; i++) F *= (aa / i - s); }
+        else if (m > y) { for (let i = y + 1; i <= m; i++) F /= (aa / i - s); }
+        if (v > F) continue;
+      } else {
+        const rho = (k / nrq) * ((k * (k / 3 + 0.625) + 0.16666666666666666) / nrq + 0.5);
+        const t = -k * k / (2 * nrq), A = Math.log(v);
+        if (A >= t - rho) {
+          if (A > t + rho) continue;
+          const x1 = y + 1, f1 = m + 1, z = n + 1 - m, w = n - y + 1;
+          const x2 = x1 * x1, f2 = f1 * f1, z2 = z * z, w2 = w * w;
+          const corr = (v: number, v2: number) => (13680 - (462 - (132 - (99 - 140 / v2) / v2) / v2) / v2) / v / 166320;
+          if (A > xm * Math.log(f1 / x1) + (n - m + 0.5) * Math.log(z / w) + (y - m) * Math.log(w * r / (x1 * q)) + corr(f1, f2) + corr(z, z2) + corr(x1, x2) + corr(w, w2)) continue;
+        }
+      }
+      return p > 0.5 ? n - y : y;
+    }
   }
   /** unsigned integer in [0, max] by masked rejection (legacy) */
   _interval(max: number): number {
@@ -559,11 +606,64 @@ export class RandomState {
   }
   hypergeometric(ngood: any, nbad: any, nsample: any, size?: any) {
     return dist(size, [ngood, nbad, nsample], (g, b, s) => {
-      // simple urn simulation (exact distribution; not numpy's stream)
-      let good = g, tot = g + b, x = 0;
-      for (let i = 0; i < s; i++) { if (this.rd() * tot < good) { x++; good--; } tot--; }
-      return x;
+      if (s < 0 || g < 0 || b < 0 || s > g + b) throw new Error("ValueError: invalid hypergeometric parameters");
+      if (this.legacy_hyp) return s > 10 ? this._hyp_hrua(g, b, s) : this._hyp_hyp(g, b, s);
+      return (s >= 10 && s <= g + b - 10) ? this._hyp_hrua(g, b, s) : this._hyp_sample(g, b, s);
     }, 'int64');
+  }
+  /** the legacy RandomState uses the older HYP algorithm for small samples */
+  legacy_hyp = true;
+  private _hyp_hyp(good: number, bad: number, sample: number): number {
+    const d1 = bad + good - sample, d2 = Math.min(bad, good);
+    let y = d2, k = sample;
+    while (y > 0) {
+      const u = this.rd();
+      y -= Math.floor(u + y / (d1 + k));
+      k--;
+      if (k === 0) break;
+    }
+    let z = Math.trunc(d2 - y);
+    if (good > bad) z = sample - z;
+    return z;
+  }
+  private _hyp_sample(good: number, bad: number, sample: number): number {
+    const total = good + bad;
+    let computed = sample > Math.floor(total / 2) ? total - sample : sample;
+    let remTotal = total, remGood = good;
+    while (computed > 0 && remGood > 0 && remTotal > remGood) {
+      --remTotal;
+      if (this._interval(remTotal) < remGood) --remGood;
+      --computed;
+    }
+    if (remTotal === remGood) remGood -= computed;
+    return sample > Math.floor(total / 2) ? remGood : good - remGood;
+  }
+  /** ratio of uniforms method (HRUA), as numpy */
+  private _hyp_hrua(good: number, bad: number, sample: number): number {
+    const D1 = 1.7155277699214135, D2 = 0.8989161620588988;
+    const lf = (k: number) => loggam(k + 1);
+    const mingoodbad = Math.min(good, bad), popsize = good + bad, maxgoodbad = Math.max(good, bad);
+    const m = Math.min(sample, popsize - sample);
+    const d4 = mingoodbad / popsize, d5 = 1 - d4, d6 = m * d4 + 0.5;
+    const d7 = Math.sqrt((popsize - m) * sample * d4 * d5 / (popsize - 1) + 0.5);
+    const d8 = D1 * d7 + D2;
+    const d9 = Math.floor((m + 1) * (mingoodbad + 1) / (popsize + 2));
+    const d10 = lf(d9) + lf(mingoodbad - d9) + lf(m - d9) + lf(maxgoodbad - m + d9);
+    const d11 = Math.min(Math.min(m, mingoodbad) + 1, Math.floor(d6 + 16 * d7));
+    let Z: number;
+    for (;;) {
+      const X = this.rd(), Y = this.rd();
+      const W = d6 + d8 * (Y - 0.5) / X;
+      if (W < 0 || W >= d11) continue;
+      Z = Math.floor(W);
+      const T = d10 - (lf(Z) + lf(mingoodbad - Z) + lf(m - Z) + lf(maxgoodbad - m + Z));
+      if (X * (4 - X) - 3 <= T) break;
+      if (X * (X - T) >= 1) continue;
+      if (2 * Math.log(X) <= T) break;
+    }
+    if (good > bad) Z = m - Z;
+    if (m < sample) Z = good - Z;
+    return Z;
   }
   multinomial(n: number, pvals: any, size?: any) {
     const p = Array.from(arr(pvals).flat as any).map(Number), k = p.length;
@@ -908,7 +1008,8 @@ export class Generator {
     }
   }
   beta(a: any, b: any, size?: any) {
-    return dist(size, [a, b], (x, y) => { const Ga = this._gamma1(x), Gb = this._gamma1(y); return Ga / (Ga + Gb); });
+    const rs = adapter(this) as any;
+    return dist(size, [a, b], (x, y) => rs._beta(x, y));
   }
   chisquare(df: any, size?: any) { return dist(size, [df], (d) => 2 * this._gamma1(d / 2)); }
   standard_cauchy(size?: any) { return build(size, () => this._normal1() / this._normal1()); }
@@ -995,8 +1096,10 @@ export class Generator {
     const moved = np.copy(np.moveaxis(a, axis, -1));
     const lanes = moved.size / moved.shape[moved.shape.length - 1], n = moved.shape[moved.shape.length - 1];
     const flat = np.reshape(moved, [lanes, n]);
-    for (let l = 0; l < lanes; l++) { const row = np.copy(np.take(flat, l, 0)); this.shuffle(row); np.copyto(np.take(flat, [l], 0), np.reshape(row, [1, n])); }
-    return np.copy(np.moveaxis(np.reshape(flat, moved.shape), -1, axis));
+    const rows: any[] = [];
+    for (let l = 0; l < lanes; l++) { const row = np.copy(np.reshape(np.take(flat, [l], 0), [n])); this.shuffle(row); rows.push(row); }
+    const shuffled = lanes === 0 ? moved : np.reshape(np.stack(rows, 0), moved.shape);
+    return np.copy(np.moveaxis(shuffled, -1, axis));
   }
   choice(a: any, size?: any, replace: boolean = true, p: any = null, axis: number = 0, shuffle: boolean = true) {
     const np = require_np();
@@ -1074,6 +1177,8 @@ function adapter(g: Generator): RandomState {
   rs._gauss = () => (g as any)._normal1();
   rs._std_exp = () => (g as any)._exp1();
   rs._std_gamma = (shape: number) => (g as any)._gamma1(shape);
+  rs._interval = (m: number) => (g as any)._masked(m);
+  rs.legacy_hyp = false;
   return rs;
 }
 for (const name of ['f', 'noncentral_chisquare', 'noncentral_f', 'wald', 'vonmises', 'zipf', 'logseries', 'negative_binomial', 'hypergeometric', 'multivariate_normal']) {
