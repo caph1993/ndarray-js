@@ -211,7 +211,7 @@ export function __parse_sliceRange(axis_size, { start, stop, step }) {
 }
 
 
-export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[] } | { type: 'new' } | { type: false };
+export type AxisIndexSpec = { type: ':', size: number } | { type: 'number', index: number } | { type: 'range', range: { start: number, step: number, nSteps: number } } | { type: 'array', indices: number[], shape?: number[] } | { type: 'new' } | { type: false };
 
 export class AxisIndex {
   spec: AxisIndexSpec;
@@ -364,6 +364,7 @@ AxisIndex.prototype.parse = function (indexSpec: IndexSpec | undefined, size) {
       }
     }
     spec = { type: "array", indices };
+    if (!dtype_is_boolean(arr.dtype) && arr.shape.length > 1) (spec as any).shape = arr.shape.slice(); // the index keeps its shape in the result
   }
   else if (typeof indexSpec == "string") {
     let { start, stop, step } = AxisIndex.prototype.parse_range_spec(indexSpec);
@@ -435,7 +436,8 @@ AxesIndex.prototype.parse = function (shape: number[], where: Where): AxesIndex 
       axis += span;
     }
     axisIndexes.push(axisIndex);
-    if (axisIndex.spec.type != "number") apparentShape.push(axisIndex.size);
+    if (axisIndex.spec.type == "array" && (axisIndex.spec as any).shape) apparentShape.push(...(axisIndex.spec as any).shape);
+    else if (axisIndex.spec.type != "number") apparentShape.push(axisIndex.size);
     internalShape.push(refSize);
   }
   return new AxesIndex(apparentShape, internalShape, axisIndexes);

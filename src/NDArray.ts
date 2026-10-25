@@ -202,6 +202,48 @@ class NDArray implements HasDType {
   swapaxes: ReturnType<typeof sigs.swapaxes.method>;
   /** @category Transformations */
   repeat: ReturnType<typeof sigs.repeat.method>;
+  /** @category Indexing */
+  take: ReturnType<typeof sigs.take_.method>;
+  /** @category Indexing */
+  compress: ReturnType<typeof sigs.compress.method>;
+  /** @category Indexing */
+  choose: ReturnType<typeof sigs.choose.method>;
+  /** @category Indexing */
+  put: ReturnType<typeof sigs.put.method>;
+  /** @category Linear algebra */
+  trace: ReturnType<typeof sigs.trace.method>;
+  /** @category Linear algebra */
+  dot: ReturnType<typeof sigs.dot.method>;
+  /** @category Transformations */
+  diagonal: ReturnType<typeof sigs.diagonal.method>;
+  /** @category Sorting */
+  argpartition: ReturnType<typeof sigs.partition.method>;
+  /** Partially sorts the array in place (it is a full sort) @category Sorting */
+  partition: (kth: number | number[], axis?: number) => void;
+  /** Changes the shape in place, repeating or dropping data as needed @category Transformations */
+  resize: (...shape: any[]) => void;
+  /** Complex conjugate @category Attributes */
+  conjugate: ReturnType<typeof sigs.a_only.method>;
+  /** A new view of the same data, optionally with another dtype (bytes are reinterpreted, copy for dtype changes) @category Casting */
+  view: (dtype?: DType) => NDArray;
+  /** Swaps the bytes of every element @category Casting */
+  byteswap: (inplace?: boolean) => NDArray;
+  /** Does nothing (arrays always live on the "cpu") @category Casting */
+  to_device: (device: string) => NDArray;
+  setflags: (...args: any[]) => void;
+  /** Number of dimensions @category Attributes @readonly */
+  readonly ndim: number;
+  /** Total bytes consumed by the elements @category Attributes @readonly */
+  readonly nbytes: number;
+  /** Bytes per element @category Attributes @readonly */
+  readonly itemsize: number;
+  /** Strides in bytes of a C-contiguous array @category Attributes @readonly */
+  readonly strides: number[];
+  /** Transpose of the last two axes @category Attributes @readonly */
+  readonly mT: NDArray;
+  readonly flags: { c_contiguous: boolean, f_contiguous: boolean, owndata: boolean, writeable: boolean, aligned: boolean };
+  readonly device: string;
+  readonly base: NDArray | null;
   /** @category Casting */
   tolist: () => any;
   /** Writes the array to a file (binary, or text with `sep`) @category Casting */

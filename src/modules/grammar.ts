@@ -86,7 +86,8 @@ ArrayGrammar {
   KwArgs = NonemptyListOf<KwArg, ",">
   KwArg = Name "=" ArgValue
 
-  ArgValue = Constant | String | ArithmeticLogicExp | JsArray
+  ArgValue = Constant | PyType | String | ArithmeticLogicExp | JsArray
+  PyType = ("int" | "float" | "bool" | "complex" | "str" | "object") ~(alnum | "_")
   Constant = constantWord
   constantWord = (numericConstant | "True" | "False" | "None" | "np.newaxis") ~(alnum | "_")
   numericConstant
@@ -286,6 +287,7 @@ export const __makeSemantics = () => {
       return bound($start) + ':' + bound($stop) + (sep.sourceString.trim() === '' ? '' : ':' + bound($step));
     },
     SliceBound($e) { return $e.parse(); },
+    PyType($t) { return $t.sourceString; }, // python builtin types used as dtypes: astype(int)
     Constant($x) {
       switch ($x.sourceString) {
         case "True": return true;

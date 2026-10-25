@@ -811,7 +811,8 @@ np.polymul = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polym
 np.polydiv = legacy([["u", undefined], ["v", undefined]], polyapi.legacy_polydiv);
 
 import * as dtu from './modules/dtype-utils';
-import { to_bytes } from './modules/binary';
+import { to_bytes, from_bytes } from './modules/binary';
+import { TYPE_BY_NAME, canonical_dtype, DType } from './dtypes';
 import * as fmt from './modules/format';
 const unwrap0d = (a: any) => (isarray(a) && a.shape.length == 0) ? a.item() : a;
 const kw = (defaults: [string, any][], impl: (...a: any[]) => any) => kwargs_decorator<any, any, any>({ defaults, implementation: (...args: any[]) => impl(...args.map(unwrap0d)), parsers: [] }) as (...args: any[]) => any;
@@ -1165,6 +1166,60 @@ NDArray.prototype.flatten = function () { return manip.copy(array.ravel(this)); 
 NDArray.prototype.squeeze = sig.squeeze.method(manip.squeeze);
 NDArray.prototype.swapaxes = sig.swapaxes.method(array.swapAxes);
 NDArray.prototype.repeat = sig.repeat.method(manip.repeat);
+NDArray.prototype.take = sig.take_.method(ix.take);
+NDArray.prototype.compress = function (...args: any[]) {
+  // ndarray.compress(condition, axis=None, out=None): the array is the second parameter of np.compress
+  const names = ['condition', 'axis', 'out'];
+  const kw: any = {};
+  const last = args[args.length - 1];
+  if (last !== null && typeof last === 'object' && !Array.isArray(last) && !isarray(last) && Object.getPrototypeOf(last) === Object.prototype) { Object.assign(kw, last); args = args.slice(0, -1); }
+  args.forEach((v, i) => { kw[names[i]] = v; });
+  return np.compress({ ...kw, a: this });
+} as any;
+NDArray.prototype.choose = sig.choose.method(ix.choose);
+NDArray.prototype.put = sig.put.method(ix.put as any);
+NDArray.prototype.trace = sig.trace.method(la.trace);
+NDArray.prototype.dot = sig.dot.method(la.dot);
+NDArray.prototype.diagonal = sig.diagonal.method(ix.diagonal);
+NDArray.prototype.argpartition = sig.partition.method(array.argpartition);
+NDArray.prototype.conjugate = NDArray.prototype.conj as any;
+NDArray.prototype.partition = function (kth: any, axis: any = -1) {
+  if (kth !== null && typeof kth === 'object' && !Array.isArray(kth)) ({ kth, axis = -1 } = kth);
+  const r = np.partition(this, kth, axis) as NDArray;
+  this.flat = r.flat;
+};
+NDArray.prototype.resize = function (...shape: any[]) {
+  const r = np.resize(this, shape.length === 1 && Array.isArray(shape[0]) ? shape[0] : shape) as NDArray;
+  this._flat = r._flat; this.shape = r.shape; this._simpleIndexes = null;
+};
+NDArray.prototype.view = function (dtype?: DType) {
+  if (dtype === undefined || dtype === this.dtype) return new NDArray(this._flat, this.shape.slice(), this.dtype);
+  const bytes = to_bytes(this);
+  const sz = TYPE_BY_NAME[canonical_dtype(dtype)].bits / 8;
+  if (this.shape.length === 0 || bytes.length % sz !== 0) throw new Error(`When changing to a dtype of different size, the total size of the array must be divisible by the new itemsize`);
+  const flat = from_bytes(bytes, canonical_dtype(dtype) as DType);
+  const shape = this.shape.slice(); shape[shape.length - 1] = shape[shape.length - 1] * (this.itemsize / sz);
+  return new NDArray(flat, shape, canonical_dtype(dtype) as DType);
+};
+NDArray.prototype.byteswap = function (inplace: boolean = false) {
+  const bytes = to_bytes(this), sz = this.itemsize;
+  for (let i = 0; i < bytes.length; i += sz) bytes.subarray(i, i + sz).reverse();
+  const out = new NDArray(from_bytes(bytes, this.dtype), this.shape.slice(), this.dtype);
+  if (inplace) { this.flat = out.flat; return this; }
+  return out;
+};
+NDArray.prototype.to_device = function (_device: string) { return this; };
+NDArray.prototype.setflags = function () { };
+Object.defineProperties(NDArray.prototype, {
+  ndim: { get() { return this.shape.length; } },
+  itemsize: { get() { return TYPE_BY_NAME[this.dtype].kind === 'O' ? 8 : TYPE_BY_NAME[this.dtype].bits / 8; } },
+  nbytes: { get() { return this.size * this.itemsize; } },
+  strides: { get() { const out: number[] = []; let acc = this.itemsize; for (let i = this.shape.length - 1; i >= 0; i--) { out[i] = acc; acc *= this.shape[i]; } return out; } },
+  mT: { get() { if (this.shape.length < 2) throw new Error('matrix transpose with ndim < 2 is undefined'); return np.swapaxes(this, -1, -2); } },
+  flags: { get() { const c = this._simpleIndexes === null; return { c_contiguous: c, f_contiguous: c && this.shape.length <= 1, owndata: c, writeable: true, aligned: true }; } },
+  device: { get() { return 'cpu'; } },
+  base: { get() { return null; } },
+});
 NDArray.prototype.fromlist = fromlist;
 NDArray.prototype.tolist = function () {
   return tolist(this);
