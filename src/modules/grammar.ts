@@ -1,4 +1,5 @@
 //@ts-check
+import { template_mode } from '../kwargs/kwargs';
 import * as ohm from 'ohm-js';
 import { isarray, asarray, NDArray } from '../NDArray';
 import { new_buffer, float64, complex128 } from '../dtypes';
@@ -149,7 +150,8 @@ const FLOAT_LITERAL = /^[+-]?(\d+\.\d*|\.\d+|\d+[eE][+-]?\d+|\d*\.\d+[eE][+-]?\d
 /** 0-d arrays that appear as arguments of calls (e.g. from unary minus) are passed as plain JS values */
 function unwrap_scalar(v: any) {
   // Integer-valued float literals (2.0) stay weak float arrays: they would become int32 otherwise
-  if (isarray(v) && v.shape.length == 0 && !(v._weak && v.dtype === float64 && Number.isInteger(v.item()))) return v.item();
+  // Strong 0-d arrays (numpy scalars: np.sum(x), x[0]) keep their dtype; python-like weak scalars become plain JS values
+  if (isarray(v) && v.shape.length == 0 && v._weak && !((v.dtype === float64) && Number.isInteger(v.item()))) return v.item();
   return v;
 }
 
@@ -220,11 +222,17 @@ export const __makeSemantics = () => {
       if (Array.isArray(arr)) {
         // Plain JS lists/tuples (e.g. the result of np.linalg.svd) can be indexed with a single integer
         if (where.length != 1) throw new Error(`Lists can only be indexed with one index`);
-        const i = unwrap_scalar(where[0]);
+        const w0 = where[0], i = isarray(w0) && w0.shape.length == 0 ? w0.item() : w0;
         if (typeof i !== 'number') throw new Error(`Lists can only be indexed with integers`);
         return arr[i < 0 ? arr.length + i : i];
       }
-      return arr.index(...where);
+      const res = arr.index(...where);
+      // x[0] of an array is a numpy scalar: keep its dtype (and its methods) inside the expression
+      if ((typeof res === 'number' || typeof res === 'boolean') && isarray(arr)) {
+        const out = new NDArray(new_buffer([res as any], arr.dtype), [], arr.dtype);
+        return out;
+      }
+      return res;
     },
     SliceTerm_constant($x) {
       return $x.sourceString;
@@ -426,8 +434,9 @@ export const parse = function (template, ...variables) {
   for (let i = 0; i < pool.length; i++) {
     const parser = pool[i];
     if (parser.busy++ == 0) {
+      template_mode.depth++;
       try { return parser.parse(template, ...variables); }
-      finally { parser.busy = 0; }
+      finally { parser.busy = 0; template_mode.depth--; }
     }
     if (i == pool.length) pool.push(__makeSemantics());
   }

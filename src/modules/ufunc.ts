@@ -6,6 +6,7 @@
 import { NDArray, asarray, isarray } from "../NDArray";
 import { np } from "../np_circular_import";
 import { TYPE_BY_NAME, DType, bool } from "../dtypes";
+import { template_mode } from "../kwargs/kwargs";
 
 const prod = (s: number[]) => s.reduce((a, b) => a * b, 1);
 
@@ -68,7 +69,7 @@ export function make_methods(name: string, op: Op, identity: any) {
     res = rest0.length ? np.reshape(res, rest0) : new NDArray(res.flat as any, [], res.dtype);
     if (keepdims) { const shape = a.shape.map((d, i) => axes.includes(i) ? 1 : d); res = np.reshape(res, shape); }
     if (out !== null && out !== undefined) { np.copyto(out, res); return out; }
-    if (res.shape.length !== 0) return res;
+    if (res.shape.length !== 0 || template_mode.depth > 0) return res;
     return res.dtype === 'bool' ? !!res.item() : res.item();
   }
   function accumulate(array: any, axis: number = 0, dtype: DType | null = null, out: any = null) {

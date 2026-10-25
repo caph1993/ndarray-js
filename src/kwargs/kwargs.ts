@@ -39,6 +39,14 @@ export function is_plain_object(value: any): boolean {
   return proto === Object.prototype || proto === null;
 }
 
+/**
+ * Set while a numpy-syntax template is evaluated: 0-d results stay arrays (like numpy scalars), so that they keep their dtype and have methods:
+ * as JS numbers an integer-valued np.mean(x) == 2.0 would become a python int in the next operation: `np.arange(3) - np.arange(3).mean()` must be float.
+ * The final value of the template is unwrapped.
+ */
+export const template_mode = { depth: 0 };
+const keeps_float = (out: any) => template_mode.depth > 0 && isarray(out) && out.shape.length == 0;
+
 export function kwargs_decorator<
   Wrapper extends (...args: any[]) => T,
   Implementation extends (...args: any[]) => T,
@@ -57,7 +65,7 @@ export function kwargs_decorator<
     if (this_as_first_arg) args = [this, ...args];
     const parsedArgs = kwParser(args);
     const out = implementation(...parsedArgs);
-    if (isarray(out) && out.shape.length == 0) return out.item();
+    if (isarray(out) && out.shape.length == 0) return keeps_float(out) ? out : out.item();
     if (Array.isArray(out) && out.length && out.every(o => isarray(o)) && out.some(o => o.shape.length == 0)) return Object.assign(out.map(o => o.shape.length == 0 ? o.item() : o), out);
     return out;
   }) as Wrapper;
