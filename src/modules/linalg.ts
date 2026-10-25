@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 /**
  * Matrix products and linear algebra (numpy.dot, numpy.matmul, numpy.einsum, numpy.linalg.*).
@@ -44,7 +45,7 @@ function from_scalars(vals: number[], batch: number[], dtype: DType): NDArray {
 /** Splits an array of shape (..., m, n) into a list of matrices */
 function matrices(a: NDArray, name = 'array'): { mats: Mat[], batch: number[], rows: number, cols: number } {
   a = asarray(a);
-  if (a.dtype === complex128) throw new LinAlgError(`complex matrices are not supported by this linear algebra function`);
+  if (is_cx(a.dtype)) throw new LinAlgError(`complex matrices are not supported by this linear algebra function`);
   if (a.shape.length < 2) throw new LinAlgError(`${a.shape.length}-dimensional array given. Array must be at least two-dimensional`);
   const [rows, cols] = a.shape.slice(-2);
   const batch = a.shape.slice(0, -2);
@@ -84,7 +85,7 @@ function matmul_flat(A: any, ao: number, B: any, bo: number, n: number, k: numbe
 }
 
 /** Flat values of an array converted to the dtype of the product (complex values need Complex objects) */
-const operand = (x: NDArray, dtype: DType) => dtype === complex128 ? convert_buffer(x.flat as any, complex128) : x.flat as any;
+const operand = (x: NDArray, dtype: DType) => is_cx(dtype) ? convert_buffer(x.flat as any, complex128) : x.flat as any;
 
 export function matmul(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray {
   a = asarray(a); b = asarray(b);
@@ -99,7 +100,7 @@ export function matmul(a: NDArray, b: NDArray, out: NDArray | null = null): NDAr
   const Ab = operand(broadcast_to(A, [...batch, n, k]), dtype), Bb = operand(broadcast_to(B, [...batch, k, m]), dtype);
   const nb = prod(batch);
   const buffer = new_buffer(nb * n * m, dtype);
-  for (let t = 0; t < nb; t++) matmul_flat(Ab, t * n * k, Bb, t * k * m, n, k, m, buffer, t * n * m, dtype === bool, dtype === complex128);
+  for (let t = 0; t < nb; t++) matmul_flat(Ab, t * n * k, Bb, t * k * m, n, k, m, buffer, t * n * m, dtype === bool, is_cx(dtype));
   fix_buffer(buffer, dtype);
   let shape = [...batch, n, m];
   if (a1) shape = shape.filter((_, i) => i != shape.length - 2);
@@ -117,7 +118,7 @@ export function dot(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray
     const dtype = product_dtype(a, b);
     const [shape] = broadcast_shapes(a.shape, b.shape);
     const buffer = new_buffer(prod(shape), dtype);
-    map_broadcast(shape, [broadcast_strides(shape, a.shape), broadcast_strides(shape, b.shape)], [operand(a, dtype), operand(b, dtype)], dtype === complex128 ? (x: Complex, y: Complex) => x.mul(y) : (x: number, y: number) => x * y, buffer);
+    map_broadcast(shape, [broadcast_strides(shape, a.shape), broadcast_strides(shape, b.shape)], [operand(a, dtype), operand(b, dtype)], is_cx(dtype) ? (x: Complex, y: Complex) => x.mul(y) : (x: number, y: number) => x * y, buffer);
     return finish_output(fix_buffer(buffer, dtype), shape, dtype, out);
   }
   if (a.shape.length <= 2 && b.shape.length <= 2) return matmul(a, b, out);
@@ -137,7 +138,7 @@ export function dot(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray
   const fa = operand(A2, dtype), fb = operand(B2, dtype);
   const buffer = new_buffer(rowsA * rowsB, dtype);
   for (let i = 0; i < rowsA; i++) for (let j = 0; j < rowsB; j++) {
-    if (dtype === complex128) {
+    if (is_cx(dtype)) {
       let re = 0, im = 0;
       for (let t = 0; t < kA; t++) { const x = fa[i * kA + t], y = fb[j * kB + t]; re += x.re * y.re - x.im * y.im; im += x.re * y.im + x.im * y.re; }
       buffer[i * rowsB + j] = new Complex(re, im);
@@ -154,7 +155,7 @@ export function dot(a: NDArray, b: NDArray, out: NDArray | null = null): NDArray
 export function vdot(a: NDArray, b: NDArray): NDArray {
   a = ravel(asarray(a)); b = ravel(asarray(b));
   if (a.size != b.size) throw new Error(`vectors have different lengths`);
-  if (a.dtype === complex128) a = new NDArray(Array.from(a.flat as any, (z: any) => z.conj()) as any, a.shape, complex128);
+  if (is_cx(a.dtype)) a = new NDArray(Array.from(a.flat as any, (z: any) => z.conj()) as any, a.shape, complex128);
   return dot(a, b);
 }
 
@@ -170,7 +171,7 @@ export function outer(a: NDArray, b: NDArray, out: NDArray | null = null): NDArr
   const dtype = product_dtype(x, y);
   const buffer = new_buffer(x.size * y.size, dtype);
   const fx = operand(x, dtype), fy = operand(y, dtype);
-  for (let i = 0; i < x.size; i++) for (let j = 0; j < y.size; j++) buffer[i * y.size + j] = dtype === complex128 ? fx[i].mul(fy[j]) : fx[i] * fy[j];
+  for (let i = 0; i < x.size; i++) for (let j = 0; j < y.size; j++) buffer[i * y.size + j] = is_cx(dtype) ? fx[i].mul(fy[j]) : fx[i] * fy[j];
   return finish_output(fix_buffer(buffer, dtype), [x.size, y.size], dtype, out);
 }
 
@@ -196,7 +197,7 @@ export function vecdot(x1: NDArray, x2: NDArray, axis: number): NDArray {
   const dtype = product_dtype(x1, x2);
   const n = prod(bs.slice(0, -1));
   const buffer = new_buffer(n, dtype);
-  if (dtype === complex128) {
+  if (is_cx(dtype)) {
     const CA = convert_buffer(A, complex128), CB = convert_buffer(B, complex128);
     for (let i = 0; i < n; i++) { let s = ZERO; for (let t = 0; t < k; t++) s = s.add(CA[i * k + t].conj().mul(CB[i * k + t])); buffer[i] = s; }
   } else for (let i = 0; i < n; i++) { let s = 0; for (let t = 0; t < k; t++) s += A[i * k + t] * B[i * k + t]; buffer[i] = s; }
@@ -241,7 +242,7 @@ export function kron(a: NDArray, b: NDArray): NDArray {
       const ib = bs.map((d, ax) => Math.floor(j / sb[ax]) % d);
       let pos = 0;
       for (let ax = 0; ax < nd; ax++) pos += (ia[ax] * bs[ax] + ib[ax]) * so[ax];
-      buffer[pos] = dtype === complex128 ? fa[i].mul(fb[j]) : fa[i] * fb[j];
+      buffer[pos] = is_cx(dtype) ? fa[i].mul(fb[j]) : fa[i] * fb[j];
     }
   }
   return new NDArray(fix_buffer(buffer, dtype), shape, dtype);
@@ -278,7 +279,7 @@ export function trace(a: NDArray, offset: number, axis1: number, axis2: number, 
   const lead = prod(d.shape.slice(0, -1));
   const f = d.flat as any;
   const buffer = new_buffer(lead, dt);
-  if (dt === complex128) for (let l = 0; l < lead; l++) { let s = ZERO; for (let i = 0; i < n; i++) s = s.add(f[l * n + i]); buffer[l] = s; }
+  if (is_cx(dt)) for (let l = 0; l < lead; l++) { let s = ZERO; for (let i = 0; i < n; i++) s = s.add(f[l * n + i]); buffer[l] = s; }
   else for (let l = 0; l < lead; l++) { let s = 0; for (let i = 0; i < n; i++) s += +f[l * n + i]; buffer[l] = s; }
   return finish_output(fix_buffer(buffer, dt), d.shape.slice(0, -1), dt, out);
 }
@@ -340,16 +341,16 @@ export function einsum(subscripts: string, operands: NDArray[], dtype: DType | n
   const idx = new Array(all.length).fill(0);
   const odd = (pos: number[]) => 0;
   for (let o = 0; o < nOut; o++) {
-    let total: any = dt === complex128 ? ZERO : 0;
+    let total: any = is_cx(dt) ? ZERO : 0;
     // iterate over summed labels
     for (let s = 0; s < nSum; s++) {
-      let p: any = dt === complex128 ? ONE : 1;
+      let p: any = is_cx(dt) ? ONE : 1;
       for (let k = 0; k < ops.length; k++) {
         let pos = 0;
         for (let d = 0; d < all.length; d++) pos += idx[d] * strides[k][d];
-        if (dt === complex128) p = p.mul(flats[k][pos]); else p *= +flats[k][pos];
+        if (is_cx(dt)) p = p.mul(flats[k][pos]); else p *= +flats[k][pos];
       }
-      total = dt === complex128 ? total.add(p) : total + p;
+      total = is_cx(dt) ? total.add(p) : total + p;
       for (let d = all.length - 1; d >= nOutAxes; d--) { if (++idx[d] < dims[d]) break; idx[d] = 0; }
     }
     buffer[o] = dt === bool ? (total ? 1 : 0) : total;

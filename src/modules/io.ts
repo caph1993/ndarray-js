@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 /**
  * Reading and writing arrays: .npy / .npz files, text files (loadtxt, savetxt, genfromtxt, fromregex, fromstring),
@@ -377,7 +378,7 @@ export function savetxt(fname: any, X: any, fmt: string | string[] = '%.18e', de
   if (Array.isArray(fmt)) { if (fmt.length !== ncol) throw new Error(`fmt has wrong number of % formats: ${fmt}`); formats = fmt; }
   else if ((fmt.match(/%/g) || []).length - 2 * (fmt.match(/%%/g) || []).length === ncol && ncol > 1 && fmt.includes('%')) { formats = [fmt]; }
   else formats = Array(ncol).fill(fmt);
-  const isComplex = A.dtype === 'complex128' || A.dtype === 'complex64';
+  const isComplex = is_cx(A.dtype) || A.dtype === 'complex64';
   const lines = rows.map((r: any[]) => {
     if (formats.length === 1 && Array.isArray(fmt) === false && formats[0] === fmt && ncol > 1 && (fmt.match(/%/g) || []).length > 1) return py_format_values(fmt, r);
     return r.map((v, j) => {

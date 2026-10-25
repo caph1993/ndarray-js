@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 import { NDArray, asarray, isarray, broadcast_n_shapes, broadcast_strides } from "../NDArray";
 import { DType, bool, int32, float64, object, new_buffer, convert_buffer, fix_buffer, dtype_max, same_out, float_out, sum_out, truthy } from "../dtypes";
@@ -222,7 +223,7 @@ export function iterable(y: any): boolean {
 function emath(domain: (x: number) => boolean, f: (x: number) => number, cf: (z: Complex) => Complex) {
   return (x: any) => {
     const a = asarray(x);
-    if (a.dtype === complex128) return applyFuncToArray(float_out, f, a, null, cf);
+    if (is_cx(a.dtype)) return applyFuncToArray(float_out, f, a, null, cf);
     const flat = a.flat as any;
     let inDomain = true;
     for (let i = 0; i < flat.length; i++) if (!domain(+flat[i]) && !Number.isNaN(+flat[i])) { inDomain = false; break; }
@@ -239,13 +240,13 @@ export const emath_arcsin = emath(x => Math.abs(x) <= 1, Math.asin, z => z.asin(
 export const emath_arctanh = emath(x => Math.abs(x) <= 1, Math.atanh, z => z.atanh());
 export function emath_logn(n: any, x: any) {
   const nn = asarray(n), xx = asarray(x);
-  const bad = Array.from(nn.flat as any).some((v: any) => v < 0) || Array.from(xx.flat as any).some((v: any) => v < 0) || nn.dtype === complex128 || xx.dtype === complex128;
+  const bad = Array.from(nn.flat as any).some((v: any) => v < 0) || Array.from(xx.flat as any).some((v: any) => v < 0) || is_cx(nn.dtype) || is_cx(xx.dtype);
   if (!bad) return n_ary_elementwise(float_out, (v: number, b: number) => Math.log(v) / Math.log(b), [xx, nn]);
   return n_ary_elementwise(() => complex128, (v: any, b: any) => Complex.from(v).log().div(Complex.from(b).log()), [xx, nn]);
 }
 export function emath_power(x: any, p: any) {
   const xx = asarray(x), pp = asarray(p);
-  const bad = xx.dtype === complex128 || pp.dtype === complex128 || Array.from(xx.flat as any).some((v: any) => v < 0);
+  const bad = is_cx(xx.dtype) || is_cx(pp.dtype) || Array.from(xx.flat as any).some((v: any) => v < 0);
   if (!bad) return n_ary_elementwise(float_out, (v: number, e: number) => Math.pow(v, e), [xx, pp]);
   return n_ary_elementwise(() => complex128, (v: any, e: any) => Complex.from(v).pow(Complex.from(e)), [xx, pp]);
 }

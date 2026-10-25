@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 import { asarray, NDArray } from '../NDArray';
 import { bool, bool_out, DType, DtypeResolver, float_out, int32, new_buffer, same_out, sum_out, argmax_out, HasDType, truthy, convert_buffer } from '../dtypes';
@@ -187,7 +188,7 @@ function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) =>
   return (arr, axis, keepdims, dtype = null, out = null) => {
     arr = asarray(arr);
     let fn = lane_fn;
-    if (arr.dtype === complex128) {
+    if (is_cx(arr.dtype)) {
       if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
       fn = clane_fn;
     }
@@ -203,7 +204,7 @@ function mk_reducer(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any, 
   return (arr, axis, keepdims, out = null) => {
     arr = asarray(arr);
     let fn = lane_fn;
-    if (arr.dtype === complex128) {
+    if (is_cx(arr.dtype)) {
       if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
       fn = clane_fn;
     }
@@ -240,7 +241,7 @@ export const count_nonzero = mk_reducer(argmax_out, lane_count_nonzero, lane_cou
 export const ptp = (arr: NDArray, axis: AxisArg, keepdims: boolean, out: NDArray | null = null): NDArray => {
   arr = asarray(arr);
   if (arr.dtype === bool) throw new TypeError("numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.");
-  if (arr.dtype === complex128) return reduce_lanes(arr, axis, keepdims, complex128, (lane: any) => clane_max(lane).sub(clane_min(lane)), out);
+  if (is_cx(arr.dtype)) return reduce_lanes(arr, axis, keepdims, complex128, (lane: any) => clane_max(lane).sub(clane_min(lane)), out);
   return reduce_lanes(arr, axis, keepdims, same_out([arr.dtype], out), (lane) => lane_max(lane) - lane_min(lane), out);
 };
 
@@ -257,17 +258,17 @@ export const norm = (arr: NDArray, ord: number, axis: AxisArg, keepdims: boolean
 
 export const variance = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => clane_var(lane, ddof) : (lane) => lane_var(lane, ddof), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), is_cx(arr.dtype) ? (lane) => clane_var(lane, ddof) : (lane) => lane_var(lane, ddof), out);
 }
 export const std = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => Math.sqrt(clane_var(lane, ddof)) : (lane) => Math.sqrt(lane_var(lane, ddof)), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), is_cx(arr.dtype) ? (lane) => Math.sqrt(clane_var(lane, ddof)) : (lane) => Math.sqrt(lane_var(lane, ddof)), out);
 }
 export const nanvar = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => clane_var(lane, ddof, true) : (lane) => lane_var(lane, ddof, true), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), is_cx(arr.dtype) ? (lane) => clane_var(lane, ddof, true) : (lane) => lane_var(lane, ddof, true), out);
 }
 export const nanstd = (arr: NDArray, axis: AxisArg, ddof: number, keepdims: boolean, dtype: DType | null = null, out: NDArray | null = null) => {
   arr = asarray(arr);
-  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), arr.dtype === complex128 ? (lane) => Math.sqrt(clane_var(lane, ddof, true)) : (lane) => Math.sqrt(lane_var(lane, ddof, true)), out);
+  return reduce_lanes(arr, axis, keepdims, realpart_out([dtype || arr.dtype], out || dtype), is_cx(arr.dtype) ? (lane) => Math.sqrt(clane_var(lane, ddof, true)) : (lane) => Math.sqrt(lane_var(lane, ddof, true)), out);
 }

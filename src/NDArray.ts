@@ -1,3 +1,4 @@
+import { is_cx } from './dtypes';
 //@ts-check
 
 import { DType, HasDType, bool, infer_dtype, new_buffer, object, Buffer } from './dtypes';
@@ -225,10 +226,10 @@ class NDArray implements HasDType {
   _simpleIndexes: import("./array/indexes").AxesIndex | null;
 
   /** Real part (the array itself for real arrays) @category Attributes @readonly */
-  get real(): NDArray { return this.dtype === 'complex128' ? new NDArray(Array.from(this.flat as any, (z: any) => z.re) as any, this.shape, 'float64') : this; }
+  get real(): NDArray { return is_cx(this.dtype) ? new NDArray(Array.from(this.flat as any, (z: any) => z.re) as any, this.shape, this.dtype === 'complex64' ? 'float32' : 'float64') : this; }
   /** Imaginary part (zeros for real arrays) @category Attributes @readonly */
   get imag(): NDArray {
-    if (this.dtype === 'complex128') return new NDArray(Array.from(this.flat as any, (z: any) => z.im) as any, this.shape, 'float64');
+    if (is_cx(this.dtype)) return new NDArray(Array.from(this.flat as any, (z: any) => z.im) as any, this.shape, this.dtype === 'complex64' ? 'float32' : 'float64');
     return new NDArray(new_buffer(this.size, this.dtype), this.shape, this.dtype);
   }
 

@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 /**
  * numpy dtype utilities: np.dtype, can_cast, promote_types, result_type, finfo, iinfo, issubdtype, ...
@@ -90,7 +91,7 @@ export function result_type(...args: any[]): DType_ {
     if (typeof a === "boolean") weak.push('b');
     else if (typeof a === "number") weak.push(Number.isInteger(a) ? 'i' : 'f');
     else if (a instanceof Complex) weak.push('c');
-    else if (isarray(a) && a._weak) weak.push(a.dtype === 'complex128' ? 'c' : (a.dtype === 'float64' ? 'f' : (a.dtype === 'bool' ? 'b' : 'i')));
+    else if (isarray(a) && a._weak) weak.push(is_cx(a.dtype) ? 'c' : (a.dtype === 'float64' ? 'f' : (a.dtype === 'bool' ? 'b' : 'i')));
     else {
       const t = lookup_type(a);
       strong = strong === null ? t : promote_info(strong, t);

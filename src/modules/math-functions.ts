@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 import { NDArray, asarray, isarray, broadcast_shapes } from "../NDArray";
 import {
@@ -28,10 +29,10 @@ function accumulate(
   if (axis == null) { a = ravel(a); axis = 0; }
   if (a.shape.length == 0) a = reshape(a, [1]);
   if (a.size === 0 && !include_initial) {
-    const dt0 = a.dtype === complex128 ? complex128 : resolver([dtype || a.dtype], out || dtype);
+    const dt0 = is_cx(a.dtype) ? complex128 : resolver([dtype || a.dtype], out || dtype);
     return store(new NDArray(new_buffer(0, dt0), a.shape.slice(), dt0), out);
   }
-  if (a.dtype === complex128) {
+  if (is_cx(a.dtype)) {
     if (init !== 0 && init !== 1) throw new Error(`this cumulative operation is not supported for complex numbers`);
     const cstep = init === 0 ? (x: Complex, y: Complex) => x.add(y) : (x: Complex, y: Complex) => x.mul(y);
     const res = apply_along_axis(() => complex128, (lane) => {

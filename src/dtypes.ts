@@ -358,3 +358,6 @@ export function argmax_out(dtypes: DType[], out?: DType | HasDType): DType {
   }
   return o || inferred;
 }
+
+/** true for complex64 and complex128 */
+export function is_cx(d: DType | string | undefined): boolean { return d === 'complex128' || d === 'complex64'; }

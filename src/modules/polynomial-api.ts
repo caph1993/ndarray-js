@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 /**
  * Public API of numpy.polynomial (functions with the numpy names and keyword arguments, and the series classes)
@@ -15,7 +16,7 @@ const range = (n: number) => Array.from({ length: n }, (_, i) => i);
 const nums = (v: any): number[] => Array.from(asarray(v).flat as any, (x: any) => +x);
 const asC = (c: any): number[] => {
   const a = asarray(c);
-  if (a.dtype === complex128) throw new PolyError("complex coefficients are not supported");
+  if (is_cx(a.dtype)) throw new PolyError("complex coefficients are not supported");
   return nums(a);
 };
 const coefs = (c: any): number[] => as_series([c], false)[0];
@@ -144,7 +145,7 @@ export function make_class(B: Basis, F: { [name: string]: any }) {
       }
       const [off, scl] = this.mapparms();
       const X = asarray(x);
-      const mapped = X.dtype === complex128
+      const mapped = is_cx(X.dtype)
         ? new NDArray((X.flat as any).map((z: Complex) => new Complex(off + scl * z.re, scl * z.im)), X.shape, complex128)
         : P.mapdomain(X, nums(this.domain), nums(this.window));
       return P.val(B, mapped, this.c());
@@ -187,7 +188,7 @@ export function make_class(B: Basis, F: { [name: string]: any }) {
     roots(): NDArray {
       const r = P.roots(B, this.c());
       const [off, scl] = P.mapparms(nums(this.window), nums(this.domain));
-      if (r.dtype === complex128) return new NDArray((r.flat as any).map((z: Complex) => new Complex(off + scl * z.re, scl * z.im)), r.shape, complex128);
+      if (is_cx(r.dtype)) return new NDArray((r.flat as any).map((z: Complex) => new Complex(off + scl * z.re, scl * z.im)), r.shape, complex128);
       return arr(nums(r).map(v => off + scl * v));
     }
     linspace(n: number = 100, domain: any = null): NDArray[] {
@@ -312,12 +313,12 @@ export class poly1d {
     if (c.shape.length === 0) c = arr([+c.item()]);
     if (c.shape.length > 1) throw new Error("Polynomial must be 1d only.");
     if (r) c = legacy_poly(c);
-    const v = c.dtype === complex128 ? Array.from(c.flat as any) as Complex[] : nums(c);
+    const v = is_cx(c.dtype) ? Array.from(c.flat as any) as Complex[] : nums(c);
     // strip leading zeros
     let k = 0;
     while (k < v.length - 1 && (v[k] instanceof Complex ? (v[k] as Complex).isZero() : v[k] === 0)) k++;
     const trimmed = v.slice(k);
-    this.coeffs = c.dtype === complex128 ? new NDArray(trimmed as Complex[], [trimmed.length], complex128) : arr(trimmed as number[]);
+    this.coeffs = is_cx(c.dtype) ? new NDArray(trimmed as Complex[], [trimmed.length], complex128) : arr(trimmed as number[]);
     if (this.coeffs.size === 0) this.coeffs = arr([0]);
   }
   get order() { return this.coeffs.size - 1; }
@@ -361,11 +362,11 @@ export class poly1d {
   }
 }
 function la_neg(c: NDArray): NDArray {
-  return c.dtype === complex128 ? new NDArray((c.flat as any).map((z: Complex) => z.neg()), c.shape, complex128) : arr(nums(c).map(v => -v));
+  return is_cx(c.dtype) ? new NDArray((c.flat as any).map((z: Complex) => z.neg()), c.shape, complex128) : arr(nums(c).map(v => -v));
 }
 
 function cx(c: any): Complex[] { return Array.from(asarray(c).flat as any, (v: any) => Complex.from(v)); }
-const isC = (c: any) => asarray(c).dtype === complex128;
+const isC = (c: any) => is_cx(asarray(c).dtype);
 function mkArr(vals: (number | Complex)[], complexOut: boolean, intOut = false): NDArray {
   return complexOut ? new NDArray(vals.map(v => Complex.from(v)), [vals.length], complex128) : arr(vals as number[], intOut ? 'int64' : float64);
 }
@@ -374,7 +375,7 @@ const is_int_input = (...xs: any[]) => xs.every(x => { const d = asarray(x insta
 export function legacy_polyval(p: any, x: any): NDArray {
   const P_ = asarray(p instanceof poly1d ? p.coeffs : p);
   const X = asarray(x instanceof poly1d ? x.coeffs : x);
-  if (P_.dtype === complex128 || X.dtype === complex128) {
+  if (is_cx(P_.dtype) || is_cx(X.dtype)) {
     const pc = cx(P_);
     return new NDArray((X.flat as any ? Array.from(X.flat as any, (v: any) => Complex.from(v)) : []).map((z: Complex) => pc.reduce((acc, c) => acc.mul(z).add(c), new Complex(0, 0))), X.shape, complex128);
   }
@@ -433,7 +434,7 @@ export function legacy_roots(p: any): NDArray {
 
 const pc_nums = (p: any): { v: (number | Complex)[], complex: boolean } => {
   const a = asarray(p instanceof poly1d ? p.coeffs : p);
-  return a.dtype === complex128 ? { v: cx(a), complex: true } : { v: nums(a), complex: false };
+  return is_cx(a.dtype) ? { v: cx(a), complex: true } : { v: nums(a), complex: false };
 };
 
 export function legacy_polyadd(a1: any, a2: any): NDArray {

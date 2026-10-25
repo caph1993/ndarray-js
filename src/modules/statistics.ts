@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 import { NDArray, asarray, isarray, broadcast_shapes } from "../NDArray";
 import { AxisArg, reduce_lanes, normalize_axes, lane_sum, lane_max, lane_min, clane_mean } from "../array/reduce";
@@ -120,11 +121,11 @@ function complex_median(a: NDArray, axis: AxisArg, keepdims: boolean, out: NDArr
   }, out);
 }
 export function median(a: NDArray, axis: AxisArg, keepdims: boolean = false, out: NDArray | null = null) {
-  if (asarray(a).dtype === complex128) return complex_median(asarray(a), axis, keepdims, out, false);
+  if (is_cx(asarray(a).dtype)) return complex_median(asarray(a), axis, keepdims, out, false);
   return quantile(a, 0.5, axis, keepdims, 'linear', out, false);
 }
 export function nanmedian(a: NDArray, axis: AxisArg, keepdims: boolean = false, out: NDArray | null = null) {
-  if (asarray(a).dtype === complex128) return complex_median(asarray(a), axis, keepdims, out, true);
+  if (is_cx(asarray(a).dtype)) return complex_median(asarray(a), axis, keepdims, out, true);
   return quantile(a, 0.5, axis, keepdims, 'linear', out, true);
 }
 
@@ -135,7 +136,7 @@ export function nanmedian(a: NDArray, axis: AxisArg, keepdims: boolean = false, 
 export function average(a: NDArray, axis: AxisArg, weights: NDArray | null, returned: boolean, keepdims: boolean): NDArray | NDArray[] {
   a = asarray(a);
   const dtype = float_out([a.dtype]);
-  if (weights === null && a.dtype === complex128) {
+  if (weights === null && is_cx(a.dtype)) {
     const avg = reduce_lanes(a, axis, keepdims, complex128, (lane: any) => clane_mean(lane));
     return returned ? [avg, reduce_lanes(a, axis, keepdims, float64, (lane: any) => lane.length)] : avg;
   }

@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 /**
  * numpy.polynomial: power series and the orthogonal-polynomial bases (Chebyshev, Hermite, HermiteE, Laguerre, Legendre).
@@ -24,7 +25,7 @@ export class PolyError extends Error {
 
 const as_numbers = (c: any): number[] => {
   const a = asarray(c);
-  if (a.dtype === complex128) throw new PolyError("complex coefficients are not supported");
+  if (is_cx(a.dtype)) throw new PolyError("complex coefficients are not supported");
   return Array.from(a.flat as any, (v: any) => +v);
 };
 export const arr = (v: number[], dtype: DType = float64) => new NDArray(new_buffer(v, dtype), [v.length], dtype);
@@ -49,7 +50,7 @@ export function as_series(alist: any[], trim: boolean = true): number[][] {
     const x = asarray(a);
     if (x.shape.length > 1) throw new PolyError("Coefficient array is not 1-d");
     if (x.size === 0) throw new PolyError("Coefficient array is empty");
-    if (x.dtype === complex128) throw new PolyError("complex coefficients are not supported");
+    if (is_cx(x.dtype)) throw new PolyError("complex coefficients are not supported");
     return Array.from(reshape(x, [x.size]).flat as any, (v: any) => +v) as number[];
   });
   return trim ? arrays.map(trimseq) : arrays;
@@ -209,7 +210,7 @@ function clenshawC(B: Basis, c: number[], x: Complex): Complex {
 /** x: numbers or complex numbers. Returns an array with the shape of x (tensor=true: shape c.shape[1:] + x.shape for 1-D c) */
 export function val(B: Basis, x: any, c: number[]): NDArray {
   const X = asarray(x);
-  if (X.dtype === complex128) return new NDArray((X.flat as any).map((z: Complex) => clenshawC(B, c, z)), X.shape, complex128);
+  if (is_cx(X.dtype)) return new NDArray((X.flat as any).map((z: Complex) => clenshawC(B, c, z)), X.shape, complex128);
   return new NDArray(new_buffer(Array.from(X.flat as any, (v: any) => clenshaw(B, c, +v)), float64), X.shape, float64);
 }
 
@@ -383,7 +384,7 @@ export function roots(B: Basis, c: number[]): NDArray {
 export function fit(B: Basis, x: any, y: any, deg: number | number[], rcond: number | null, full: boolean, w: any): NDArray | any[] {
   const X = Array.from(asarray(x).flat as any, (v: any) => +v) as number[];
   let Y = asarray(y);
-  if (Y.dtype === complex128) throw new PolyError("complex data is not supported");
+  if (is_cx(Y.dtype)) throw new PolyError("complex data is not supported");
   const degs = Array.isArray(deg) ? deg.slice().sort((p, q) => p - q) : null;
   if (degs === null && (!Number.isInteger(deg) || (deg as number) < 0)) throw new PolyError("expected deg >= 0");
   if (X.length === 0) throw new PolyError("expected non-empty vector for x");

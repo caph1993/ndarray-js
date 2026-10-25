@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 /** numpy.fft: discrete Fourier transforms (radix-2 FFT, Bluestein's algorithm for other lengths) */
 import { NDArray, asarray } from "../NDArray";
@@ -110,7 +111,7 @@ export const ifft = (a: NDArray, n: number | null, axis: number, norm: Norm) => 
 
 export function rfft(a: NDArray, n: number | null, axis: number, norm: Norm): NDArray {
   a = asarray(a);
-  if (a.dtype === complex128) throw new Error(`rfft requires real input`);
+  if (is_cx(a.dtype)) throw new Error(`rfft requires real input`);
   check_norm(norm);
   return along(a, axis, n, (lane, len) => {
     const [re, im] = lane_parts(lane, len);

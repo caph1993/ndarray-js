@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 import * as indexes from './indexes';
 import { asarray } from '../NDArray';
@@ -116,6 +117,17 @@ export function finish_output(buffer: any, shape: number[], dtype: DType, out: N
   return new NDArray(buffer, shape, dtype);
 }
 
+/** A python int combined with a smaller integer array must fit in it (numpy 2: OverflowError) */
+function check_weak_int(w: NDArray, other: NDArray) {
+  if (!w._weak || other._weak) return;
+  const tw = TYPE_BY_NAME[w.dtype], to = TYPE_BY_NAME[other.dtype];
+  if (tw.kind !== 'i' || (to.kind !== 'i' && to.kind !== 'u')) return;
+  if (to.bits >= 64 && to.kind !== 'u') return;
+  const lo = to.kind === 'u' ? 0 : -Math.pow(2, to.bits - 1), hi = to.bits >= 64 ? Infinity : to.kind === 'u' ? Math.pow(2, to.bits) - 1 : Math.pow(2, to.bits - 1) - 1;
+  const f = w.flat as any;
+  for (let i = 0; i < f.length; i++) if (f[i] < lo || f[i] > hi) throw new Error(`OverflowError: Python integer ${f[i]} out of bounds for ${other.dtype}`);
+}
+
 export function operand_dtypes(A: NDArray, B: NDArray): [DType, DType] {
   // Two python scalars: python ints are unbounded, use int64
   if (A._weak && B._weak) return [A.dtype === int32 ? int64 : A.dtype, B.dtype === int32 ? int64 : B.dtype];
@@ -142,9 +154,10 @@ export function apply_binary_operation(
   B = asarray(B);
   const [shape, shapeA, shapeB] = broadcast_shapes(A.shape, B.shape);
   const dtype = dtype_resolver(operand_dtypes(A, B), out);
+  if (dtype_resolver !== bool_out) { check_weak_int(A, B); check_weak_int(B, A); } // comparisons accept any python int
   const buffer = new_buffer(prod(shape), dtype);
   let flatA = A.flat, flatB = B.flat;
-  if (A.dtype === complex128 || B.dtype === complex128) {
+  if (is_cx(A.dtype) || is_cx(B.dtype)) {
     if (!cfunc) throw new Error(`ufunc not supported for the input types: complex numbers are not supported by this function`);
     func = cfunc;
     flatA = convert_buffer(flatA, complex128); flatB = convert_buffer(flatB, complex128);
@@ -299,7 +312,7 @@ export const lcm = freeze_args_bin_op(no_bool_int, (a, b) => {
   if (a === 0 || b === 0) return 0;
   return Math.abs(a / _gcd(a, b) * b);
 });
-export const float_power = freeze_args_bin_op((dtypes, out) => dtype_max(...dtypes) === complex128 ? complex128 : float_out([], out), c_pow, (a, b) => a.pow(b));
+export const float_power = freeze_args_bin_op((dtypes, out) => is_cx(dtype_max(...dtypes)) ? complex128 : float_out([], out), c_pow, (a, b) => a.pow(b));
 
 export const op_binary = {
   "+": add,

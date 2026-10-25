@@ -1,3 +1,4 @@
+import { is_cx } from '../dtypes';
 //@ts-check
 
 import { isarray } from '../NDArray';
@@ -31,10 +32,10 @@ export function applyFuncToArray(
   A = asarray(A);
   const dtype = get_dtype([A.dtype], out);
   let flat = A.flat as any;
-  if (A.dtype === complex128) {
+  if (is_cx(A.dtype)) {
     if (!cfunc) throw new Error(`ufunc not supported for the input types (complex128)`);
     func = cfunc;
-  } else if (dtype === complex128 && cfunc) {
+  } else if (is_cx(dtype) && cfunc) {
     // real input, complex result (e.g. functions defined on the complex plane only)
     flat = convert_buffer(flat, complex128);
     func = cfunc;
@@ -55,7 +56,7 @@ function applyFuncToArray_freeze(get_dtype: DtypeResolver, func, cfunc?: (z: Com
 /** Result dtype of real, imag, abs...: the real counterpart of complex input, the same dtype otherwise */
 function real_out(dtypes: DType[], out?: DType | any): DType {
   const m = dtype_max(...dtypes);
-  return m === complex128 ? realpart_out(dtypes, out) : same_out(dtypes, out);
+  return is_cx(m) ? realpart_out(dtypes, out) : same_out(dtypes, out);
 }
 
 /** Round half to even (like numpy.rint) */
@@ -120,7 +121,7 @@ export const reciprocal: ElementwiseOp = function (A: NDArray, out: NDArray | DT
   return _reciprocal(A, out);
 } as ElementwiseOp;
 export const positive = applyFuncToArray_freeze(numeric_out, (x) => +x, (z)=>z);
-function angle_out(dtypes: DType[], out?: DType | any): DType { return dtype_max(...dtypes) === complex128 ? realpart_out(dtypes, out) : unary_float_out(dtypes, out); }
+function angle_out(dtypes: DType[], out?: DType | any): DType { return is_cx(dtype_max(...dtypes)) ? realpart_out(dtypes, out) : unary_float_out(dtypes, out); }
 const angle_ = applyFuncToArray_freeze(angle_out, (x) => Number.isNaN(x) ? NaN : (x < 0 ? Math.PI : 0), (z) => z.arg);
 /** Angle of the complex argument (in radians, or degrees if deg is true) */
 export const angle = (A: NDArray, deg: boolean = false) => {
@@ -134,7 +135,7 @@ export const conjugate = conj;
 export const cbrt = applyFuncToArray_freeze(unary_float_out, Math.cbrt);
 export function real_if_close(a: NDArray, tol: number = 100): NDArray {
   a = asarray(a);
-  if (a.dtype !== complex128) return a;
+  if (!is_cx(a.dtype)) return a;
   const eps = 2.220446049250313e-16;
   const t = tol > 1 ? tol * eps : tol;
   const f = a.flat as any;
@@ -239,7 +240,7 @@ export function nextafter_scalar(x: number, y: number, dtype: DType): number {
 
 export function round(arr: NDArray, decimals: number = 0, out: NDArray | DType = null) {
   arr = asarray(arr);
-  if (arr.dtype === complex128) {
+  if (is_cx(arr.dtype)) {
     const f = Math.pow(10, Math.abs(decimals));
     const r = (x: number) => decimals >= 0 ? rint_scalar(x * f) / f : rint_scalar(x / f) * f;
     return applyFuncToArray(same_out, (x) => x, arr, out, (z) => new Complex(r(z.re), r(z.im)));
@@ -321,6 +322,6 @@ export function nextafter(A: NDArray, B: NDArray, out: NDArray | DType = null): 
 /** |x| as float (numpy.fabs): integers give floats, complex is not supported */
 export const fabs: ElementwiseOp = function (A: NDArray, out: NDArray | DType = null) {
   A = asarray(A);
-  if (A.dtype === complex128 || A.dtype === 'complex64') throw new Error("ufunc 'fabs' not supported for the input types");
+  if (is_cx(A.dtype)) throw new Error("ufunc 'fabs' not supported for the input types");
   return applyFuncToArray(unary_float_out, Math.abs, A, out);
 } as ElementwiseOp;

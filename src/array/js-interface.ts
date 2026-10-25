@@ -1,5 +1,5 @@
 //@ts-check
-import { bool, DType, float64, int32, int64, complex128, new_buffer, object, convert_buffer } from '../dtypes';
+import { bool, DType, float64, int32, int64, complex128, new_buffer, object, convert_buffer, TYPE_BY_NAME } from '../dtypes';
 import { Complex } from '../complex';
 import { asarray, isarray, NDArray, Shape, parse_shape } from "../NDArray";
 
@@ -124,6 +124,20 @@ export function tolist(arr) {
 }
 
 
+/** numpy refuses to build an integer array from python ints that do not fit (OverflowError) */
+export function check_int_bounds(src: NDArray, dtype: DType) {
+  const t = TYPE_BY_NAME[dtype];
+  if (!t || (t.kind !== 'i' && t.kind !== 'u') || (t.bits >= 64 && t.kind !== 'u')) return;
+  const k = TYPE_BY_NAME[src.dtype];
+  if (!k || (k.kind !== 'i' && k.kind !== 'u' && k.kind !== 'f' && k.kind !== 'b')) return;
+  const lo = t.kind === 'u' ? 0 : -Math.pow(2, t.bits - 1), hi = t.bits >= 64 ? Infinity : t.kind === 'u' ? Math.pow(2, t.bits) - 1 : Math.pow(2, t.bits - 1) - 1;
+  const f = src.flat as any;
+  for (let i = 0; i < f.length; i++) {
+    const v = Math.trunc(f[i]);
+    if (Number.isFinite(v) && (v < lo || v > hi)) throw new Error(`OverflowError: Python integer ${v} out of bounds for ${dtype}`);
+  }
+}
+
 export function array(A: NDArray | any, dtype: DType = null, copy: boolean = true, ndmin: number = 0): NDArray {
   let out: NDArray;
   if (isarray(A)) {
@@ -133,6 +147,7 @@ export function array(A: NDArray | any, dtype: DType = null, copy: boolean = tru
       ? new NDArray(convert_buffer(A.flat, target), A.shape, target)
       : A;
   } else {
+    if (dtype && !ArrayBuffer.isView(A)) check_int_bounds(asarray(A), dtype);
     out = asarray(A, dtype);
     if (out._weak) out = new NDArray(out._flat, [], out.dtype); // np.array(5) is a regular (strong) 0-d array
   }

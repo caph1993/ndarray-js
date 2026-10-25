@@ -360,7 +360,7 @@ export const __makeSemantics = () => {
     const symbol = $symbol.sourceString;
     if (symbol == "") return B;
     const { ops } = elementwise;
-    const keepWeak = (res: NDArray) => { if (isarray(B) && B._weak && isarray(res)) res._weak = true; return res; };
+    const keepWeak = (res: NDArray) => { if ((typeof B === 'number' || (isarray(B) && B._weak)) && isarray(res)) res._weak = true; return res; }; // python scalars stay weak
     switch (symbol) {
       case "+": return keepWeak(ops["+"](B));
       case "-": return keepWeak(ops["-"](B));
