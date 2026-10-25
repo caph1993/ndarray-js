@@ -189,7 +189,7 @@ class NDArray implements HasDType {
   /** @category Sorting */
   argsort: (axis?: number | { axis?: number }) => NDArray;
   /** @category Transformations */
-  transpose: (axes?: number[]) => NDArray;
+  transpose: (...axes: any[]) => NDArray;
 
 
   /** @category Casting */

@@ -29,8 +29,8 @@ jobs:
       # plain `npm ci` fails on peer-dependency conflicts of the doc tools
       - name: Install dependencies
         run: npm install --legacy-peer-deps --no-audit --no-fund
-      - name: Type check
-        run: npx tsc --noEmit -p .
+      - name: Type check (library and type-level API tests)
+        run: npm run typecheck
       - name: Tests
         run: npx vitest run
         env:

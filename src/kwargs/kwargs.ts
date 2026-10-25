@@ -1,7 +1,16 @@
 import { NDArray, broadcast_n_shapes } from '../NDArray';
 import { Arr, ArrOrAny, ArrOrConst } from "../array/js-interface";
 import { isarray, asarray } from '../NDArray';
-export type AxisArg = number | null;
+/** Methods that every binary ufunc has (np.add.reduce, np.add.accumulate, ...) */
+export type UfuncMethods = {
+  reduce: (array: ArrOrAny, axis?: AxisArg | any, dtype?: any, out?: any, keepdims?: boolean, initial?: any, where?: any) => any;
+  accumulate: (array: ArrOrAny, axis?: number | any, dtype?: any, out?: any) => NDArray;
+  outer: (A: ArrOrAny, B: ArrOrAny, out?: any) => NDArray;
+  reduceat: (array: ArrOrAny, indices: ArrOrAny, axis?: number | any, dtype?: any, out?: any) => NDArray;
+  at: (a: NDArray, indices: any, b?: any) => void;
+  identity: any; nin: number; nout: number; nargs: number;
+};
+export type AxisArg = number | number[] | null;
 
 export type ArrOrNull = NDArray | null;
 
@@ -261,10 +270,12 @@ export type MethodWrapper<I extends (...args: any) => any, K> = (...args: AsArra
 export function signature<I extends (...args: any[]) => any>() {
   return <D extends readonly (readonly [string, any])[]>(defaults: D, parsers: Parser[] = [], options: { keep_weak?: string[] } = {}) => {
     type K = KwargsOf<Required<Parameters<I>>, D>;
+    // variadic signatures ("...shape") also accept the values spread: x.reshape(2, 3)
+    type Spread = [Extract<D[number][0], `...${string}`>] extends [never] ? unknown : ((...args: any[]) => ReturnType<I>);
     return {
       defaults, parsers,
-      func: (implementation: I) => kwargs_decorator<any, any, any>({ defaults, implementation, parsers, ...options }) as FuncWrapper<I, K>,
-      method: (implementation: I) => kwargs_decorator<any, any, any>({ defaults, implementation, parsers, this_as_first_arg: true, ...options }) as MethodWrapper<I, K>,
+      func: (implementation: I) => kwargs_decorator<any, any, any>({ defaults, implementation, parsers, ...options }) as FuncWrapper<I, K> & Spread,
+      method: (implementation: I) => kwargs_decorator<any, any, any>({ defaults, implementation, parsers, this_as_first_arg: true, ...options }) as MethodWrapper<I, K> & Spread,
     };
   };
 }
@@ -353,7 +364,7 @@ export namespace Method_a_decimals_out {
 export namespace Func_a_other_out {
   export type Implementation = (a: NDArray, other: NDArray, out: NDArray | null) => NDArray;
   export type Kwargs = { a: ArrOrAny, other?: ArrOrAny, out?: NDArray | null };
-  export type Wrapper = (a: ArrOrAny | Kwargs, other: ArrOrAny | Kwargs, out?: NDArray | null | Kwargs) => NDArray;
+  export type Wrapper = ((a: ArrOrAny | Kwargs, other: ArrOrAny | Kwargs, out?: NDArray | null | Kwargs) => NDArray) & UfuncMethods;
   export const decorator = kwargs_decorator<Wrapper, Implementation>;
   export const defaults: [string, any][] = [["a", undefined], ["other", undefined], ["out", null]];
   export const parsers = [
