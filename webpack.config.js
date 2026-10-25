@@ -1,6 +1,7 @@
 //@ts-check
 const path = require('path');
-const LicensePlugin = require('webpack-license-plugin').default;
+const licensePlugin = require('webpack-license-plugin');
+const LicensePlugin = licensePlugin.default || licensePlugin; // the export differs between versions
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
 
 // const fs = require('fs');
@@ -24,6 +25,7 @@ module.exports = {
     publicPath: '',
     filename: 'index.js',
     path: path.resolve(__dirname, 'dist'),
+    globalObject: 'this', // works in the browser and in node
     libraryTarget: 'umd', // Fix: "Uncaught ReferenceError: exports is not defined".
   },
   plugins: [

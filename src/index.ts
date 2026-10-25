@@ -1,4 +1,40 @@
 //@ts-check
+import { set_np } from './np_circular_import';
+import { NDArray, isarray, asarray } from './NDArray';
+import * as array from './array';
+import { kwargs_decorator, Func_a_a_min_a_max_out, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_axis_keepdims_dtype_out, Func_a_decimals_out, Func_a_lastAxis, Func_a_ord_axis_keepdims, Func_a_other_out, Func_a_out, Func_x1_x2_out, Func_y_x_out, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_axis_keepdims_dtype_out, Method_a_min_a_max_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_other_out, Method_out, Method_values_where } from './kwargs/kwargs';
+import * as sig from './kwargs/signatures';
+import { Complex } from './complex';
+import * as reducers from './array/reduce';
+import * as operators from './array/operators';
+import * as elementwise from './array/elementwise';
+import * as math from './modules/math-functions';
+import * as sets from './modules/sets';
+import * as stats from './modules/statistics';
+import * as manip from './modules/manipulation';
+import * as testing from './modules/testing';
+import * as fftm from './modules/fft';
+import * as polyapi from './modules/polynomial-api';
+import * as dtu from './modules/dtype-utils';
+import { to_bytes, from_bytes } from './modules/binary';
+import { TYPE_BY_NAME, canonical_dtype, DType } from './dtypes';
+import * as fmt from './modules/format';
+import * as strs from './modules/strings';
+import * as ioMod from './modules/io';
+import * as cre from './modules/creation';
+import * as misc from './modules/misc';
+import * as datetime from './modules/datetime';
+import { modules } from './modules';
+import { op_assign } from './array/operators';
+import { fromlist } from './array';
+import * as constructors from './modules/constructors';
+import * as indexing from './modules/indexing';
+import * as ix from './modules/indexing-extra';
+import * as fn from './modules/functional';
+import * as la from './modules/linalg';
+import * as ctor from './kwargs/constructors.kwargs';
+import { Func_shape_dtype } from './kwargs/constructors.kwargs';
+import { make_methods, IDENTITIES } from './modules/ufunc';
 
 /**
  * Parser and main namespace for the ndarray-js package.
@@ -41,18 +77,12 @@ function np(template: TemplateStringsArray | any[] | number | boolean, ...variab
   }
 }
 
-import { set_np } from './np_circular_import';
 set_np(np);
 
 // ==============================
 //    Define casting and core before importing any other module
 // ==============================
-import { NDArray, isarray, asarray } from './NDArray';
-import * as array from './array';
 
-import { kwargs_decorator, Func_a_a_min_a_max_out, Func_a_axis_ddof_keepdims, Func_a_axis_keepdims, Func_a_axis_keepdims_dtype_out, Func_a_decimals_out, Func_a_lastAxis, Func_a_ord_axis_keepdims, Func_a_other_out, Func_a_out, Func_x1_x2_out, Func_y_x_out, Method_a_axis_ddof_keepdims, Method_a_axis_keepdims, Method_a_axis_keepdims_dtype_out, Method_a_min_a_max_out, Method_a_decimals_out, Method_a_ord_axis_keepdims, Method_other_out, Method_out, Method_values_where } from './kwargs/kwargs';
-import * as sig from './kwargs/signatures';
-import { Complex } from './complex';
 
 /** @category Main */
 np.NDArray = NDArray;
@@ -80,7 +110,6 @@ np.array = sig.array.func(array.array);
 np.asarray = sig.asarray_sig.func(asarray);
 
 
-import * as reducers from './array/reduce';
 /** @category Reducers */
 np.sum = Func_a_axis_keepdims_dtype_out.decorate(reducers.sum);
 /** @category Reducers */
@@ -155,7 +184,6 @@ np.concatenate = sig.concatenate.func(array.concatenate);
 np.stack = sig.stack.func(array.stack);
 
 
-import * as operators from './array/operators';
 
 /** @category Binary operators */
 np.add = Func_a_other_out.decorate(operators.add);
@@ -254,7 +282,6 @@ np.array_equal = sig.array_equal.func(operators.array_equal);
 np.array_equiv = sig.array_equiv.func(operators.array_equiv);
 
 
-import * as elementwise from './array/elementwise';
 
 /** @category Elementwise operators */
 np.sign = Func_a_out.decorate(elementwise.sign);
@@ -419,7 +446,6 @@ np.isscalar = (obj: any) => {
   return t === 'number' || t === 'boolean' || t === 'string' || t === 'bigint' || t === 'symbol';
 }
 
-import * as math from './modules/math-functions';
 /** @category Cumulative */
 np.cumsum = sig.cumulative.func(math.cumsum);
 /** @category Cumulative */
@@ -451,7 +477,6 @@ np.interp = sig.interp.func(math.interp);
 /** @category Math */
 np.unwrap = sig.unwrap.func(math.unwrap);
 
-import * as sets from './modules/sets';
 /** @category Sets */
 np.unique = sig.unique.func(sets.unique);
 /** @category Sets */
@@ -475,7 +500,6 @@ np.setxor1d = sig.setdiff1d.func(sets.setxor1d);
 /** @category Sets */
 np.union1d = sig.union1d.func(sets.union1d);
 
-import * as stats from './modules/statistics';
 /** @category Statistics */
 np.quantile = sig.quantile.func(stats.quantile);
 /** @category Statistics */
@@ -509,7 +533,6 @@ np.digitize = sig.digitize.func(stats.digitize);
 /** @category Searching */
 np.searchsorted = sig.searchsorted.func(stats.searchsorted);
 
-import * as manip from './modules/manipulation';
 /** @category Constructors */
 np.eye = sig.eye.func(manip.eye);
 /** @category Constructors */
@@ -534,8 +557,6 @@ np.zeros_like = sig.like.func(manip.zeros_like);
 np.ones_like = sig.like.func(manip.ones_like);
 /** @category Constructors */
 np.empty_like = sig.like.func(manip.empty_like);
-/** @category Constructors */
-np.logspace = sig.logspace.func(constructors.logspace);
 /** @category Constructors */
 np.vander = sig.vander.func(manip.vander);
 /** @category Constructors */
@@ -768,11 +789,9 @@ np.linalg = {
 /** @category Linear algebra */
 np.linalg.vecdot = np.vecdot;
 
-import * as testing from './modules/testing';
 /** Assertion helpers (numpy.testing). @category Testing */
 np.testing = testing;
 
-import * as fftm from './modules/fft';
 /** Discrete Fourier transforms (numpy.fft) @category FFT */
 np.fft = {
   fft: sig.fft1.func(fftm.fft), ifft: sig.fft1.func(fftm.ifft), rfft: sig.fft1.func(fftm.rfft), irfft: sig.fft1.func(fftm.irfft),
@@ -783,7 +802,6 @@ np.fft = {
   fftshift: sig.fftshift.func(fftm.fftshift), ifftshift: sig.fftshift.func(fftm.ifftshift),
 };
 
-import * as polyapi from './modules/polynomial-api';
 /** numpy.polynomial: power series and Chebyshev, Hermite, HermiteE, Laguerre and Legendre series @category Polynomials */
 np.polynomial = polyapi.build_polynomial_package();
 /** Polynomial with the coefficients in decreasing powers (numpy.poly1d) @category Polynomials */
@@ -810,10 +828,6 @@ np.polymul = legacy([["a1", undefined], ["a2", undefined]], polyapi.legacy_polym
 /** @category Polynomials */
 np.polydiv = legacy([["u", undefined], ["v", undefined]], polyapi.legacy_polydiv);
 
-import * as dtu from './modules/dtype-utils';
-import { to_bytes, from_bytes } from './modules/binary';
-import { TYPE_BY_NAME, canonical_dtype, DType } from './dtypes';
-import * as fmt from './modules/format';
 const unwrap0d = (a: any) => (isarray(a) && a.shape.length == 0) ? a.item() : a;
 const kw = (defaults: [string, any][], impl: (...a: any[]) => any) => kwargs_decorator<any, any, any>({ defaults, implementation: (...args: any[]) => impl(...args.map(unwrap0d)), parsers: [] }) as (...args: any[]) => any;
 /** @category Windows */
@@ -902,7 +916,6 @@ np.get_printoptions = fmt.get_printoptions;
 /** @category Formatting */
 np.printoptions = (opts: any, fn?: () => any) => fmt.printoptions(opts, fn);
 
-import * as strs from './modules/strings';
 const S1 = (impl: any, names: string[] = ["a"]) => kw(names.map(n => [n, undefined] as [string, any]), impl);
 const strings_api: { [name: string]: any } = {
   add: kw([["x1", undefined], ["x2", undefined]], strs.add), multiply: kw([["a", undefined], ["i", undefined]], strs.multiply), mod: kw([["a", undefined], ["values", undefined]], strs.mod),
@@ -940,8 +953,6 @@ np.char = {
   return rstrip ? f(strs.rstrip(a1, null), strs.rstrip(a2, null)) : f(a1, a2);
 });
 
-import * as ioMod from './modules/io';
-import * as cre from './modules/creation';
 /** Saves an array in .npy format (path, or null to get the bytes). @category Input and output */
 np.save = kw([["file", undefined], ["arr", undefined], ["allow_pickle", true], ["fix_imports", true]], ioMod.save);
 /** @category Input and output */
@@ -1003,7 +1014,6 @@ np.from_dlpack = cre.from_dlpack;
 /** Record arrays are not supported (only the format parser is available). @category Constructors */
 np.rec = cre.rec;
 
-import * as misc from './modules/misc';
 /** @category Memory */
 np.shares_memory = misc.shares_memory;
 /** @category Memory */
@@ -1011,7 +1021,6 @@ np.may_share_memory = misc.may_share_memory;
 /** @category Broadcasting */
 np.broadcast_shapes = misc.broadcast_shapes;
 
-import * as datetime from './modules/datetime';
 np.busdaycalendar = sig.busdaycalendar.func((weekmask, holidays) => new datetime.busdaycalendar(weekmask, holidays));
 np.is_busday = sig.is_busday.func(datetime.is_busday);
 np.busday_offset = sig.busday_offset.func(datetime.busday_offset);
@@ -1037,22 +1046,14 @@ np.info = misc.info;
 //   import np modules
 // ============================== 
 
-import { modules } from './modules';
-import { op_assign } from './array/operators';
-import { fromlist } from './array';
 
 /** @category Main @namespace*/
 np.modules = modules;
 /** @category Modules */
 np.random = np.modules.random;
 
-import * as constructors from './modules/constructors';
-import * as indexing from './modules/indexing';
-import * as ix from './modules/indexing-extra';
-import * as fn from './modules/functional';
-import * as la from './modules/linalg';
-import * as ctor from './kwargs/constructors.kwargs';
-import { Func_shape_dtype } from './kwargs/constructors.kwargs';
+/** @category Constructors */
+np.logspace = sig.logspace.func(constructors.logspace);
 
 /** @category Constructors */
 np.empty = Func_shape_dtype.decorate(constructors.empty);
@@ -1275,7 +1276,6 @@ export { np };
 // ==============================
 //   ufunc methods: np.add.reduce, np.add.accumulate, ...
 // ==============================
-import { make_methods, IDENTITIES } from './modules/ufunc';
 for (const name of Object.keys(IDENTITIES)) {
   const f = (np as any)[name];
   if (typeof f !== 'function') continue;

@@ -20,7 +20,7 @@ const asStr = (a: any) => asarray(a).dtype === 'object' ? asarray(a) : (() => { 
 //   Python str helpers
 // ==============================
 
-const WS = ' \t\n\r\x0b\x0c\x1c\x1d\x1e\x1f\x85\xa0                　';
+const WS = '\x20\t\n\r\x0b\x0c\x1c\x1d\x1e\x1f\x85\xa0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000';
 const isWs = (c: string) => WS.includes(c);
 
 function py_strip(s: string, chars: string | null, left: boolean, right: boolean): string {

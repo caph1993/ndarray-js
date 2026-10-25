@@ -35,6 +35,9 @@ jobs:
         run: npx vitest run
         env:
           NDARRAYJS_PYTHON: ${{ github.workspace }}/.venv/bin/python
+      - name: Build the browser bundle and load it in node
+        run: npm run build && node tests/bundle_smoke.js
+        if: matrix.node == 22
 
   docs:
     needs: test
