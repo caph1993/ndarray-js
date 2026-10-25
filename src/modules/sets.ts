@@ -114,7 +114,7 @@ export function intersect1d(ar1: NDArray, ar2: NDArray, assume_unique: boolean, 
 /** Hashable key of an element (numbers compare by value, strings by content, complex by both parts) */
 function elem_key(v: any): any {
   if (typeof v === 'string') return 's' + v;
-  if (v !== null && typeof v === 'object' && 're' in v) return `c${v.re},${v.im}`;
+  if (v !== null && typeof v === 'object' && 're' in v) return v.im === 0 ? +v.re : `c${v.re},${v.im}`; // complex with zero imaginary part == real
   return +v;
 }
 export function isin(element: NDArray, test_elements: NDArray, assume_unique: boolean, invert: boolean, kind: string | null = null): NDArray {

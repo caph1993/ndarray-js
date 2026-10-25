@@ -228,7 +228,7 @@ export const __makeSemantics = () => {
       }
       const res = arr.index(...where);
       // x[0] of an array is a numpy scalar: keep its dtype (and its methods) inside the expression
-      if ((typeof res === 'number' || typeof res === 'boolean') && isarray(arr)) {
+      if ((typeof res === 'number' || typeof res === 'boolean' || res instanceof Complex) && isarray(arr)) {
         const out = new NDArray(new_buffer([res as any], arr.dtype), [], arr.dtype);
         return out;
       }

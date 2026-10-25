@@ -6,7 +6,7 @@ def base():
     nd=random.choice([1,2,2,3,3,4])
     shape=[random.randint(1,4) for _ in range(nd)]
     size=int(np.prod(shape))
-    kind=random.choice(["i","i","f","f","b","u8","neg"])
+    kind=random.choice(["i","i","f","f","b","u8","neg","nan","nan","c","f32","i8"])
     r=f"np.arange({size}).reshape({tuple(shape) if nd>1 else shape[0]})"
     if nd==1: r=f"np.arange({size})"
     a=random.randint(1,7); m=random.randint(3,11)
@@ -14,6 +14,10 @@ def base():
     if kind=="neg": return f"({r} * {a} % {m} - {m//2})"
     if kind=="f": return f"(({r} * {a} % {m} - {m//2}) / 3)"
     if kind=="b": return f"({r} % {m} > {m//2})"
+    if kind=="nan": return f"np.where({r} % {m} == 0, np.nan, ({r} * {a} % {m} - {m//2}) / 3)"
+    if kind=="c": return f"(({r} * {a} % {m} - {m//2}) + 1j * ({r} % 3))"
+    if kind=="f32": return f"(({r} * {a} % {m} - {m//2}) / 3).astype('float32')"
+    if kind=="i8": return f"({r} * {a} % {m} - {m//2}).astype('int8')"
     return f"({r} * {a} % {m}).astype('uint8')"
 def rax(nd): return random.randint(-nd,nd-1)
 def step(X, v):
@@ -24,6 +28,7 @@ def step(X, v):
     if nd>0 and v.size>0:
         a=rax(nd)
         c += [f"np.sum({X}, axis={a})", f"np.sum({X}, axis={a}, keepdims=True)", f"np.mean({X}, axis={a})", f"np.max({X}, axis={a})", f"np.min({X}, axis={a})", f"np.cumsum({X}, axis={a})", f"np.argmax({X}, axis={a})", f"np.std({X}, axis={a})", f"np.median({X}, axis={a})", f"np.any({X}, axis={a})", f"np.all({X}, axis={a})", f"np.sort({X}, axis={a})", f"np.argsort({X}, axis={a}, kind='stable')", f"np.flip({X}, axis={a})", f"np.roll({X}, 1, axis={a})", f"np.diff({X}, axis={a})", f"np.concatenate([{X}, {X}], axis={a})", f"np.stack([{X}, {X}], axis={a})", f"np.repeat({X}, 2, axis={a})", f"np.take({X}, [0, -1], axis={a})", f"np.cumprod(np.clip({X}, 0, 2), axis={a})", f"np.prod(np.clip({X}, 0, 2), axis={a})", f"np.var({X}, axis={a}, ddof=1)", f"np.expand_dims({X}, {a})", f"np.cummax({X}, axis={a})" if False else f"np.maximum.accumulate({X}, axis={a})", f"np.add.reduce({X}, axis={a})", f"np.percentile({X}, 30, axis={a})", f"np.ptp({X}, axis={a})" if v.dtype!=bool else f"np.sum({X})"]
+        c += [f"np.nansum({X}, axis={a})", f"np.nanmean({X}, axis={a})", f"np.nanmax({X}, axis={a})", f"np.nanmin({X}, axis={a})", f"np.nanstd({X}, axis={a})", f"np.nanmedian({X}, axis={a})", f"np.nancumsum({X}, axis={a})", f"np.nanargmax({X}, axis={a})", f"np.nanpercentile({X}, 70, axis={a})", f"np.nan_to_num({X})", f"np.isnan({X})", f"np.count_nonzero({X}, axis={a})", f"np.quantile({X}, [0.2, 0.9], axis={a})", f"np.average({X}, axis={a})", f"np.cumsum({X}, axis={a}, dtype='float32')", f"np.sum({X}, axis={a}, dtype='float32')", f"np.mean({X}, axis={a}, dtype='float64')", f"np.pad({X}, 1)", f"np.pad({X}, (1, 2), mode='edge')", f"np.pad({X}, 1, mode='reflect')" if v.shape[a]>1 else f"np.pad({X}, 1)", f"np.unique({X}, return_counts=True)[1]", f"np.unique({X}, return_inverse=True)[1]", f"np.searchsorted(np.sort(np.ravel({X})), 1.5)", f"np.isin({X}, [1, 2])", f"np.bincount(np.abs(np.ravel({X})).astype(int))" if False else f"np.ravel({X})[::-1]", f"np.histogram({X}, bins=3)[0]" if v.dtype!=complex else f"np.ravel({X})", f"np.cov(np.ravel({X}), np.ravel({X})[::-1])" if v.size>2 else f"np.ravel({X})", f"np.outer(np.ravel({X}), np.arange(2))", f"np.kron(np.ravel({X}), np.arange(2))", f"np.convolve(np.ravel({X}), [1, 2], mode='same')", f"np.interp(np.ravel({X}), [0, 3], [1, 5])" if v.dtype!=complex else f"np.ravel({X})", f"np.corrcoef(np.ravel({X}), np.ravel({X})[::-1])" if v.size>2 else f"np.ravel({X})", f"np.polyval([1, 2, 3], np.ravel({X}))", f"np.vander(np.ravel({X}), 3)", f"np.einsum('...,...->...', {X}, {X})", f"np.trapezoid({X}, axis={a})" if v.dtype!=complex else f"np.ravel({X})", f"np.gradient({X}, axis={a})" if v.shape[a]>1 and v.dtype!=bool else f"np.ravel({X})", f"np.fft.fft({X}, axis={a})", f"np.fft.rfft(np.real({X}), axis={a})", f"np.real({X})", f"np.imag({X})", f"np.conj({X})", f"np.angle({X})", f"np.sort_complex(np.ravel({X}))" if v.dtype==complex else f"np.msort({X})" if False else f"np.sort({X}, axis={a})", f"np.lexsort(({X}, {X}))" if False else f"np.argsort({X}, axis={a})"]
         c += [f"({X}).T", f"({X}).reshape(-1)", f"({X})[::2]", f"({X})[1:]", f"({X})[..., 0]", f"({X})[None]", f"({X})[..., ::-1]", f"np.squeeze({X})", f"np.tile({X}, 2)", f"np.ravel({X})", f"np.sum({X})", f"np.mean({X})", f"np.max({X})", f"np.unique({X})", f"np.cumsum({X})", f"np.sort({X}, axis=None)", f"np.nonzero({X})[0]" if True else "", f"np.argwhere({X} > 2)"]
         if nd>=2:
             perm=list(range(nd)); random.shuffle(perm)

@@ -10,6 +10,8 @@ import { ravel, reshape } from "../array/shape_operations";
 import { finish_output, apply_binary_operation, n_ary_elementwise } from "../array/operators";
 import { AxisArg, normalize_axes } from "../array/reduce";
 import { Complex, ZERO, ONE } from "../complex";
+import { convert_buffer } from "../dtypes";
+import { np } from "../np_circular_import";
 
 const prod = (shape: number[]) => shape.reduce((a, b) => a * b, 1);
 
@@ -26,6 +28,7 @@ function accumulate(
   resolver: DtypeResolver, init: number, step: (acc: number, x: number) => number, skip_nan = false, include_initial = false
 ): NDArray {
   a = asarray(a);
+  if (dtype && dtype !== a.dtype && is_cx(a.dtype) && !is_cx(dtype)) a = new NDArray(convert_buffer(a.flat, dtype), a.shape, dtype); // complex -> real drops the imaginary part
   if (axis == null) { a = ravel(a); axis = 0; }
   if (a.shape.length == 0) a = reshape(a, [1]);
   if (a.size === 0 && !include_initial) {
@@ -107,12 +110,13 @@ export function diff(a: NDArray, n: number, axis: number, prepend: NDArray | nul
   if (append != null) parts.push(as_part(append));
   if (parts.length > 1) a = concatenate(parts, axis);
   if (n == 0) return a;
-  const isBool = a.dtype === bool;
-  return apply_along_axis(isBool ? () => bool : numeric_out, (lane) => {
+  const isBool = a.dtype === bool, cx = is_cx(a.dtype);
+  return apply_along_axis(isBool ? () => bool : cx ? () => a.dtype : numeric_out, (lane) => {
     let cur: any = Array.from(lane);
     for (let k = 0; k < n && cur.length > 0; k++) {
       const next = new Array(cur.length - 1);
       if (isBool) for (let i = 0; i < next.length; i++) next[i] = (!!cur[i + 1]) !== (!!cur[i]);
+      else if (cx) for (let i = 0; i < next.length; i++) next[i] = Complex.from(cur[i + 1]).sub(Complex.from(cur[i]));
       else for (let i = 0; i < next.length; i++) next[i] = cur[i + 1] - cur[i];
       cur = next;
     }
@@ -162,6 +166,11 @@ function gradient_lane(f: ArrayLike<number>, coords: ArrayLike<number> | number,
 /** Gradient of an N-dimensional array. `varargs` are spacings (numbers) or coordinate arrays, one per axis (or a single one for all). */
 export function gradient(f: NDArray, varargs: any[], axis: AxisArg, edge_order: number): NDArray | NDArray[] {
   f = asarray(f);
+  if (is_cx(f.dtype)) { // linear: gradient(re) + 1j * gradient(im)
+    const re = gradient(np.real(f), varargs, axis, edge_order), im = gradient(np.imag(f), varargs, axis, edge_order);
+    const comb = (r: any, i: any) => np.add(r, np.multiply(i, new Complex(0, 1) as any));
+    return Array.isArray(re) ? (re as NDArray[]).map((r, k) => comb(r, (im as NDArray[])[k])) : comb(re, im);
+  }
   if (f.dtype === bool) throw new TypeError('numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.');
   const nd = f.shape.length;
   if (edge_order != 1 && edge_order != 2) throw new Error(`'edge_order' greater than 2 not supported`);
@@ -235,7 +244,7 @@ export function trapezoid(y: NDArray, x: NDArray | null, dx: number, axis: numbe
     const buffer = new_buffer(nLanes, dt);
     for (let l = 0; l < nLanes; l++) {
       let s = 0;
-      for (let i = 1; i < n; i++) s += (fx[l * n + i] - fx[l * n + i - 1]) * (fy[l * n + i] + fy[l * n + i - 1]) / 2;
+      for (let i = 1; i < n; i++) s += (fx[l * n + i] - fx[l * n + i - 1]) * (y.dtype === bool ? (fy[l * n + i] || fy[l * n + i - 1] ? 1 : 0) : fy[l * n + i] + fy[l * n + i - 1]) / 2;
       buffer[l] = s;
     }
     return new NDArray(buffer, yy.shape.slice(0, -1), dt);
@@ -244,7 +253,7 @@ export function trapezoid(y: NDArray, x: NDArray | null, dx: number, axis: numbe
   if (xv && xv.length != y.shape[axis]) throw new Error(`operands could not be broadcast together: x has ${xv.length} elements, y axis has ${y.shape[axis]}`);
   const lanes = apply_along_axis(() => dt, (lane) => {
     let s = 0;
-    for (let i = 1; i < lane.length; i++) s += (xv ? xv[i] - xv[i - 1] : dx) * (lane[i] + lane[i - 1]) / 2;
+    for (let i = 1; i < lane.length; i++) s += (xv ? xv[i] - xv[i - 1] : dx) * (y.dtype === bool ? (lane[i] || lane[i - 1] ? 1 : 0) : lane[i] + lane[i - 1]) / 2; // bool + bool is a logical or
     return [s];
   }, y, axis);
   // Remove the reduced axis
@@ -263,13 +272,18 @@ function check_mode(mode: string) {
 }
 
 /** Full discrete convolution of two lists */
-function convolve_full(a: ArrayLike<number>, v: ArrayLike<number>): number[] {
+function convolve_full(a: ArrayLike<any>, v: ArrayLike<any>): any[] {
+  if (a.length && (a[0] instanceof Complex || v[0] instanceof Complex)) {
+    const out: Complex[] = new Array(a.length + v.length - 1).fill(ZERO);
+    for (let i = 0; i < a.length; i++) for (let j = 0; j < v.length; j++) out[i + j] = out[i + j].add(Complex.from(a[i]).mul(Complex.from(v[j])));
+    return out;
+  }
   const out = new Array(a.length + v.length - 1).fill(0);
   for (let i = 0; i < a.length; i++) for (let j = 0; j < v.length; j++) out[i + j] += a[i] * v[j];
   return out;
 }
 
-function slice_mode(full: number[], na: number, nv: number, mode: string): number[] {
+function slice_mode(full: any[], na: number, nv: number, mode: string): any[] {
   if (mode == 'full') return full;
   const n = Math.max(na, nv), m = Math.min(na, nv);
   if (mode == 'valid') return full.slice(m - 1, n);
@@ -297,15 +311,18 @@ export function correlate(a: NDArray, v: NDArray, mode: ConvolveMode): NDArray {
   const na = a.size, nv = v.size;
   const fa = a.flat as any, fv = v.flat as any;
   // full[k + nv - 1] = sum_n a[n + k] v[n],  k = -(nv-1) .. na-1
-  const full = new Array(na + nv - 1).fill(0);
+  const cx = is_cx(a.dtype) || is_cx(v.dtype);
+  const full: any[] = new Array(na + nv - 1).fill(cx ? ZERO : 0);
   for (let k = -(nv - 1); k < na; k++) {
-    let s = 0;
-    for (let n = Math.max(0, -k); n < nv && n + k < na; n++) s += fa[n + k] * fv[n];
+    let s: any = cx ? ZERO : 0;
+    // numpy correlates with the conjugate of v
+    if (cx) { for (let n = Math.max(0, -k); n < nv && n + k < na; n++) s = s.add(Complex.from(fa[n + k]).mul(Complex.from(fv[n]).conj())); }
+    else for (let n = Math.max(0, -k); n < nv && n + k < na; n++) s += fa[n + k] * fv[n];
     full[k + nv - 1] = s;
   }
   const dtype = same_out([a.dtype === bool ? int32 : a.dtype, v.dtype === bool ? int32 : v.dtype]);
   // numpy's slicing when v is longer than a: result is computed as the full correlation, trimmed around the zero-lag center
-  let res: number[];
+  let res: any[];
   if (mode == 'full') res = full;
   else if (mode == 'valid') {
     const n = Math.abs(na - nv) + 1;

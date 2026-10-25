@@ -187,13 +187,13 @@ type Reducer = (arr: NDArray, axis: AxisArg, keepdims: boolean, out?: NDArray | 
 function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any, clane_fn?: (lane: any) => any): ReducerDtype {
   return (arr, axis, keepdims, dtype = null, out = null) => {
     arr = asarray(arr);
+    // As numpy, the input is cast to dtype before reducing (complex -> real discards the imaginary part)
+    if (dtype && dtype !== arr.dtype) arr = new NDArray(convert_buffer(arr.flat, dtype), arr.shape, dtype);
     let fn = lane_fn;
     if (is_cx(arr.dtype)) {
       if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
       fn = clane_fn;
     }
-    // As numpy, the input is cast to dtype before reducing
-    if (dtype && dtype !== arr.dtype) arr = new NDArray(convert_buffer(arr.flat, dtype), arr.shape, dtype);
     const resolved = dtype ? dtype : dtype_resolver([arr.dtype], out);
     return reduce_lanes(arr, axis, keepdims, resolved, fn, out);
   }

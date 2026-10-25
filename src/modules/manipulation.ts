@@ -1,3 +1,5 @@
+import { is_cx, dtype_max as promote_types_ } from '../dtypes';
+import { Complex } from '../complex';
 //@ts-check
 import { NDArray, asarray, isarray, shape_shifts, broadcast_shapes, broadcast_n_shapes, broadcast_strides, empty } from "../NDArray";
 import {
@@ -675,6 +677,15 @@ function per_axis(values: any, nd: number, dflt: number): [number, number][] {
 
 export function pad(array: NDArray, pad_width: any, mode: PadMode, options: { constant_values?: any, end_values?: any, stat_length?: any, reflect_type?: string }): NDArray {
   array = asarray(array);
+  if (is_cx(array.dtype)) {
+    // real and imaginary parts are padded separately (exact for every mode that does not order the values)
+    if (mode === 'maximum' || mode === 'minimum' || mode === 'median') throw new Error(`mode '${mode}' is not supported for complex arrays`);
+    const split = (v: any, k: 're' | 'im') => v === undefined || v === null ? v : Array.isArray(v) ? v.map(x => split(x, k)) : (v instanceof Complex ? v[k] : (k === 're' ? v : 0));
+    const part = (k: 're' | 'im') => pad(new NDArray(Array.from(array.flat as any, (z: any) => z[k]) as any, array.shape, 'float64'), pad_width, mode, { ...options, constant_values: split(options.constant_values, k), end_values: split(options.end_values, k) });
+    const re = part('re'), im = part('im');
+    const rf = re.flat as any, imf = im.flat as any;
+    return new NDArray(Array.from({ length: rf.length }, (_, i) => new Complex(rf[i], imf[i])) as any, re.shape, array.dtype);
+  }
   const nd = array.shape.length;
   const widths = pad_widths(pad_width, nd);
   const modes = ['constant', 'edge', 'linear_ramp', 'maximum', 'mean', 'median', 'minimum', 'reflect', 'symmetric', 'wrap', 'empty'];
@@ -781,9 +792,13 @@ export function vander(x: NDArray, N: number | null, increasing: boolean): NDArr
   x = asarray(x);
   if (x.shape.length != 1) throw new Error(`x must be a one-dimensional array or sequence.`);
   const n = N === null ? x.size : N;
-  const dtype = x.dtype === bool ? int32 : x.dtype;
+  const dtype = x.dtype === bool ? int32 : promote_types_(x.dtype, 'int64'); // numpy: promote_types(x.dtype, int)
   const f = x.flat as any;
   const buffer = new_buffer(x.size * n, dtype);
+  if (is_cx(dtype)) {
+    for (let i = 0; i < x.size; i++) for (let j = 0; j < n; j++) { const e = increasing ? j : n - 1 - j; let r = new Complex(1, 0); for (let t = 0; t < e; t++) r = r.mul(f[i]); buffer[i * n + j] = r; }
+    return new NDArray(fix_buffer(buffer, dtype), [x.size, n], dtype);
+  }
   for (let i = 0; i < x.size; i++) for (let j = 0; j < n; j++) buffer[i * n + j] = Math.pow(+f[i], increasing ? j : n - 1 - j);
   return new NDArray(fix_buffer(buffer, dtype), [x.size, n], dtype);
 }

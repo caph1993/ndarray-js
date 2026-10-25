@@ -593,6 +593,13 @@ export function n_ary_operation<
 
 export function clip(a: NDArray, a_min: NDArray = null, a_max: NDArray = null, out: any = null) {
   if (a_min === null && a_max === null) throw new Error('At least one of a_min or a_max must be provided');
+  if (is_cx(asarray(a).dtype) || (a_min !== null && is_cx(asarray(a_min).dtype)) || (a_max !== null && is_cx(asarray(a_max).dtype))) {
+    // complex numbers are ordered lexicographically
+    let r: any = a;
+    if (a_min !== null) r = maximum(r, a_min);
+    if (a_max !== null) r = minimum(r, a_max);
+    return r;
+  }
   if (a_min !== null && a_max !== null) {
     // numpy: minimum(maximum(a, a_min), a_max)
     const func = (v, minVal, maxVal) => (v !== v || minVal !== minVal || maxVal !== maxVal) ? NaN : Math.min(maxVal, Math.max(minVal, v));

@@ -229,6 +229,16 @@ export function cov(m: NDArray, y: NDArray | null, rowvar: boolean, bias: boolea
     fact = wsum - ddof * s / wsum;
   }
   fact = Math.max(fact, 0);
+  if (is_cx(X.dtype)) { // c = (X - avg) (X - avg)^H / fact, complex128
+    const cavg = new Array(nv).fill(null).map((_, i) => { let sm = new Complex(0, 0); for (let k = 0; k < N; k++) sm = sm.add(Complex.from(x[i * N + k]).mul(new Complex(w ? w[k] : 1, 0))); return sm.div(new Complex(wsum, 0)); });
+    const outc = new Array(nv * nv);
+    for (let i = 0; i < nv; i++) for (let j = 0; j < nv; j++) {
+      let sm = new Complex(0, 0);
+      for (let k = 0; k < N; k++) sm = sm.add(Complex.from(x[i * N + k]).sub(cavg[i]).mul(Complex.from(x[j * N + k]).sub(cavg[j]).conj()).mul(new Complex(w ? w[k] : 1, 0)));
+      outc[i * nv + j] = sm.div(new Complex(fact, 0));
+    }
+    return new NDArray(outc as any, nv == 1 ? [] : [nv, nv], complex128);
+  }
   const out = new_buffer(nv * nv, float64);
   for (let i = 0; i < nv; i++) for (let j = i; j < nv; j++) {
     let s = 0;
@@ -240,6 +250,14 @@ export function cov(m: NDArray, y: NDArray | null, rowvar: boolean, bias: boolea
 
 export function corrcoef(x: NDArray, y: NDArray | null, rowvar: boolean): NDArray {
   const c = cov(x, y, rowvar, false, null, null, null);
+  if (is_cx(c.dtype)) {
+    const cf = c.flat as any, nn = c.shape.length == 0 ? 1 : c.shape[0];
+    const sdv = Array.from({ length: nn }, (_, i) => Math.sqrt(cf[i * nn + i].re));
+    const clip1 = (v: number) => Math.min(1, Math.max(-1, v));
+    const o = new Array(nn * nn);
+    for (let i = 0; i < nn; i++) for (let j = 0; j < nn; j++) { const v = cf[i * nn + j]; o[i * nn + j] = new Complex(clip1(v.re / sdv[i] / sdv[j]), clip1(v.im / sdv[i] / sdv[j])); }
+    return new NDArray(o as any, c.shape.length == 0 ? [] : [nn, nn], complex128);
+  }
   if (c.shape.length == 0) return new NDArray(new_buffer([c.flat[0] / c.flat[0]], float64), [], float64);
   const n = c.shape[0];
   const f = c.flat as any;
@@ -490,12 +508,12 @@ export function searchsorted(a: NDArray, v: NDArray, side: 'left' | 'right', sor
   const vf = v.flat as any;
   const buffer = new_buffer(vf.length, int32);
   const less = side == 'left'
-    ? (x: number, y: number) => cmp_nan_at_the_end(x, y) < 0   // x < y
-    : (x: number, y: number) => cmp_nan_at_the_end(x, y) <= 0; // x <= y
+    ? (x: any, y: any) => cmp_nan_at_the_end(x, y) < 0   // x < y
+    : (x: any, y: any) => cmp_nan_at_the_end(x, y) <= 0; // x <= y
   for (let k = 0; k < vf.length; k++) {
     let lo = 0, hi = n;
-    const val = +vf[k];
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (less(+at(mid), val)) lo = mid + 1; else hi = mid; }
+    const val = is_cx(v.dtype) || is_cx(a.dtype) ? Complex.from(vf[k]) : +vf[k];
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (less(is_cx(a.dtype) || is_cx(v.dtype) ? Complex.from(at(mid)) : +at(mid), val)) lo = mid + 1; else hi = mid; }
     buffer[k] = lo;
   }
   return new NDArray(buffer, v.shape, int32);
