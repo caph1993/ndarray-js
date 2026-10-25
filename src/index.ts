@@ -455,6 +455,8 @@ import * as sets from './modules/sets';
 /** @category Sets */
 np.unique = sig.unique.func(sets.unique);
 /** @category Sets */
+np.group_by = sig.group_by.func(sets.group_by);
+/** @category Sets */
 np.unique_values = sig.x_only.func(sets.unique_values as any);
 /** @category Sets */
 np.unique_counts = sig.x_only.func(sets.unique_counts as any);

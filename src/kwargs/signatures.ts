@@ -391,3 +391,6 @@ export const datetime_as_string = signature<typeof datetime_mod.datetime_as_stri
   [["arr", undefined], ["unit", 'auto'], ["timezone", 'naive'], ["casting", 'same_kind']] as const, []);
 export const busdaycalendar = signature<(weekmask?: any, holidays?: any) => datetime_mod.busdaycalendar>()(
   [["weekmask", '1111100'], ["holidays", []]] as const, []);
+export const group_by = signature<typeof sets.group_by>()(
+  [["keys", undefined], ["values", null], ["axis", 0], ["func", null]] as const,
+  [P.asarray('keys'), asarray_if_not_null('values')]);

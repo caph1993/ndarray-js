@@ -1,5 +1,6 @@
 //@ts-check
 import { NDArray, asarray, isarray } from "../NDArray";
+import { np } from "../np_circular_import";
 import { new_buffer, int32, bool, dtype_max, DType } from "../dtypes";
 import { cmp_nan_at_the_end, concatenate, normalize_axis, swapAxes } from "../array/transform";
 import { ravel, reshape } from "../array/shape_operations";
@@ -145,3 +146,31 @@ export function setxor1d(ar1: NDArray, ar2: NDArray, assume_unique: boolean): ND
   const dtype = dtype_max(a.dtype, b.dtype);
   return new NDArray(new_buffer(out, dtype), [out.length], dtype);
 }
+
+export type GroupBy = { keys: NDArray, groups: NDArray[], indices: NDArray[], values?: NDArray };
+/**
+ * Splits `values` (default: the positions 0..n-1) by the distinct entries of `keys`.
+ * `keys` is 1-d and has one entry per item along `axis` of `values`. Returns the sorted distinct `keys`,
+ * the `groups` (the slices of `values` for each key, in original order) and their `indices`.
+ * If `func` is given, it is applied to every group and the results are stacked in `values`.
+ */
+export function group_by(keys: NDArray, values: NDArray | null, axis: number, func: ((group: NDArray) => any) | null): GroupBy {
+  if (keys.shape.length !== 1) throw new Error("keys must be a 1-d array");
+  const r = unique_full(keys, null, true);
+  const inv = Array.from(r.inverse!.flat as any) as number[];
+  const lists: number[][] = r.values.shape[0] ? Array.from({ length: r.values.shape[0] }, () => []) : [];
+  inv.forEach((g, i) => lists[g].push(i));
+  const indices = lists.map(l => asarray(l.length ? l : new Int32Array(0), 'int64'));
+  let groups: NDArray[];
+  if (values === null) groups = indices;
+  else {
+    const v = asarray(values), ax = normalize_axis(axis, v.shape.length);
+    if (v.shape[ax] !== keys.shape[0]) throw new Error(`keys has ${keys.shape[0]} entries but values has ${v.shape[ax]} along axis ${ax}`);
+    const np = require_np();
+    groups = indices.map(ix => np.take(v, ix, ax));
+  }
+  const out: GroupBy = { keys: r.values, groups, indices };
+  if (func) out.values = require_np().stack(groups.map(g => func(g)));
+  return out;
+}
+function require_np(): any { return np; }

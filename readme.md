@@ -86,8 +86,15 @@ They are skipped when numpy is not available.
 
 ## ToDo
 
-It does not provide yet:
- - the linear algebra module
- - a simple group_by operator.
- - all the random module. Only uniform, normal, exponential, gamma, beta and some others are provided.
- - the functions of `numpy-scrap/toc-todo.txt` groups 2 and above.
+Not provided (yet):
+ - `numpy.ma` (masked arrays), datetime64/timedelta64 and structured dtypes (the business-day functions work on `'YYYY-MM-DD'` strings).
+ - Philox and SFC64 bit generators; numpy's exact streams for `binomial` (large `n*p`) and `hypergeometric` (the distributions are right, the seeded values differ).
+ - Stride views for `transpose`/`reshape` (they copy).
+
+Beyond numpy, `np.group_by(keys, values?, axis?, func?)` splits `values` by the distinct entries of `keys`:
+```js
+const g = np.group_by(['b', 'a', 'b'], [10, 20, 30]);
+g.keys.tolist();                        // ['a', 'b']
+g.groups.map(x => x.tolist());          // [[20], [10, 30]]
+np.group_by([1, 0, 1], [1, 2, 3], {func: np.sum}).values.tolist();  // [2, 4]
+```
