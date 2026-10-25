@@ -1,9 +1,10 @@
 //@ts-check
 import { NDArray, asarray, isarray, broadcast_shapes } from "../NDArray";
-import { AxisArg, reduce_lanes, normalize_axes, lane_sum, lane_max, lane_min } from "../array/reduce";
+import { AxisArg, reduce_lanes, normalize_axes, lane_sum, lane_max, lane_min, clane_mean } from "../array/reduce";
+import { Complex, cmp_complex } from "../complex";
 import { cmp_nan_at_the_end, normalize_axis, swapAxes, concatenate, transpose } from "../array/transform";
 import { ravel, reshape } from "../array/shape_operations";
-import { DType, bool, float32, float64, int32, float_out, new_buffer, dtype_is_integer, dtype_is_float } from "../dtypes";
+import { complex128, DType, bool, float32, float64, int32, float_out, new_buffer, dtype_is_integer, dtype_is_float } from "../dtypes";
 import { finish_output } from "../array/operators";
 import { rint_scalar } from "../array/elementwise";
 
@@ -106,10 +107,24 @@ export function nanpercentile(a: NDArray, q: NDArray | number, axis: AxisArg, ke
 }
 
 /** Compute the median along the specified axis. */
+/** median of complex numbers: lexicographic order, mean of the middle values */
+function complex_median(a: NDArray, axis: AxisArg, keepdims: boolean, out: NDArray | null, skip_nan: boolean) {
+  return reduce_lanes(a, axis, keepdims, complex128, (lane: any) => {
+    const l: Complex[] = Array.from(lane as ArrayLike<Complex>);
+    const v = skip_nan ? l.filter(z => !z.isNaN) : l;
+    if (!skip_nan && v.some(z => z.isNaN)) return new Complex(NaN, NaN);
+    if (v.length === 0) return new Complex(NaN, NaN);
+    v.sort(cmp_complex);
+    const n = v.length;
+    return n % 2 ? v[(n - 1) / 2] : v[n / 2 - 1].add(v[n / 2]).div(new Complex(2, 0));
+  }, out);
+}
 export function median(a: NDArray, axis: AxisArg, keepdims: boolean = false, out: NDArray | null = null) {
+  if (asarray(a).dtype === complex128) return complex_median(asarray(a), axis, keepdims, out, false);
   return quantile(a, 0.5, axis, keepdims, 'linear', out, false);
 }
 export function nanmedian(a: NDArray, axis: AxisArg, keepdims: boolean = false, out: NDArray | null = null) {
+  if (asarray(a).dtype === complex128) return complex_median(asarray(a), axis, keepdims, out, true);
   return quantile(a, 0.5, axis, keepdims, 'linear', out, true);
 }
 
@@ -120,6 +135,10 @@ export function nanmedian(a: NDArray, axis: AxisArg, keepdims: boolean = false, 
 export function average(a: NDArray, axis: AxisArg, weights: NDArray | null, returned: boolean, keepdims: boolean): NDArray | NDArray[] {
   a = asarray(a);
   const dtype = float_out([a.dtype]);
+  if (weights === null && a.dtype === complex128) {
+    const avg = reduce_lanes(a, axis, keepdims, complex128, (lane: any) => clane_mean(lane));
+    return returned ? [avg, reduce_lanes(a, axis, keepdims, float64, (lane: any) => lane.length)] : avg;
+  }
   if (weights === null) {
     const avg = reduce_lanes(a, axis, keepdims, dtype, (lane) => lane_sum(lane) / lane.length);
     if (!returned) return avg;

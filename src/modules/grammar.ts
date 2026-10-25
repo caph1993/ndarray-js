@@ -86,7 +86,7 @@ ArrayGrammar {
   KwArgs = NonemptyListOf<KwArg, ",">
   KwArg = Name "=" ArgValue
 
-  ArgValue = Constant | JsArray | ArithmeticLogicExp | String
+  ArgValue = Constant | String | ArithmeticLogicExp | JsArray
   Constant = constantWord
   constantWord = (numericConstant | "True" | "False" | "None" | "np.newaxis") ~(alnum | "_")
   numericConstant
@@ -113,19 +113,19 @@ ArrayGrammar {
     = SliceRange
     | (":" | "..." | "None") -- constant
     | ("True" | "False") -- boolean_constant
-    | JsArray
     | ArithmeticLogicExp
+    | JsArray
   
   SliceRange
-    = sliceNum ":" sliceNum ":" sliceNum
-    | sliceNum ":" sliceNum ""  ""
-    | sliceNum ":" ""  ":" sliceNum
-    | sliceNum ":" ""  ""  ""
-    | ""  ":" sliceNum ":" sliceNum
-    | ""  ":" sliceNum ""  ""
-    | ""  ":" ""  ":" sliceNum
+    = SliceBound ":" SliceBound ":" SliceBound
+    | SliceBound ":" SliceBound ""  ""
+    | SliceBound ":" ""  ":" SliceBound
+    | SliceBound ":" ""  ""  ""
+    | ""  ":" SliceBound ":" SliceBound
+    | ""  ":" SliceBound ""  ""
+    | ""  ":" ""  ":" SliceBound
     | ""  ":" ""  ""  ""
-  sliceNum = ("+"|"-")? digit+ ("." digit*)? (("e"|"E") ("+"|"-")? digit+)? ("j"|"J")?
+  SliceBound = ArithmeticLogicExp
 }
 `;
 
@@ -272,9 +272,20 @@ export const __makeSemantics = () => {
       if ($sign.sourceString == '-') return -value;
       else return value
     },
-    SliceRange($start, _, $stop, __, $step) {
-      return this.sourceString;
+    SliceRange($start, _, $stop, sep, $step) {
+      // Bounds can be any integer expression (numbers, parentheses, ${variables}); rebuild "start:stop:step"
+      const bound = (n: any) => {
+        const src = n.sourceString.trim();
+        if (src === '') return '';
+        if (/^[+-]?\d+(\.\d*)?([eE][+-]?\d+)?[jJ]?$/.test(src)) return src; // plain literal (also floats and complex steps for r_ and mgrid)
+        let v = n.parse();
+        if (isarray(v)) v = v.item();
+        if (typeof v !== 'number' || !Number.isInteger(v)) throw new Error(`Slice indices must be integers. Found ${n.sourceString}`);
+        return String(v);
+      };
+      return bound($start) + ':' + bound($stop) + (sep.sourceString.trim() === '' ? '' : ':' + bound($step));
     },
+    SliceBound($e) { return $e.parse(); },
     Constant($x) {
       switch ($x.sourceString) {
         case "True": return true;

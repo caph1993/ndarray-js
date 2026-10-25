@@ -186,14 +186,15 @@ type Reducer = (arr: NDArray, axis: AxisArg, keepdims: boolean, out?: NDArray | 
 function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any, clane_fn?: (lane: any) => any): ReducerDtype {
   return (arr, axis, keepdims, dtype = null, out = null) => {
     arr = asarray(arr);
+    let fn = lane_fn;
     if (arr.dtype === complex128) {
       if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
-      lane_fn = clane_fn;
+      fn = clane_fn;
     }
     // As numpy, the input is cast to dtype before reducing
     if (dtype && dtype !== arr.dtype) arr = new NDArray(convert_buffer(arr.flat, dtype), arr.shape, dtype);
     const resolved = dtype ? dtype : dtype_resolver([arr.dtype], out);
-    return reduce_lanes(arr, axis, keepdims, resolved, lane_fn, out);
+    return reduce_lanes(arr, axis, keepdims, resolved, fn, out);
   }
 }
 
@@ -201,12 +202,13 @@ function mk_reducer_dtype(dtype_resolver: DtypeResolver, lane_fn: (lane: any) =>
 function mk_reducer(dtype_resolver: DtypeResolver, lane_fn: (lane: any) => any, clane_fn?: (lane: any) => any): Reducer {
   return (arr, axis, keepdims, out = null) => {
     arr = asarray(arr);
+    let fn = lane_fn;
     if (arr.dtype === complex128) {
       if (!clane_fn) throw new Error(`reduction not supported for complex numbers`);
-      lane_fn = clane_fn;
+      fn = clane_fn;
     }
     const resolved = dtype_resolver([arr.dtype], out);
-    return reduce_lanes(arr, axis, keepdims, resolved, lane_fn, out);
+    return reduce_lanes(arr, axis, keepdims, resolved, fn, out);
   }
 }
 
@@ -220,16 +222,25 @@ export const max = mk_reducer(same_out, lane_max, clane_max);
 export const min = mk_reducer(same_out, lane_min, clane_min);
 export const nanmax = mk_reducer(same_out, lane_nanmax, clane_nanmax);
 export const nanmin = mk_reducer(same_out, lane_nanmin, clane_nanmin);
-export const argmax = mk_reducer(argmax_out, lane_argmax, clane_argmax);
-export const argmin = mk_reducer(argmax_out, lane_argmin, clane_argmin);
-export const nanargmax = mk_reducer(argmax_out, lane_nanargmax, clane_nanargmax);
-export const nanargmin = mk_reducer(argmax_out, lane_nanargmin, clane_nanargmin);
+/** argmax & co take a single integer axis (no tuples) */
+function single_axis<F extends (arr: NDArray, axis: AxisArg, ...rest: any[]) => NDArray>(f: F): F {
+  return ((arr: NDArray, axis: AxisArg, ...rest: any[]) => {
+    if (Array.isArray(axis)) throw new TypeError("'tuple' object cannot be interpreted as an integer");
+    return f(arr, axis, ...rest);
+  }) as F;
+}
+export const argmax = single_axis(mk_reducer(argmax_out, lane_argmax, clane_argmax));
+export const argmin = single_axis(mk_reducer(argmax_out, lane_argmin, clane_argmin));
+export const nanargmax = single_axis(mk_reducer(argmax_out, lane_nanargmax, clane_nanargmax));
+export const nanargmin = single_axis(mk_reducer(argmax_out, lane_nanargmin, clane_nanargmin));
 export const len = mk_reducer(argmax_out, (lane: any) => lane.length);
 export const any = mk_reducer(bool_out, lane_any, lane_any);
 export const all = mk_reducer(bool_out, lane_all, lane_all);
 export const count_nonzero = mk_reducer(argmax_out, lane_count_nonzero, lane_count_nonzero);
 export const ptp = (arr: NDArray, axis: AxisArg, keepdims: boolean, out: NDArray | null = null): NDArray => {
   arr = asarray(arr);
+  if (arr.dtype === bool) throw new TypeError("numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.");
+  if (arr.dtype === complex128) return reduce_lanes(arr, axis, keepdims, complex128, (lane: any) => clane_max(lane).sub(clane_min(lane)), out);
   return reduce_lanes(arr, axis, keepdims, same_out([arr.dtype], out), (lane) => lane_max(lane) - lane_min(lane), out);
 };
 
