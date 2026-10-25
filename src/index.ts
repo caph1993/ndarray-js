@@ -1106,9 +1106,18 @@ NDArray.prototype.logical_or_assign = Method_values_where.decorate(op_assign["or
 NDArray.prototype.logical_and_assign = Method_values_where.decorate(op_assign["and="]);
 
 /** @param {null|number[]} axes */
-NDArray.prototype.transpose = function (axes: null | number[] = null) {
+NDArray.prototype.transpose = function (...args: any[]) {
+  // x.transpose(), x.transpose([1, 0]), x.transpose(1, 0), x.transpose({axes})
+  let axes: null | number[] = args.length === 0 ? null : (args.length > 1 || typeof args[0] === 'number') ? args : args[0];
   if (axes !== null && !Array.isArray(axes) && (axes as any).axes !== undefined) axes = (axes as any).axes;
   return array.transpose(this, axes);
+};
+
+/** Fills the array (also through views) with a scalar value. @category Transformations */
+(NDArray.prototype as any).fill = function (value: any) {
+  const n = this.size, buf = np.broadcast_to(np.array(value, this.dtype), [n]).flat;
+  this.flat = buf;
+  return undefined;
 };
 
 /** Sorts the array in place along the given axis (default: last). Returns the array itself. */

@@ -1,5 +1,6 @@
 //@ts-check
 
+import { transposed_view } from "./indexes";
 import { NDArray, isarray, asarray, shape_shifts, empty } from '../NDArray';
 import { ravel, reshape } from "./shape_operations";
 import { allEq } from '../utils-js';
@@ -93,29 +94,14 @@ export function transpose(arr: NDArray, axes: null | number[] = null) {
   axes = axes.map(ax => normalize_axis(ax, nDims));
   const seen = new Array(nDims).fill(false);
   for (const ax of axes) { if (seen[ax]) throw new Error(`repeated axis in transpose`); seen[ax] = true; }
-  const srcShifts = shape_shifts(arr.shape);
-  const shape = axes.map((j) => arr.shape[j]);
-  const shifts = axes.map((j) => srcShifts[j]);
-  const src = arr.flat;
-  const n = src.length;
-  const buffer = new_buffer(n, arr.dtype);
-  if (n > 0) {
-    const tuple = new Array(nDims).fill(0);
-    let cursor = 0;
-    for (let i = 0; i < n; i++) {
-      buffer[i] = src[cursor];
-      let axis = nDims - 1;
-      while (axis >= 0) {
-        tuple[axis]++;
-        cursor += shifts[axis];
-        if (tuple[axis] < shape[axis]) break;
-        cursor -= shifts[axis] * shape[axis];
-        tuple[axis] = 0;
-        axis--;
-      }
-    }
+  // A transposed view: shares the buffer with `arr` (like numpy)
+  if (axes.every((a, i) => a === i)) {
+    const same = new NDArray(arr._flat, arr.shape.slice(), arr.dtype);
+    same._simpleIndexes = arr._simpleIndexes;
+    if (arr['__warnAssignments']) same['__warnAssignments'] = true;
+    return same;
   }
-  return new NDArray(buffer, shape, arr.dtype);
+  return transposed_view(arr, axes);
 }
 
 

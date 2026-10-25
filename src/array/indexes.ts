@@ -48,11 +48,17 @@ export class AxesIndex {
   private _size: null | number;
   isSimple: boolean;
   isConstant: boolean;
+  /**
+   * Positions (in axisIndexes) of the axes that survive in the apparent shape, in apparent order.
+   * null means the natural order; a permutation makes this a transposed view.
+   */
+  order: number[] | null;
   parse: (shape: number[], where: Where) => AxesIndex;
   /**
    * @param {AxisIndex[]} axisIndexes
    */
-  constructor(apparentShape, internalShape, axisIndexes: AxisIndex[]) {
+  constructor(apparentShape, internalShape, axisIndexes: AxisIndex[], order: number[] | null = null) {
+    this.order = order;
     this.shape = apparentShape;
     this.internalShape = internalShape;
     this.axisIndexes = axisIndexes;
@@ -63,8 +69,15 @@ export class AxesIndex {
   }
   get indices() {
     if (this._indices) return this._indices;
-    let indices = __slices_to_indices(this.internalShape, this.__slices);
+    let indices = __slices_to_indices(this.internalShape, this.__slices, this.axis_sequence());
     return this._indices = indices;
+  }
+  /** Order in which axisIndexes are traversed to list the elements (last one varies fastest) */
+  axis_sequence(): number[] | null {
+    if (this.order === null) return null;
+    const rest: number[] = [];
+    this.axisIndexes.forEach((a, i) => { if (a.spec.type === 'number') rest.push(i); });
+    return rest.concat(this.order); // single-element axes first: they do not change the traversal
   }
   get __slices() {
     return this.axisIndexes.map(idx => idx.indices);
@@ -85,39 +98,50 @@ function __as_range(spec: AxisIndexSpec): { start: number, step: number, nSteps:
   throw new Error(`Expected simple range. Found ${spec.type}`);
 }
 
+/** Order of the surviving axes of a list of axis indexes when no permutation is stored */
+function __natural_order(axisIndexes: AxisIndex[]): number[] {
+  const out: number[] = [];
+  axisIndexes.forEach((a, i) => { if (a.spec.type !== 'number') out.push(i); });
+  return out;
+}
+
 function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): AxesIndex {
-  // `second` was parsed against the apparent shape of `first`.
+  // `second` was parsed against the apparent shape of `first`: each of its items consumes the next
+  // apparent axis of `first`, except the new axes (None / False), which create axes of their own.
   if (first == null) return second;
-  const axisIndexes = [];
-  let j = 0;
-  for (let i = 0; i < first.axisIndexes.length; i++) {
-    const specA = first.axisIndexes[i].spec;
-    if (specA.type == "array") throw new Error(`Expected simple index. Found advanced: ${specA.type}`);
+  const apparent: number[] = first.order !== null ? first.order : __natural_order(first.axisIndexes);
+  const entries: AxisIndex[] = first.axisIndexes.slice();
+  for (const e of entries) if (e.spec.type == "array") throw new Error(`Expected simple index. Found advanced: ${e.spec.type}`);
+  const extra: AxisIndex[] = [];
+  const order: number[] = [];
+  let k = 0;
+  for (const item of second.axisIndexes) {
+    const specB = item.spec;
+    if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
+    if (specB.type == "new" || specB.type === false) { order.push(first.axisIndexes.length + extra.length); extra.push(item); continue; }
+    if (k >= apparent.length) throw new Error(`Programming error: index too short`);
+    const i = apparent[k++], specA = first.axisIndexes[i].spec;
     let spec: AxisIndexSpec;
-    if (specA.type == "number") spec = specA; // axis already removed from the apparent shape
+    if (specB.type == ":") spec = specA;
     else {
-      if (j >= second.axisIndexes.length) throw new Error(`Programming error: index too short`);
-      const specB = second.axisIndexes[j++].spec;
-      if (specB.type == "array") throw new Error(`Expected simple index. Found advanced: ${specB.type}`);
-      if (specB.type == ":") spec = specA;
-      else if (specB.type === false) spec = specB;
-      else if (specB.type == "new") spec = specB;
-      else {
-        const { start: startA, step: stepA, nSteps: nStepsA } = __as_range(specA);
-        if (specB.type == "number") {
-          const index = specB.index;
-          if (index < 0 || index >= nStepsA) throw new Error(`Index ${index} out of bounds [0..${nStepsA})`);
-          spec = { type: "number", index: startA + index * stepA };
-        } else {
-          const { start: startB, step: stepB, nSteps } = specB.range;
-          spec = { type: "range", range: { start: startA + startB * stepA, step: stepA * stepB, nSteps } };
-        }
+      const { start: startA, step: stepA, nSteps: nStepsA } = __as_range(specA);
+      if (specB.type == "number") {
+        const index = specB.index;
+        if (index < 0 || index >= nStepsA) throw new Error(`Index ${index} out of bounds [0..${nStepsA})`);
+        spec = { type: "number", index: startA + index * stepA };
+      } else {
+        const { start: startB, step: stepB, nSteps } = specB.range;
+        spec = { type: "range", range: { start: startA + startB * stepA, step: stepA * stepB, nSteps } };
       }
     }
-    axisIndexes.push(new AxisIndex(spec));
+    entries[i] = new AxisIndex(spec);
+    if (spec.type !== 'number') order.push(i);
   }
-  if (j != second.axisIndexes.length) throw new Error(`Programming error: composed ${j} of ${second.axisIndexes.length} axes`);
-  return new AxesIndex(second.shape, first.internalShape, axisIndexes);
+  if (k != apparent.length) throw new Error(`Programming error: composed ${k} of ${apparent.length} axes`);
+  const all = entries.concat(extra);
+  const nat = __natural_order(all);
+  const natural = nat.length === order.length && nat.every((v, j) => v === order[j]);
+  return new AxesIndex(second.shape, first.internalShape.concat(extra.map(() => 1)), all, natural ? null : order);
 }
 
 
@@ -129,10 +153,13 @@ function __compose_simpleIndexes(first: AxesIndex | null, second: AxesIndex): Ax
  * @param {number[][]} slices 
  * @returns {number[]}
  */
-function __slices_to_indices(shape: number[], slices: number[][]): number[] {
+function __slices_to_indices(shape: number[], slices: number[][], sequence: number[] | null = null): number[] {
   for (let slice of slices) if (slice.length == 0) return [];
-  const shifts = shape_shifts(shape);
-  const iShifts = slices.map((indices, axis) => {
+  const shifts0 = shape_shifts(shape);
+  // traverse the axes in `sequence` (default natural order); the last axis of the sequence varies fastest
+  const seq = sequence === null ? slices.map((_, i) => i) : sequence;
+  const sl = seq.map(i => slices[i]), shifts = seq.map(i => shifts0[i]);
+  const iShifts = sl.map((indices, axis) => {
     // out[i] = How much does the cursor increase if we change from [...,indices[i],...] to [...,indices[(i+1)%n],...]
     let out = [], n = indices.length;
     for (let i = 0; i < n - 1; i++) out.push(shifts[axis] * (indices[i + 1] - indices[i]));
@@ -140,9 +167,9 @@ function __slices_to_indices(shape: number[], slices: number[][]): number[] {
     return out;
   });
   const indices = [];
-  const lastAxis = shape.length - 1;
-  const tuple = new Array(shape.length).fill(0);
-  let cursor = slices.map((l, i) => l[tuple[i]] * shifts[i]).reduce((a, b) => a + b, 0);
+  const lastAxis = seq.length - 1;
+  const tuple = new Array(seq.length).fill(0);
+  let cursor = sl.map((l, i) => l[tuple[i]] * shifts[i]).reduce((a, b) => a + b, 0);
   while (true) {
     if (!isFinite(cursor)) throw new Error(`Programming error`);
     indices.push(cursor);
@@ -417,4 +444,22 @@ AxesIndex.prototype.parse = function (shape: number[], where: Where): AxesIndex 
 
 NDArray.prototype.index = function (...where: GeneralIndexSpec[]) {
   return index(this, where);
+}
+
+/** A view of `arr` with its axes permuted (shares the buffer; writes go through) */
+export function transposed_view(arr: NDArray, axes: number[]): NDArray {
+  const shape = axes.map(j => arr.shape[j]);
+  let axesIndex: AxesIndex;
+  if (arr._simpleIndexes === null) {
+    const axisIndexes = arr.shape.map((n: number) => new AxisIndex({ type: ':', size: n }));
+    axesIndex = new AxesIndex(shape, arr.shape.slice(), axisIndexes, axes.slice());
+  } else {
+    const f = arr._simpleIndexes;
+    const apparent = f.order !== null ? f.order : f.axisIndexes.map((a, i) => i).filter(i => f.axisIndexes[i].spec.type !== 'number');
+    axesIndex = new AxesIndex(shape, f.internalShape, f.axisIndexes, axes.map(a => apparent[a]));
+  }
+  const out = new NDArray(arr._flat, shape, arr.dtype);
+  out._simpleIndexes = axesIndex;
+  if (arr['__warnAssignments']) out['__warnAssignments'] = true;
+  return out;
 }
