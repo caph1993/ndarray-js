@@ -104,7 +104,7 @@ export const intersect1d = signature<typeof sets.intersect1d>()(
   [["ar1", undefined], ["ar2", undefined], ["assume_unique", false], ["return_indices", false]] as const,
   [P.asarray('ar1'), P.asarray('ar2'), boolean('assume_unique', 'return_indices')]);
 export const isin = signature<typeof sets.isin>()(
-  [["element", undefined], ["test_elements", undefined], ["assume_unique", false], ["invert", false]] as const,
+  [["element", undefined], ["test_elements", undefined], ["assume_unique", false], ["invert", false], ["kind", null]] as const,
   [P.asarray('element'), P.asarray('test_elements'), boolean('assume_unique', 'invert')]);
 export const setdiff1d = signature<typeof sets.setdiff1d>()(
   [["ar1", undefined], ["ar2", undefined], ["assume_unique", false]] as const,

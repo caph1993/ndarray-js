@@ -931,6 +931,14 @@ np.char = {
   array: kw([["obj", undefined], ["itemsize", null], ["copy", true], ["unicode", null]], strs.char_array), asarray: kw([["obj", undefined], ["itemsize", null], ["unicode", null]], (obj: any, i: any, u: any) => strs.char_array(obj, i, false, u)),
 };
 (np.char as any).chararray = np.char.array;
+// np.char.partition returns one array with a trailing axis of 3 (np.strings.partition returns a tuple of 3 arrays)
+(np.char as any).partition = kw([["a", undefined], ["sep", undefined]], (a: any, sep: any) => np.stack(strs.partition(a, sep), -1));
+(np.char as any).rpartition = kw([["a", undefined], ["sep", undefined]], (a: any, sep: any) => np.stack(strs.rpartition(a, sep), -1));
+(np.char as any).compare_chararrays = kw([["a1", undefined], ["a2", undefined], ["cmp", undefined], ["rstrip", undefined]], (a1: any, a2: any, cmp: string, rstrip: boolean) => {
+  const f: any = ({ '==': strs.equal, '!=': strs.not_equal, '<': strs.less, '<=': strs.less_equal, '>': strs.greater, '>=': strs.greater_equal } as any)[cmp];
+  if (!f) throw new Error("comparison must be '==', '!=', '<', '>', '<=', '>='");
+  return rstrip ? f(strs.rstrip(a1, null), strs.rstrip(a2, null)) : f(a1, a2);
+});
 
 import * as ioMod from './modules/io';
 import * as cre from './modules/creation';
@@ -1263,3 +1271,20 @@ np.euler_gamma = 0.5772156649015328606065120900824024310421;
 np.newaxis = null;
 
 export { np };
+
+// ==============================
+//   ufunc methods: np.add.reduce, np.add.accumulate, ...
+// ==============================
+import { make_methods, IDENTITIES } from './modules/ufunc';
+for (const name of Object.keys(IDENTITIES)) {
+  const f = (np as any)[name];
+  if (typeof f !== 'function') continue;
+  const m = make_methods(name, (a: any, b: any) => f(a, b), IDENTITIES[name]);
+  f.reduce = kw([["array", undefined], ["axis", 0], ["dtype", null], ["out", null], ["keepdims", false], ["initial", null], ["where", true]], m.reduce);
+  f.accumulate = kw([["array", undefined], ["axis", 0], ["dtype", null], ["out", null]], m.accumulate);
+  f.outer = kw([["A", undefined], ["B", undefined], ["out", null]], m.outer);
+  f.reduceat = kw([["array", undefined], ["indices", undefined], ["axis", 0], ["dtype", null], ["out", null]], m.reduceat);
+  f.at = kw([["a", undefined], ["indices", undefined], ["b", null]], m.at);
+  f.identity = IDENTITIES[name];
+  f.nin = 2; f.nout = 1; f.nargs = 3;
+}

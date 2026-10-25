@@ -111,17 +111,23 @@ export function intersect1d(ar1: NDArray, ar2: NDArray, assume_unique: boolean, 
 }
 
 /** Boolean array (shape of `element`): is each element in test_elements? */
-export function isin(element: NDArray, test_elements: NDArray, assume_unique: boolean, invert: boolean): NDArray {
+/** Hashable key of an element (numbers compare by value, strings by content, complex by both parts) */
+function elem_key(v: any): any {
+  if (typeof v === 'string') return 's' + v;
+  if (v !== null && typeof v === 'object' && 're' in v) return `c${v.re},${v.im}`;
+  return +v;
+}
+export function isin(element: NDArray, test_elements: NDArray, assume_unique: boolean, invert: boolean, kind: string | null = null): NDArray {
+  if (kind !== null && kind !== 'sort' && kind !== 'table') throw new Error(`Invalid kind: '${kind}'. Please use None, 'sort' or 'table'.`);
   element = asarray(element);
   const tf = asarray(test_elements).flat as any;
   const set = new Set<any>();
-  let hasNaN = false;
-  for (let i = 0; i < tf.length; i++) { if (tf[i] !== tf[i]) hasNaN = true; else set.add(+tf[i]); }
+  for (let i = 0; i < tf.length; i++) { const k = elem_key(tf[i]); if (k === k) set.add(k); }
   const f = element.flat as any;
   const buffer = new_buffer(f.length, bool);
   for (let i = 0; i < f.length; i++) {
     const v = f[i];
-    const found = set.has(+v);   // NaN never equals NaN
+    const found = set.has(elem_key(v));   // NaN never equals NaN
     buffer[i] = (found !== invert) ? 1 : 0;
   }
   return new NDArray(buffer, element.shape, bool);
