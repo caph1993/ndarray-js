@@ -590,6 +590,7 @@ export function trim_zeros(filt: NDArray, trim: string, axis: number | number[] 
 export function flip(m: NDArray, axis: number | number[] | null): NDArray {
   m = asarray(m);
   const axes = axis === null ? range(m.shape.length) : as_list(axis).map(ax => normalize_axis(ax, m.shape.length));
+  if (new Set(axes).size !== axes.length) throw new Error('repeated axis');
   return reindex(m, m.shape.map((n, ax) => axes.includes(ax) ? range(n).reverse() : null));
 }
 export function fliplr(m: NDArray): NDArray {

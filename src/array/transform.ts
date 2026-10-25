@@ -42,7 +42,7 @@ export function apply_along_axis(
     else if (m != lane.length) throw new Error(`Inconsistent lane lengths: ${m} and ${lane.length}`);
     lanes[i] = lane;
   }
-  if (m == -1) m = transform(flat.slice(0, 0)).length;
+  if (m == -1) m = transform(new_buffer(n, arr.dtype) as any).length; // no lanes: probe the lane length with a dummy lane
   const dtype = dtype_resolver([arr.dtype], null);
   const buffer = new_buffer(nLanes * m, dtype);
   for (let i = 0; i < nLanes; i++) {
@@ -77,6 +77,8 @@ export function sort(a: NDArray, axis: number) {
 }
 
 export function argsort(a: NDArray, axis: number) {
+  a = asarray(a);
+  if (a.shape.length === 0) return asarray([0]); // numpy treats a scalar as a 1-element array here
   const func = (arr) => {
     const idx = Array.from(arr).map((_: any, i: number) => i);
     idx.sort((i: number, j: number) => cmp_nan_at_the_end(arr[i], arr[j]));

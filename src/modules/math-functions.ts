@@ -90,6 +90,7 @@ export function diff(a: NDArray, n: number, axis: number, prepend: NDArray | nul
   a = asarray(a);
   if (a.shape.length == 0) throw new Error(`diff requires input that is at least one dimensional`);
   if (n < 0) throw new Error(`order must be non-negative but got ${n}`);
+  if (n === 0 && prepend == null && append == null) return a;
   axis = normalize_axis(axis, a.shape.length);
   const parts: NDArray[] = [];
   const as_part = (p: NDArray) => {
@@ -120,6 +121,7 @@ export function diff(a: NDArray, n: number, axis: number, prepend: NDArray | nul
 
 export function ediff1d(ary: NDArray, to_end: NDArray | null, to_begin: NDArray | null): NDArray {
   ary = ravel(asarray(ary));
+  if (ary.dtype === bool) throw new TypeError('numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.');
   const d = diff(ary, 1, 0, null, null);
   const parts: NDArray[] = [];
   if (to_begin != null) parts.push(ravel(asarray(to_begin)));
@@ -159,6 +161,7 @@ function gradient_lane(f: ArrayLike<number>, coords: ArrayLike<number> | number,
 /** Gradient of an N-dimensional array. `varargs` are spacings (numbers) or coordinate arrays, one per axis (or a single one for all). */
 export function gradient(f: NDArray, varargs: any[], axis: AxisArg, edge_order: number): NDArray | NDArray[] {
   f = asarray(f);
+  if (f.dtype === bool) throw new TypeError('numpy boolean subtract, the `-` operator, is not supported, use the bitwise_xor, the `^` operator, or the logical_xor function instead.');
   const nd = f.shape.length;
   if (edge_order != 1 && edge_order != 2) throw new Error(`'edge_order' greater than 2 not supported`);
   const axes = normalize_axes(axis, nd);
@@ -276,6 +279,8 @@ function slice_mode(full: number[], na: number, nv: number, mode: string): numbe
 export function convolve(a: NDArray, v: NDArray, mode: ConvolveMode): NDArray {
   check_mode(mode);
   a = asarray(a); v = asarray(v);
+  if (a.shape.length == 0) a = reshape(a, [1]);
+  if (v.shape.length == 0) v = reshape(v, [1]);
   if (a.shape.length != 1 || v.shape.length != 1) throw new Error(`object too deep for desired array / convolve expects 1-D inputs`);
   if (a.size == 0 || v.size == 0) throw new Error(`${a.size == 0 ? 'a' : 'v'} cannot be empty`);
   const dtype = same_out([a.dtype === bool ? int32 : a.dtype, v.dtype === bool ? int32 : v.dtype].map(d => d));

@@ -112,7 +112,7 @@ export function ascontiguousarray(a: any, dtype: DType | null = null): NDArray {
   if (x.shape.length === 0) x = reshape(x, [1]);
   return x;
 }
-export const asfortranarray = (a: any, dtype: DType | null = null): NDArray => array(a, dtype);
+export const asfortranarray = (a: any, dtype: DType | null = null): NDArray => ascontiguousarray(a, dtype);
 
 export function asarray_chkfinite(a: any, dtype: DType | null = null, order: string | null = null): NDArray {
   const x = asarray(a, dtype);

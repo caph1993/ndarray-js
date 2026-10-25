@@ -244,7 +244,8 @@ export function round(arr: NDArray, decimals: number = 0, out: NDArray | DType =
     const r = (x: number) => decimals >= 0 ? rint_scalar(x * f) / f : rint_scalar(x / f) * f;
     return applyFuncToArray(same_out, (x) => x, arr, out, (z) => new Complex(r(z.re), r(z.im)));
   }
-  if (dtype_is_integer(arr.dtype) || arr.dtype === bool) {
+  if (arr.dtype === bool) return applyFuncToArray(unary_float_out, (x) => x, arr, out); // numpy gives float16
+  if (dtype_is_integer(arr.dtype)) {
     // Integers are unchanged for decimals >= 0
     if (decimals >= 0) return applyFuncToArray(same_out, (x) => x, arr, out);
     const f = Math.pow(10, -decimals);

@@ -514,10 +514,12 @@ export function digitize(x: NDArray, bins: NDArray, right: boolean): NDArray {
     if (increasing) {
       // right=False: i such that bins[i-1] <= x < bins[i]  -> searchsorted(bins, x, side='right')
       while (lo < hi) { const mid = (lo + hi) >> 1; if (right ? b[mid] < v : b[mid] <= v) lo = mid + 1; else hi = mid; }
+      buffer[k] = lo;
     } else {
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (right ? b[mid] > v : b[mid] >= v) lo = mid + 1; else hi = mid; }
+      // reversed bins searched, result inverted (as numpy)
+      while (lo < hi) { const mid = (lo + hi) >> 1; if (right ? b[n - 1 - mid] < v : b[n - 1 - mid] <= v) lo = mid + 1; else hi = mid; }
+      buffer[k] = n - lo;
     }
-    buffer[k] = lo;
   }
   return new NDArray(buffer, x.shape, int32);
 }
