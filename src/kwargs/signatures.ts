@@ -1,3 +1,5 @@
+import { isarray } from "../NDArray";
+import * as constructors_mod from "../modules/constructors";
 //@ts-check
 /**
  * Keyword-argument signatures (see `signature` in kwargs.ts) for the functions registered in index.ts.
@@ -231,9 +233,9 @@ export const full_like = signature<typeof manip.full_like>()(
   [["a", undefined], ["fill_value", undefined], ["dtype", null], ["shape", null]] as const, [P.asarray('a'), P.dtype_or_null, shape_arg], { keep_weak: ["fill_value"] });
 export const like = signature<typeof manip.zeros_like>()(
   [["a", undefined], ["dtype", null], ["shape", null]] as const, [P.asarray('a'), P.dtype_or_null, shape_arg]);
-export const logspace = signature<typeof manip.logspace>()(
-  [["start", undefined], ["stop", undefined], ["num", 50], ["endpoint", true], ["base", 10.0], ["dtype", null]] as const,
-  [P.as_number('start'), P.as_number('stop'), P.dtype_or_null, boolean('endpoint')]);
+export const logspace = signature<typeof constructors_mod.logspace>()(
+  [["start", undefined], ["stop", undefined], ["num", 50], ["endpoint", true], ["base", 10.0], ["dtype", null], ["axis", 0]] as const,
+  [(kwargs: any) => { for (const k of ['start', 'stop']) { const v = kwargs[k]; if (isarray(v) && v.shape.length === 0) kwargs[k] = v.item(); else if (Array.isArray(v) || isarray(v)) kwargs[k] = asarray(v); } }, P.dtype_or_null, boolean('endpoint')]);
 export const meshgrid = signature<typeof manip.meshgrid>()(
   [["...xi", []], ["indexing", 'xy'], ["sparse", false], ["copy", true]] as const, [as_array_list('xi'), boolean('sparse', 'copy')]);
 export const grid = signature<(specs: any[]) => any>()(
@@ -394,3 +396,11 @@ export const busdaycalendar = signature<(weekmask?: any, holidays?: any) => date
 export const group_by = signature<typeof sets.group_by>()(
   [["keys", undefined], ["values", null], ["axis", 0], ["func", null]] as const,
   [P.asarray('keys'), asarray_if_not_null('values')]);
+
+const check_kind = (kwargs: any) => {
+  if (kwargs.kind != null && !['quicksort', 'mergesort', 'heapsort', 'stable'].includes(kwargs.kind)) throw new Error(`sort kind must be one of 'quicksort', 'mergesort', 'heapsort', 'stable'`);
+  if (kwargs.kind != null && kwargs.stable != null) throw new Error(``+"`kind` and `stable` parameters can't be provided at the same time. Use only one of them.");
+};
+/** sort / argsort: kind, order and stable are accepted (the sort is always stable) */
+export const sort_ = signature<(a: any, axis: number) => import("../NDArray").NDArray>()(
+  [["a", undefined], ["axis", -1], ["kind", null], ["order", null], ["stable", null]] as const, [check_kind, P['a_axis_flatten']]);

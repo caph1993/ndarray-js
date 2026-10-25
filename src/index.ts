@@ -138,9 +138,9 @@ np.transpose = sig.transpose.func(array.transpose);
 np.apply_along_axis = sig.apply_along_axis.func((func1d, axis, arr, args) => array.apply_along_axis_func(func1d, axis, arr, args));
 
 /** @category Sorting */
-np.sort = Func_a_lastAxis.decorate(array.sort);
+np.sort = sig.sort_.func((a: any, axis: any) => array.sort(a, axis));
 /** @category Sorting */
-np.argsort = Func_a_lastAxis.decorate(array.argsort);
+np.argsort = sig.sort_.func((a: any, axis: any) => array.argsort(a, axis));
 /** Sorts along the last axis, with complex values: sorted by real part, then imaginary part. @category Sorting */
 np.sort_complex = (a: any) => np.sort(asarray(asarray(a), 'complex128'), -1);
 /** @category Sorting */
@@ -535,7 +535,7 @@ np.ones_like = sig.like.func(manip.ones_like);
 /** @category Constructors */
 np.empty_like = sig.like.func(manip.empty_like);
 /** @category Constructors */
-np.logspace = sig.logspace.func(manip.logspace);
+np.logspace = sig.logspace.func(constructors.logspace);
 /** @category Constructors */
 np.vander = sig.vander.func(manip.vander);
 /** @category Constructors */

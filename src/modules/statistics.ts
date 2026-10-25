@@ -345,7 +345,9 @@ export function histogram_bin_edges(a: NDArray, bins: number | string | NDArray 
     if (range) x = x.filter(v => v >= lo && v <= hi);
     let n_equal = 1;
     if (x.length > 0) {
-      const w = bin_width(bins, x, hi - lo);
+      let mn = Infinity, mx = -Infinity;
+      for (const v of x) { if (v < mn) mn = v; if (v > mx) mx = v; }
+      const w = bin_width(bins, x, mx - mn); // numpy uses the spread of the (range-restricted) data, not of the range
       n_equal = w > 0 ? Math.max(1, Math.ceil((hi - lo) / w)) : 1;
     }
     return linspace_edges(lo, hi, n_equal);
