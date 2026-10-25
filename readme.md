@@ -67,7 +67,7 @@ Check the [documentation website](https://caph1993.github.io/ndarray-js/) for de
  - Dtypes: bool, int8-int64, uint8-uint64 (64-bit integers are stored as JS doubles, exact up to 2**53), float16/32/64, complex64/128 and object (plus string arrays). There is no datetime64 (the business-day functions take and return `'YYYY-MM-DD'` strings).
    `sum`, `prod` and `cumsum` of ints/bools are `int64`, like in numpy.
  - JS numbers do not distinguish `2` from `2.0`: `np.array([1, 2])` is `int32`. Inside the template parser, float literals are kept as floats: ``np`np.array([1., 2])` `` is `float64`.
- - 0-d results are returned as plain JS numbers/booleans.
+ - 0-d results are returned as plain JS numbers/booleans (inside the template parser they stay typed 0-d arrays, so `np`np.arange(3) - np.arange(3).mean()`` is float, as in numpy).
  - Reducers take `keepdims` as the third argument: `x.sum(axis, keepdims, dtype, out)`.
  - Indexing with several lists/masks is orthogonal (one per axis) instead of numpy's "zipped" fancy indexing.
  - Python scalars are "weak" as in numpy 2: `np.array([1, 2], 'float32') + 1.5` stays `float32`.
@@ -81,8 +81,12 @@ NDARRAYJS_PYTHON=/path/to/venv/bin/python npx vitest run   # python with numpy i
 ```
 
 The tests in `tests/numpy/` evaluate the same numpy expression with python/numpy and with ndarray-js
-(through its numpy-syntax parser) and compare values, shapes and dtype kinds.
-They are skipped when numpy is not available.
+(through its numpy-syntax parser) and compare values, shapes and dtype kinds (and that both raise on invalid input).
+They are skipped when numpy is not available. Besides hand-written cases there are generated matrices
+(every ufunc x dtypes x broadcasting, every reduction x axes/keepdims, ...), random expression chains
+(`tests/tools/gen_fuzz.py`) and random indexed assignments through views (`tests/tools/gen_fuzz_assign.py`).
+`tests/types/` holds type-level checks of the public API (`npm run typecheck`), `tests/unit/` JS-only behaviour and
+performance sanity checks.
 
 ## ToDo
 
