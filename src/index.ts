@@ -1288,3 +1288,7 @@ for (const name of Object.keys(IDENTITIES)) {
   f.identity = IDENTITIES[name];
   f.nin = 2; f.nout = 1; f.nargs = 3;
 }
+
+// numpy.linalg.trace / diagonal act on the last two axes
+(np.linalg as any).trace = kw([["x", undefined], ["offset", 0], ["dtype", null]], (x: any, offset: number, dtype: any) => np.trace(x, offset, -2, -1, dtype));
+(np.linalg as any).diagonal = kw([["x", undefined], ["offset", 0]], (x: any, offset: number) => np.diagonal(x, offset, -2, -1));
