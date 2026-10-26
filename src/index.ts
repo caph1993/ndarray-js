@@ -861,7 +861,7 @@ np.promote_types = kw([["type1", undefined], ["type2", undefined]], dtu.promote_
 /** @category Types */
 np.result_type = (...args: any[]) => dtu.result_type(...args);
 /** @category Types */
-np.min_scalar_type = kw([["a", undefined]], dtu.min_scalar_type);
+np.min_scalar_type = (a: any) => dtu.min_scalar_type(a); // keeps typed 0-d arrays (np.float32(1) needs a float type)
 /** @category Types */
 np.common_type = (...arrays: any[]) => dtu.common_type(...arrays);
 /** @category Types */

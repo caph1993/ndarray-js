@@ -170,7 +170,9 @@ export function apply_binary_operation(
   else if (sameA && B.size == 1) { const b = flatB[0]; for (let i = 0; i < n; i++) buffer[i] = func(flatA[i], b); }
   else if (sameB && A.size == 1) { const a = flatA[0]; for (let i = 0; i < n; i++) buffer[i] = func(a, flatB[i]); }
   else map_broadcast2(shape, broadcast_strides(shape, shapeA), broadcast_strides(shape, shapeB), flatA, flatB, func, buffer);
-  return finish_output(buffer, shape, dtype, out);
+  const res = finish_output(buffer, shape, dtype, out);
+  if (A._weak && B._weak && out == null) res._weak = true; // python scalar (op) python scalar is a python scalar
+  return res;
 }
 
 function fix_mod(a: number, b: number) {

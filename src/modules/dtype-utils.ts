@@ -1,4 +1,4 @@
-import { is_cx } from '../dtypes';
+import { is_cx, TYPE_BY_NAME } from '../dtypes';
 //@ts-check
 /**
  * numpy dtype utilities: np.dtype, can_cast, promote_types, result_type, finfo, iinfo, issubdtype, ...
@@ -103,14 +103,20 @@ export function result_type(...args: any[]): DType_ {
   if (result === null) {
     result = top === 'b' ? BY_NAME.bool : top === 'i' ? BY_NAME.int64 : top === 'f' ? BY_NAME.float64 : BY_NAME.complex128;
   } else if (top === 'c' && result.kind !== 'c') {
-    result = result.kind === 'f' ? by('c', result.bits * 2) : BY_NAME.complex128;
+    result = result.kind === 'f' ? (result.bits <= 32 ? BY_NAME.complex64 : BY_NAME.complex128) : BY_NAME.complex128;
   } else if (top === 'f' && (result.kind === 'b' || result.kind === 'i' || result.kind === 'u')) result = BY_NAME.float64;
   else if (top === 'i' && result.kind === 'b') result = BY_NAME.int64;
   return new DType_(result);
 }
 
 export function min_scalar_type(a: any): DType_ {
-  if (isarray(a)) { if (a.size !== 1 && a.shape.length) return new DType_(a.dtype); a = a.item(); }
+  let kind: string | null = null;
+  if (isarray(a)) { if (a.size !== 1 && a.shape.length) return new DType_(a.dtype); kind = a._weak && a.dtype !== 'float64' ? null : TYPE_BY_NAME[a.dtype].kind; a = a.item(); }
+  if (kind === 'f' && typeof a === "number") { // a float (even with an integer value) needs a float type
+    const abs = Math.abs(a);
+    if (!Number.isFinite(a) || abs < 65520) return new DType_(BY_NAME.float16);
+    return new DType_(abs < 3.4028235677973366e+38 ? BY_NAME.float32 : BY_NAME.float64);
+  }
   if (typeof a === "boolean") return new DType_(BY_NAME.bool);
   if (a instanceof Complex) return new DType_(Math.max(Math.abs(a.re), Math.abs(a.im)) < 65504 ? BY_NAME.complex64 : BY_NAME.complex128);
   if (typeof a === "number") {
